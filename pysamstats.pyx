@@ -11,6 +11,7 @@ import math
 # 3rd party imports
 from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy, Fastafile
 import numpy as np
+from libc.math cimport sqrt
 
 
 cdef class AggStrnd:
@@ -593,8 +594,10 @@ class IsizeStatsTable(object):
 
 
 cdef root_mean(a):
-    if len(a) > 0:
-        return math.sqrt(sum(a)/len(a))
+    cdef int n
+    n = len(a)
+    if n > 0:
+        return sqrt(np.sum(a)/n)
     else:
         return 0
 
@@ -630,20 +633,27 @@ cpdef build_isize_stats(PileupProxy col):
         # store for computation
         arr[ri] = (tlen, is_proper_pair, is_reverse, mate_is_unmapped)
         
-        # pass reads to aggregators
+        # pass reads to other aggregators
         agg_reads.add(read, aln, is_proper_pair, is_reverse)
         
     sqtlen = arr.tlen**2
     # ignore values where tlen is so ridiculously large that won't fit in 4 bytes
     arr = arr[sqtlen >= 0]
     sqtlen = sqtlen[sqtlen >= 0]
-        
-    rms_tlen = root_mean(sqtlen[arr.mate_is_unmapped != True])
-    rms_tlen_fwd = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse != True)])
-    rms_tlen_rev = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse)])
-    rms_tlen_pp = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_proper_pair)])
-    rms_tlen_pp_fwd = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse != True) & (arr.is_proper_pair)])
-    rms_tlen_pp_rev = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse) & (arr.is_proper_pair)])
+    
+    filter_mate_is_mapped = arr.mate_is_unmapped != True
+    filter_mate_is_mapped_fwd = filter_mate_is_mapped & (arr.is_reverse != True)
+    filter_mate_is_mapped_rev = filter_mate_is_mapped & arr.is_reverse
+    filter_mate_is_mapped_pp = filter_mate_is_mapped & arr.is_proper_pair
+    filter_mate_is_mapped_pp_rev = filter_mate_is_mapped_pp & arr.is_reverse
+    filter_mate_is_mapped_pp_fwd = filter_mate_is_mapped_pp & (arr.is_reverse != True)
+    
+    rms_tlen = root_mean(sqtlen[filter_mate_is_mapped])
+    rms_tlen_fwd = root_mean(sqtlen[filter_mate_is_mapped_fwd])
+    rms_tlen_rev = root_mean(sqtlen[filter_mate_is_mapped_rev])
+    rms_tlen_pp = root_mean(sqtlen[filter_mate_is_mapped_pp])
+    rms_tlen_pp_fwd = root_mean(sqtlen[filter_mate_is_mapped_pp_fwd])
+    rms_tlen_pp_rev = root_mean(sqtlen[filter_mate_is_mapped_pp_rev])
             
     # construct output row
     data = {
