@@ -11,6 +11,7 @@ import math
 # 3rd party imports
 from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy, Fastafile
 import numpy as np
+cimport numpy as np
 from libc.math cimport sqrt
 
 
@@ -542,7 +543,7 @@ cpdef build_variation_stats(PileupProxy col, ref):
     return data 
     
 
-class IsizeStatsTable(object):
+class TlenStatsTable(object):
     
     def __init__(self, samfn, chr=None, start=None, end=None):
         self.samfn = samfn
@@ -566,12 +567,12 @@ class IsizeStatsTable(object):
                               'rms_tlen_pp',
                               'rms_tlen_pp_fwd',
                               'rms_tlen_pp_rev',
-#                              'stdev_tlen',
-#                              'stdev_tlen_fwd',
-#                              'stdev_tlen_rev',
-#                              'stdev_tlen_pp',
-#                              'stdev_tlen_pp_fwd',
-#                              'stdev_tlen_pp_rev',
+                              'std_tlen',
+                              'std_tlen_fwd',
+                              'std_tlen_rev',
+                              'std_tlen_pp',
+                              'std_tlen_pp_fwd',
+                              'std_tlen_pp_rev',
                               ]
         header = fixed_variables + computed_variables
         yield header
@@ -588,21 +589,12 @@ class IsizeStatsTable(object):
             row = [chr, pos, col.n] 
             
             # computed variables
-            data = build_isize_stats(col)
+            data = build_tlen_stats(col)
             row.extend(data[v] for v in computed_variables) 
             yield row
 
 
-cdef root_mean(a):
-    cdef int n
-    n = len(a)
-    if n > 0:
-        return sqrt(np.sum(a)/n)
-    else:
-        return 0
-
-
-cpdef build_isize_stats(PileupProxy col):
+cpdef build_tlen_stats(PileupProxy col):
     cdef int n = col.n
     cdef int ri
     cdef bint is_proper_pair
@@ -640,6 +632,7 @@ cpdef build_isize_stats(PileupProxy col):
     # ignore values where tlen is so ridiculously large that won't fit in 4 bytes
     arr = arr[sqtlen >= 0]
     sqtlen = sqtlen[sqtlen >= 0]
+    tlen = arr.tlen
     
     filter_mate_is_mapped = arr.mate_is_unmapped != True
     filter_mate_is_mapped_fwd = filter_mate_is_mapped & (arr.is_reverse != True)
@@ -648,13 +641,20 @@ cpdef build_isize_stats(PileupProxy col):
     filter_mate_is_mapped_pp_rev = filter_mate_is_mapped_pp & arr.is_reverse
     filter_mate_is_mapped_pp_fwd = filter_mate_is_mapped_pp & (arr.is_reverse != True)
     
-    rms_tlen = root_mean(sqtlen[filter_mate_is_mapped])
-    rms_tlen_fwd = root_mean(sqtlen[filter_mate_is_mapped_fwd])
-    rms_tlen_rev = root_mean(sqtlen[filter_mate_is_mapped_rev])
-    rms_tlen_pp = root_mean(sqtlen[filter_mate_is_mapped_pp])
-    rms_tlen_pp_fwd = root_mean(sqtlen[filter_mate_is_mapped_pp_fwd])
-    rms_tlen_pp_rev = root_mean(sqtlen[filter_mate_is_mapped_pp_rev])
-            
+    rms_tlen = sqrt(np.mean(sqtlen[filter_mate_is_mapped]))
+    rms_tlen_fwd = sqrt(np.mean(sqtlen[filter_mate_is_mapped_fwd]))
+    rms_tlen_rev = sqrt(np.mean(sqtlen[filter_mate_is_mapped_rev]))
+    rms_tlen_pp = sqrt(np.mean(sqtlen[filter_mate_is_mapped_pp]))
+    rms_tlen_pp_fwd = sqrt(np.mean(sqtlen[filter_mate_is_mapped_pp_fwd]))
+    rms_tlen_pp_rev = sqrt(np.mean(sqtlen[filter_mate_is_mapped_pp_rev]))
+
+    std_tlen = np.std(tlen[filter_mate_is_mapped])
+    std_tlen_fwd = np.std(tlen[filter_mate_is_mapped_fwd])
+    std_tlen_rev = np.std(tlen[filter_mate_is_mapped_rev])
+    std_tlen_pp = np.std(tlen[filter_mate_is_mapped_pp])
+    std_tlen_pp_fwd = np.std(tlen[filter_mate_is_mapped_pp_fwd])
+    std_tlen_pp_rev = np.std(tlen[filter_mate_is_mapped_pp_rev])
+                
     # construct output row
     data = {
             'reads': agg_reads.all,
@@ -669,5 +669,11 @@ cpdef build_isize_stats(PileupProxy col):
             'rms_tlen_pp': rms_tlen_pp,
             'rms_tlen_pp_fwd': rms_tlen_pp_fwd,
             'rms_tlen_pp_rev': rms_tlen_pp_rev,
+            'std_tlen': std_tlen,
+            'std_tlen_fwd': std_tlen_fwd,
+            'std_tlen_rev': std_tlen_rev,
+            'std_tlen_pp': std_tlen_pp,
+            'std_tlen_pp_fwd': std_tlen_pp_fwd,
+            'std_tlen_pp_rev': std_tlen_pp_rev,
             }
     return data
