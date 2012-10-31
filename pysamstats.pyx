@@ -6,10 +6,11 @@ TODO doc me
 """
 
 # standard library imports
-
+import math
 
 # 3rd party imports
 from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy, Fastafile
+import numpy as np
 
 
 cdef class AggStrnd:
@@ -357,7 +358,6 @@ class CoverageStatsTable(object):
             yield row
 
 
-
 class VariationStatsTable(object):
     
     def __init__(self, samfn, fafn, chr=None, start=None, end=None):
@@ -540,3 +540,124 @@ cpdef build_variation_stats(PileupProxy col, ref):
         data.update(dict_pp_strnd_counts(empty, 'mismatches'))
     return data 
     
+
+class IsizeStatsTable(object):
+    
+    def __init__(self, samfn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+
+        # define header
+        fixed_variables = ['chr', 'pos', 'reads']
+        computed_variables = [
+                              'reads_fwd', 
+                              'reads_rev',
+                              'reads_pp',
+                              'reads_pp_fwd',
+                              'reads_pp_rev',
+                              'rms_tlen',
+                              'rms_tlen_fwd',
+                              'rms_tlen_rev',
+                              'rms_tlen_pp',
+                              'rms_tlen_pp_fwd',
+                              'rms_tlen_pp_rev',
+#                              'stdev_tlen',
+#                              'stdev_tlen_fwd',
+#                              'stdev_tlen_rev',
+#                              'stdev_tlen_pp',
+#                              'stdev_tlen_pp_fwd',
+#                              'stdev_tlen_pp_rev',
+                              ]
+        header = fixed_variables + computed_variables
+        yield header
+        
+        # open sam file
+        sam = Samfile(self.samfn)
+        
+        # run pileup
+        for col in sam.pileup(self.chr, self.start, self.end):
+            
+            # fixed variables            
+            chr = sam.getrname(col.tid)
+            pos = col.pos + 1 # 1-based
+            row = [chr, pos, col.n] 
+            
+            # computed variables
+            data = build_isize_stats(col)
+            row.extend(data[v] for v in computed_variables) 
+            yield row
+
+
+cdef root_mean(a):
+    if len(a) > 0:
+        return math.sqrt(sum(a)/len(a))
+    else:
+        return 0
+
+
+cpdef build_isize_stats(PileupProxy col):
+    cdef int n = col.n
+    cdef int ri
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef bint mate_is_unmapped
+    cdef PileupRead read
+    cdef AlignedRead aln
+
+    # create aggregators
+    agg_reads = AggReads(n)
+    
+    # access reads
+    reads = col.pileups
+
+    arr = np.empty((n,), dtype=[('tlen', np.int32), ('is_proper_pair', np.bool), ('is_reverse', np.bool), ('mate_is_unmapped', np.bool)]).view(np.recarray)
+    
+    # iterate over reads in the column
+    for ri in range(n):
+        read = reads[ri]
+        aln = read.alignment
+        
+        # optimisation - access these now so done only once
+        tlen = aln.tlen
+        is_proper_pair = aln.is_proper_pair
+        is_reverse = aln.is_reverse
+        mate_is_unmapped = aln.mate_is_unmapped
+        
+        # store for computation
+        arr[ri] = (tlen, is_proper_pair, is_reverse, mate_is_unmapped)
+        
+        # pass reads to aggregators
+        agg_reads.add(read, aln, is_proper_pair, is_reverse)
+        
+    sqtlen = arr.tlen**2
+    # ignore values where tlen is so ridiculously large that won't fit in 4 bytes
+    arr = arr[sqtlen >= 0]
+    sqtlen = sqtlen[sqtlen >= 0]
+        
+    rms_tlen = root_mean(sqtlen[arr.mate_is_unmapped != True])
+    rms_tlen_fwd = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse != True)])
+    rms_tlen_rev = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse)])
+    rms_tlen_pp = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_proper_pair)])
+    rms_tlen_pp_fwd = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse != True) & (arr.is_proper_pair)])
+    rms_tlen_pp_rev = root_mean(sqtlen[(arr.mate_is_unmapped != True) & (arr.is_reverse) & (arr.is_proper_pair)])
+            
+    # construct output row
+    data = {
+            'reads': agg_reads.all,
+            'reads_fwd': agg_reads.fwd,
+            'reads_rev': agg_reads.rev,
+            'reads_pp': agg_reads.pp,
+            'reads_pp_fwd': agg_reads.pp_fwd,
+            'reads_pp_rev': agg_reads.pp_rev,
+            'rms_tlen': rms_tlen,
+            'rms_tlen_fwd': rms_tlen_fwd,
+            'rms_tlen_rev': rms_tlen_rev,
+            'rms_tlen_pp': rms_tlen_pp,
+            'rms_tlen_pp_fwd': rms_tlen_pp_fwd,
+            'rms_tlen_pp_rev': rms_tlen_pp_rev,
+            }
+    return data
