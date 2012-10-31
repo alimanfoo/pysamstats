@@ -31,3 +31,4 @@ spike*
 *.c
 *.html
 *~
+*.prof
