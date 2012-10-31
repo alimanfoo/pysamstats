@@ -677,3 +677,292 @@ cpdef build_tlen_stats(PileupProxy col):
             'std_tlen_pp_rev': std_tlen_pp_rev,
             }
     return data
+
+
+class MapqStatsTable(object):
+    
+    def __init__(self, samfn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+
+        # define header
+        fixed_variables = ['chr', 'pos', 'reads']
+        computed_variables = [
+                              'reads_fwd', 
+                              'reads_rev',
+                              'reads_pp',
+                              'reads_pp_fwd',
+                              'reads_pp_rev',
+                              'rms_mapq',
+                              'rms_mapq_fwd',
+                              'rms_mapq_rev',
+                              'rms_mapq_pp',
+                              'rms_mapq_pp_fwd',
+                              'rms_mapq_pp_rev',
+                              'max_mapq',
+                              'max_mapq_fwd',
+                              'max_mapq_rev',
+                              'max_mapq_pp',
+                              'max_mapq_pp_fwd',
+                              'max_mapq_pp_rev',
+                              'reads_mapq0',
+                              'reads_mapq0_fwd',
+                              'reads_mapq0_rev',
+                              'reads_mapq0_pp',
+                              'reads_mapq0_pp_fwd',
+                              'reads_mapq0_pp_rev',
+                              ]
+        header = fixed_variables + computed_variables
+        yield header
+        
+        # open sam file
+        sam = Samfile(self.samfn)
+        
+        # run pileup
+        for col in sam.pileup(self.chr, self.start, self.end):
+            
+            # fixed variables            
+            chr = sam.getrname(col.tid)
+            pos = col.pos + 1 # 1-based
+            row = [chr, pos, col.n] 
+            
+            # computed variables
+            data = build_mapq_stats(col)
+            row.extend(data[v] for v in computed_variables) 
+            yield row
+
+
+cdef int amax(a):
+    cdef int n = len(a)
+    if n > 0:
+        return np.amax(a)
+    else:
+        return 0
+
+
+cdef class AggReadsMapq0:
+    cdef int n
+    cdef int all
+    cdef int fwd
+    cdef int rev
+    cdef int pp
+    cdef int pp_fwd
+    cdef int pp_rev
+    
+    def __cinit__(self, n):
+        self.n = n
+        self.all = 0
+        self.fwd = 0
+        self.rev = 0
+        self.pp = 0
+        self.pp_fwd = 0
+        self.pp_rev = 0
+    
+    cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, int mapq):
+        if mapq == 0:
+            self.all += 1
+            if is_reverse:
+                self.rev += 1
+                if is_proper_pair:
+                    self.pp += 1
+                    self.pp_rev += 1
+            else:
+                self.fwd += 1
+                if is_proper_pair:
+                    self.pp += 1
+                    self.pp_fwd += 1
+        
+
+cpdef build_mapq_stats(PileupProxy col):
+    cdef int n = col.n
+    cdef int ri
+    cdef int mapq
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef PileupRead read
+    cdef AlignedRead aln
+
+    # create aggregators
+    agg_reads = AggReads(n)
+    agg_reads_mapq0 = AggReadsMapq0(n)
+    
+    # access reads
+    reads = col.pileups
+
+    arr = np.empty((n,), 
+                   dtype=[('mapq', np.uint8), 
+                          ('is_proper_pair', np.bool), 
+                          ('is_reverse', np.bool)])
+    arr = arr.view(np.recarray)
+    
+    # iterate over reads in the column
+    for ri in range(n):
+        read = reads[ri]
+        aln = read.alignment
+        
+        # optimisation - access these now so done only once
+        mapq = aln.mapq
+        is_proper_pair = aln.is_proper_pair
+        is_reverse = aln.is_reverse
+        
+        # store for computation
+        arr[ri] = (mapq, is_proper_pair, is_reverse)
+        
+        # pass reads to other aggregators
+        agg_reads.add(read, aln, is_proper_pair, is_reverse)
+        agg_reads_mapq0.add(read, aln, is_proper_pair, is_reverse, mapq)
+        
+    sqmapq = arr.mapq**2
+    
+    filter_fwd = arr.is_reverse != True
+    filter_rev = arr.is_reverse
+    filter_pp = arr.is_proper_pair
+    filter_pp_rev = filter_pp & filter_rev
+    filter_pp_fwd = filter_pp & filter_fwd
+    
+    rms_mapq = sqrt(np.mean(sqmapq))
+    rms_mapq_fwd = sqrt(np.mean(sqmapq[filter_fwd]))
+    rms_mapq_rev = sqrt(np.mean(sqmapq[filter_rev]))
+    rms_mapq_pp = sqrt(np.mean(sqmapq[filter_pp]))
+    rms_mapq_pp_fwd = sqrt(np.mean(sqmapq[filter_pp_fwd]))
+    rms_mapq_pp_rev = sqrt(np.mean(sqmapq[filter_pp_rev]))
+
+    max_mapq = amax(arr.mapq)
+    max_mapq_fwd = amax(arr.mapq[filter_fwd])
+    max_mapq_rev = amax(arr.mapq[filter_rev])
+    max_mapq_pp = amax(arr.mapq[filter_pp])
+    max_mapq_pp_fwd = amax(arr.mapq[filter_pp_fwd])
+    max_mapq_pp_rev = amax(arr.mapq[filter_pp_rev])
+    
+    # construct output row
+    data = {
+            'reads': agg_reads.all,
+            'reads_fwd': agg_reads.fwd,
+            'reads_rev': agg_reads.rev,
+            'reads_pp': agg_reads.pp,
+            'reads_pp_fwd': agg_reads.pp_fwd,
+            'reads_pp_rev': agg_reads.pp_rev,
+            'rms_mapq': rms_mapq,
+            'rms_mapq_fwd': rms_mapq_fwd,
+            'rms_mapq_rev': rms_mapq_rev,
+            'rms_mapq_pp': rms_mapq_pp,
+            'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
+            'rms_mapq_pp_rev': rms_mapq_pp_rev,
+            'max_mapq': max_mapq,
+            'max_mapq_fwd': max_mapq_fwd,
+            'max_mapq_rev': max_mapq_rev,
+            'max_mapq_pp': max_mapq_pp,
+            'max_mapq_pp_fwd': max_mapq_pp_fwd,
+            'max_mapq_pp_rev': max_mapq_pp_rev,
+            'reads_mapq0': agg_reads_mapq0.all,
+            'reads_mapq0_fwd': agg_reads_mapq0.fwd,
+            'reads_mapq0_rev': agg_reads_mapq0.rev,
+            'reads_mapq0_pp': agg_reads_mapq0.pp,
+            'reads_mapq0_pp_fwd': agg_reads_mapq0.pp_fwd,
+            'reads_mapq0_pp_rev': agg_reads_mapq0.pp_rev,
+            }
+    return data
+
+
+class BaseqStatsTable(object):
+    
+    def __init__(self, samfn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+
+        # define header
+        fixed_variables = ['chr', 'pos', 'reads']
+        computed_variables = [
+                              'rms_baseq',
+                              'rms_baseq_fwd',
+                              'rms_baseq_rev',
+                              'rms_baseq_pp',
+                              'rms_baseq_pp_fwd',
+                              'rms_baseq_pp_rev',
+                              ]
+        header = fixed_variables + computed_variables
+        yield header
+        
+        # open sam file
+        sam = Samfile(self.samfn)
+        
+        # run pileup
+        for col in sam.pileup(self.chr, self.start, self.end):
+            
+            # fixed variables            
+            chr = sam.getrname(col.tid)
+            pos = col.pos + 1 # 1-based
+            row = [chr, pos, col.n] 
+            
+            # computed variables
+            data = build_baseq_stats(col)
+            row.extend(data[v] for v in computed_variables) 
+            yield row
+
+
+cpdef build_baseq_stats(PileupProxy col):
+    cdef int n = col.n
+    cdef int ri
+    cdef int baseq
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef PileupRead read
+    cdef AlignedRead aln
+
+    # access reads
+    reads = col.pileups
+
+    arr = np.empty((n,), 
+                   dtype=[('baseq', np.uint8), 
+                          ('is_proper_pair', np.bool), 
+                          ('is_reverse', np.bool)])
+    arr = arr.view(np.recarray)
+    
+    # iterate over reads in the column
+    for ri in range(n):
+        read = reads[ri]
+        aln = read.alignment
+        
+        # optimisation - access these now so done only once
+        baseq = ord(aln.qual[read.qpos])-33
+        is_proper_pair = aln.is_proper_pair
+        is_reverse = aln.is_reverse
+        
+        # store for computation
+        arr[ri] = (baseq, is_proper_pair, is_reverse)
+        
+    sqbaseq = arr.baseq**2
+    
+    filter_fwd = arr.is_reverse != True
+    filter_rev = arr.is_reverse
+    filter_pp = arr.is_proper_pair
+    filter_pp_rev = filter_pp & filter_rev
+    filter_pp_fwd = filter_pp & filter_fwd
+    
+    rms_baseq = sqrt(np.mean(sqbaseq))
+    rms_baseq_fwd = sqrt(np.mean(sqbaseq[filter_fwd]))
+    rms_baseq_rev = sqrt(np.mean(sqbaseq[filter_rev]))
+    rms_baseq_pp = sqrt(np.mean(sqbaseq[filter_pp]))
+    rms_baseq_pp_fwd = sqrt(np.mean(sqbaseq[filter_pp_fwd]))
+    rms_baseq_pp_rev = sqrt(np.mean(sqbaseq[filter_pp_rev]))
+
+    # construct output row
+    data = {
+            'rms_baseq': rms_baseq,
+            'rms_baseq_fwd': rms_baseq_fwd,
+            'rms_baseq_rev': rms_baseq_rev,
+            'rms_baseq_pp': rms_baseq_pp,
+            'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
+            'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            }
+    return data
+
+
