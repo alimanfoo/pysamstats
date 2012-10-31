@@ -1,8 +1,16 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
+import pysam, os
 
-ext_modules = [Extension("pysamstats", ["pysamstats.pyx"])]
+pysam_dirname = os.path.dirname(pysam.__file__)[:-len('pysam')]
+ext_modules = [
+    Extension(name="pysamstats", 
+              sources=["pysamstats.pyx"],
+              include_dirs=['pysam', 'samtools']
+              )
+
+]
 
 setup(
   name = 'pysamstats',
