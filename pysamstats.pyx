@@ -9,10 +9,35 @@ TODO doc me
 
 
 # 3rd party imports
-from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy
+from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy, Fastafile
 
 
-cdef class CountAggregator:
+cdef class AggStrnd:
+    cdef int n
+    cdef int all
+    cdef int fwd
+    cdef int rev
+    
+    def __cinit__(self, n):
+        self.n = n
+        self.all = 0
+        self.fwd = 0
+        self.rev = 0
+    
+    # to be overridden in subclasses    
+    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
+        return 0
+
+    cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
+        if self.test(read, aln, is_proper_pair, is_reverse):
+            self.all += 1
+            if is_reverse:
+                self.rev += 1
+            else:
+                self.fwd += 1
+                
+
+cdef class AggStrndUnmp:
     cdef int n
     cdef int all
     cdef int fwd
@@ -37,7 +62,11 @@ cdef class CountAggregator:
                 self.fwd += 1
         
 
-cdef class ProperPairCountAggregator(CountAggregator):
+cdef class AggPpStrnd:
+    cdef int n
+    cdef int all
+    cdef int fwd
+    cdef int rev
     cdef int pp
     cdef int pp_fwd
     cdef int pp_rev
@@ -51,37 +80,41 @@ cdef class ProperPairCountAggregator(CountAggregator):
         self.pp_fwd = 0
         self.pp_rev = 0
     
-    cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
-        if self.test(read, aln, is_proper_pair, is_reverse, mate_is_unmapped):
+    # to be overridden in subclasses    
+    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
+        return 0
+
+    cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
+        if self.test(read, aln, is_proper_pair, is_reverse):
             self.all += 1
             if is_reverse:
                 self.rev += 1
+                if is_proper_pair:
+                    self.pp += 1
+                    self.pp_rev += 1
             else:
                 self.fwd += 1
-            if is_proper_pair:
-                self.pp += 1
-                if is_reverse:
-                    self.pp_rev += 1
-                else:
+                if is_proper_pair:
+                    self.pp += 1
                     self.pp_fwd += 1
         
 
-cdef class AggReads(ProperPairCountAggregator):
-    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
+cdef class AggReads(AggPpStrnd):
+    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
         return 1
 
 
-cdef class AggReadsMateUnmapped(CountAggregator):
+cdef class AggReadsMateUnmapped(AggStrndUnmp):
     cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
         return mate_is_unmapped
     
     
-cdef class AggReadsMateOtherChr(CountAggregator):
+cdef class AggReadsMateOtherChr(AggStrndUnmp):
     cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
         return not mate_is_unmapped and aln.rnext != aln.tid 
         
     
-cdef class AggReadsMateSameStrand(CountAggregator):
+cdef class AggReadsMateSameStrand(AggStrndUnmp):
     cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
         cdef bint mate_is_reverse
         if not mate_is_unmapped:
@@ -91,7 +124,7 @@ cdef class AggReadsMateSameStrand(CountAggregator):
             return 0
     
     
-cdef class AggReadsFaceaway(CountAggregator):
+cdef class AggReadsFaceaway(AggStrndUnmp):
     cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
         cdef int tlen
         if not mate_is_unmapped:
@@ -102,13 +135,13 @@ cdef class AggReadsFaceaway(CountAggregator):
             return 0
     
     
-cdef class AggReadsEdit0(ProperPairCountAggregator):
-    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
+cdef class AggReadsEdit0(AggPpStrnd):
+    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
         return aln.opt('NM') == 0
     
     
-cdef class AggReadsSoftClipped(ProperPairCountAggregator):
-    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse, bint mate_is_unmapped):
+cdef class AggReadsSoftClipped(AggPpStrnd):
+    cdef bint test(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
         cigar = aln.cigar
         cdef int i = 0
         for i in range(len(cigar)):
@@ -116,6 +149,73 @@ cdef class AggReadsSoftClipped(ProperPairCountAggregator):
             if op[0] == 4: # softclip code
                 return 1
         return 0
+    
+
+cdef struct PpStrndCounts:
+    int all
+    int fwd
+    int rev
+    int pp
+    int pp_fwd
+    int pp_rev
+    
+    
+cdef class AggVariation:
+    cdef int n
+    cdef PpStrndCounts A
+    cdef PpStrndCounts C
+    cdef PpStrndCounts T
+    cdef PpStrndCounts G
+    cdef PpStrndCounts N
+    cdef PpStrndCounts deletions
+    cdef PpStrndCounts insertions
+    
+    def __cinit__(self, n):
+        self.n = n
+        self.A = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.C = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.T = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.G = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.N = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.deletions = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        self.insertions = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+    
+    cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
+        cdef indel = read.indel
+#        cdef char base
+        cdef int qpos
+        if indel < 0:
+            self.deletions = increment_pp_strnd_counts(self.deletions, is_proper_pair, is_reverse)
+        elif indel > 0:
+            self.insertions = increment_pp_strnd_counts(self.insertions, is_proper_pair, is_reverse)
+        else:
+            qpos = read.qpos
+            base = aln.seq[qpos]
+            if base == 'A':
+                self.A = increment_pp_strnd_counts(self.A, is_proper_pair, is_reverse)
+            elif base == 'C':
+                self.C = increment_pp_strnd_counts(self.C, is_proper_pair, is_reverse)
+            elif base == 'T':
+                self.T = increment_pp_strnd_counts(self.T, is_proper_pair, is_reverse)
+            elif base == 'G':
+                self.G = increment_pp_strnd_counts(self.G, is_proper_pair, is_reverse)
+            elif base == 'N':
+                self.N = increment_pp_strnd_counts(self.N, is_proper_pair, is_reverse)
+            
+
+cdef PpStrndCounts increment_pp_strnd_counts(PpStrndCounts c, bint is_proper_pair, bint is_reverse):
+    c.all += 1
+    if is_reverse:
+        c.rev += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_rev += 1
+    else:
+        c.fwd += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_fwd += 1
+    return c
     
     
 cpdef build_coverage_stats(PileupProxy col):
@@ -150,16 +250,17 @@ cpdef build_coverage_stats(PileupProxy col):
         mate_is_unmapped = aln.mate_is_unmapped
         
         # pass reads to aggregators
-        agg_reads.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
+        agg_reads.add(read, aln, is_proper_pair, is_reverse)
         agg_reads_mate_unmapped.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
         agg_reads_mate_other_chr.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
         agg_reads_mate_same_strand.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
         agg_reads_faceaway.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
-        agg_reads_edit0.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
-        agg_reads_softclipped.add(read, aln, is_proper_pair, is_reverse, mate_is_unmapped)
+        agg_reads_edit0.add(read, aln, is_proper_pair, is_reverse)
+        agg_reads_softclipped.add(read, aln, is_proper_pair, is_reverse)
             
     # construct output row
     data = {
+            'reads': agg_reads.all,
             'reads_fwd': agg_reads.fwd,
             'reads_rev': agg_reads.rev,
             'reads_pp': agg_reads.pp,
@@ -177,18 +278,18 @@ cpdef build_coverage_stats(PileupProxy col):
             'reads_faceaway': agg_reads_faceaway.all,
             'reads_faceaway_fwd': agg_reads_faceaway.fwd,
             'reads_faceaway_rev': agg_reads_faceaway.rev,
-            'reads_edit0': agg_reads_edit0.all,                      
+            'reads_edit0': agg_reads_edit0.all,
             'reads_edit0_fwd': agg_reads_edit0.fwd,
-            'reads_edit0_rev': agg_reads_edit0.rev,                            
-            'reads_edit0_pp': agg_reads_edit0.pp,     
+            'reads_edit0_rev': agg_reads_edit0.rev,
+            'reads_edit0_pp': agg_reads_edit0.pp,
             'reads_edit0_pp_fwd': agg_reads_edit0.pp_fwd,
-            'reads_edit0_pp_rev': agg_reads_edit0.pp_rev,      
-            'reads_softclipped': agg_reads_softclipped.all,                      
+            'reads_edit0_pp_rev': agg_reads_edit0.pp_rev,
+            'reads_softclipped': agg_reads_softclipped.all,
             'reads_softclipped_fwd': agg_reads_softclipped.fwd,
-            'reads_softclipped_rev': agg_reads_softclipped.rev,                            
-            'reads_softclipped_pp': agg_reads_softclipped.pp,     
+            'reads_softclipped_rev': agg_reads_softclipped.rev,
+            'reads_softclipped_pp': agg_reads_softclipped.pp,
             'reads_softclipped_pp_fwd': agg_reads_softclipped.pp_fwd,
-            'reads_softclipped_pp_rev': agg_reads_softclipped.pp_rev,      
+            'reads_softclipped_pp_rev': agg_reads_softclipped.pp_rev,
             }
     return data
 
@@ -256,3 +357,186 @@ class CoverageStatsTable(object):
             yield row
 
 
+
+class VariationStatsTable(object):
+    
+    def __init__(self, samfn, fafn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.fafn = fafn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+
+        # define header
+        fixed_variables = ['chr', 'pos', 'reads']
+        computed_variables = [
+                              'reads_fwd', 
+                              'reads_rev',
+                              'reads_pp',
+                              'reads_pp_fwd',
+                              'reads_pp_rev',
+                              'matches',
+                              'matches_fwd',
+                              'matches_rev',
+                              'matches_pp',
+                              'matches_pp_fwd',
+                              'matches_pp_rev',
+                              'mismatches',
+                              'mismatches_fwd',
+                              'mismatches_rev',
+                              'mismatches_pp',
+                              'mismatches_pp_fwd',
+                              'mismatches_pp_rev',
+                              'deletions',
+                              'deletions_fwd',
+                              'deletions_rev',
+                              'deletions_pp',
+                              'deletions_pp_fwd',
+                              'deletions_pp_rev',
+                              'insertions',
+                              'insertions_fwd',
+                              'insertions_rev',
+                              'insertions_pp',
+                              'insertions_pp_fwd',
+                              'insertions_pp_rev',
+                              'A',
+                              'A_fwd',
+                              'A_rev',
+                              'A_pp',
+                              'A_pp_fwd',
+                              'A_pp_rev',
+                              'C',
+                              'C_fwd',
+                              'C_rev',
+                              'C_pp',
+                              'C_pp_fwd',
+                              'C_pp_rev',
+                              'T',
+                              'T_fwd',
+                              'T_rev',
+                              'T_pp',
+                              'T_pp_fwd',
+                              'T_pp_rev',
+                              'G',
+                              'G_fwd',
+                              'G_rev',
+                              'G_pp',
+                              'G_pp_fwd',
+                              'G_pp_rev',
+                              'N',
+                              'N_fwd',
+                              'N_rev',
+                              'N_pp',
+                              'N_pp_fwd',
+                              'N_pp_rev',
+                              ]
+        header = fixed_variables + computed_variables
+        yield header
+        
+        # open sam file
+        sam = Samfile(self.samfn)
+        fa = Fastafile(self.fafn)
+        
+        # run pileup
+        for col in sam.pileup(self.chr, self.start, self.end):
+            
+            # fixed variables            
+            chr = sam.getrname(col.tid)
+            pos = col.pos 
+            row = [chr, pos + 1, col.n] # 1-based
+            
+            # reference base
+            ref = fa.fetch(chr, pos, pos+1).upper()
+            
+            # computed variables
+            data = build_variation_stats(col, ref)
+            row.extend(data[v] for v in computed_variables) 
+            yield row
+
+
+cdef dict_pp_strnd_counts(PpStrndCounts c, prefix):
+    return {
+            prefix: c.all,
+            prefix+'_fwd': c.fwd,
+            prefix+'_rev': c.rev,
+            prefix+'_pp': c.pp,
+            prefix+'_pp_fwd': c.pp_fwd,
+            prefix+'_pp_rev': c.pp_rev,
+            }
+
+
+cdef dict_pp_strnd_counts_sum(PpStrndCounts a, PpStrndCounts b, PpStrndCounts c, prefix):
+    return {
+            prefix: a.all + b.all + c.all,
+            prefix+'_fwd': a.fwd + b.fwd + c.fwd,
+            prefix+'_rev': a.rev + b.rev + c.rev,
+            prefix+'_pp': a.pp + b.pp + c.pp,
+            prefix+'_pp_fwd': a.pp_fwd + b.pp_fwd + c.pp_fwd,
+            prefix+'_pp_rev': a.pp_rev + b.pp_rev + c.pp_rev,
+            }
+
+
+cpdef build_variation_stats(PileupProxy col, ref):
+    cdef int n = col.n
+    cdef int ri
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef PileupRead read
+    cdef AlignedRead aln
+    cdef PpStrndCounts empty
+
+    # create aggregators
+    agg_reads = AggReads(n)
+    agg_variation = AggVariation(n)
+    
+    # access reads
+    reads = col.pileups
+
+    # iterate over reads in the column
+    for ri in range(n):
+        read = reads[ri]
+        aln = read.alignment
+        
+        # optimisation - access these now so done only once
+        is_proper_pair = aln.is_proper_pair
+        is_reverse = aln.is_reverse
+        
+        # pass reads to aggregators
+        agg_reads.add(read, aln, is_proper_pair, is_reverse)
+        agg_variation.add(read, aln, is_proper_pair, is_reverse)
+            
+    data = {
+            'reads': agg_reads.all,
+            'reads_fwd': agg_reads.fwd,
+            'reads_rev': agg_reads.rev,
+            'reads_pp': agg_reads.pp,
+            'reads_pp_fwd': agg_reads.pp_fwd,
+            'reads_pp_rev': agg_reads.pp_rev,
+            }
+    data.update(dict_pp_strnd_counts(agg_variation.A, 'A'))
+    data.update(dict_pp_strnd_counts(agg_variation.C, 'C'))
+    data.update(dict_pp_strnd_counts(agg_variation.T, 'T'))
+    data.update(dict_pp_strnd_counts(agg_variation.G, 'G'))
+    data.update(dict_pp_strnd_counts(agg_variation.N, 'N'))
+    data.update(dict_pp_strnd_counts(agg_variation.deletions, 'deletions'))
+    data.update(dict_pp_strnd_counts(agg_variation.insertions, 'insertions'))
+    if ref == 'A':
+        data.update(dict_pp_strnd_counts(agg_variation.A, 'matches'))
+        data.update(dict_pp_strnd_counts_sum(agg_variation.C, agg_variation.T, agg_variation.G, 'mismatches'))
+    elif ref == 'C':
+        data.update(dict_pp_strnd_counts(agg_variation.C, 'matches'))
+        data.update(dict_pp_strnd_counts_sum(agg_variation.A, agg_variation.T, agg_variation.G, 'mismatches'))
+    elif ref == 'T':
+        data.update(dict_pp_strnd_counts(agg_variation.T, 'matches'))
+        data.update(dict_pp_strnd_counts_sum(agg_variation.A, agg_variation.C, agg_variation.G, 'mismatches'))
+    elif ref == 'G':
+        data.update(dict_pp_strnd_counts(agg_variation.G, 'matches'))
+        data.update(dict_pp_strnd_counts_sum(agg_variation.A, agg_variation.C, agg_variation.T, 'mismatches'))
+    else:
+        empty = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
+        data.update(dict_pp_strnd_counts(empty, 'matches'))
+        data.update(dict_pp_strnd_counts(empty, 'mismatches'))
+    return data 
+    
