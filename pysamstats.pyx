@@ -7,6 +7,7 @@ TODO doc me
 
 # standard library imports
 import math
+import itertools
 
 # 3rd party imports
 from csamtools cimport Samfile, PileupRead, AlignedRead, PileupProxy, Fastafile
@@ -356,6 +357,56 @@ class CoverageStatsTable(object):
             # computed variables
             data = build_coverage_stats(col)
             row.extend(data[v] for v in computed_variables) 
+            yield row
+
+
+cpdef build_minimal_coverage_stats(PileupProxy col):
+    cdef int n
+    cdef int ri
+    cdef int reads_pp = 0
+    cdef PileupRead read
+    cdef AlignedRead aln
+
+    n = col.n
+    
+    # access reads
+    reads = col.pileups
+
+    # iterate over reads in the column
+    for ri in range(n):
+        read = reads[ri]
+        aln = read.alignment
+        if aln.is_proper_pair:
+            reads_pp += 1
+            
+    return reads_pp
+
+    
+class MinimalCoverageStatsTable(object):
+    
+    def __init__(self, samfn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+
+        # define header
+        header = ['chr', 'pos', 'reads', 'reads_pp']
+        yield header
+        
+        # open sam file
+        sam = Samfile(self.samfn)
+        
+        # run pileup
+        for col in sam.pileup(self.chr, self.start, self.end):
+            
+            # fixed variables            
+            chr = sam.getrname(col.tid)
+            pos = col.pos + 1 # 1-based
+            reads_pp = build_minimal_coverage_stats(col)
+            row = [chr, pos, col.n, reads_pp] 
             yield row
 
 
@@ -1073,3 +1124,31 @@ cpdef build_baseq_stats(PileupProxy col, ref):
     return data
 
 
+class NormedCoverageStatsTable(object):
+    
+    def __init__(self, samfn, chr=None, start=None, end=None):
+        self.samfn = samfn
+        self.chr = chr
+        self.start = start
+        self.end = end
+        
+    def __iter__(self):
+        cdef int i, n
+        
+        raw = MinimalCoverageStatsTable(self.samfn, self.chr, self.start, self.end)
+        dtype = [('chr', 'a20'), ('pos', 'u4'), ('reads', 'u2'), ('reads_pp', 'u2')]
+        it = (tuple(row) for row in itertools.islice(raw, 1, None))
+        arr = np.fromiter(it, dtype=dtype).view(np.recarray)
+        median_reads = np.median(arr.reads)
+        median_reads_pp = np.median(arr.reads_pp)
+        normed_coverage = (arr.reads * 1.) / median_reads
+        normed_coverage_pp = (arr.reads_pp * 1.) / median_reads_pp
+        
+        header = ['chr', 'pos', 'reads', 'reads_pp', 'normed_coverage', 'normed_coverage_pp']
+        yield header
+        
+        n = len(arr)
+        
+        for i in range(n):
+            yield arr.chr[i], arr.pos[i], arr.reads[i], arr.reads_pp[i], normed_coverage[i], normed_coverage_pp[i]
+            
