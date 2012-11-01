@@ -1081,7 +1081,7 @@ cpdef build_baseq_stats(PileupProxy col, ref):
     rms_baseq_matches_pp_fwd = sqrt(np.mean(sqbaseq[filter_pp_fwd & filter_matches]))
     rms_baseq_matches_pp_rev = sqrt(np.mean(sqbaseq[filter_pp_rev & filter_matches]))
     
-    filter_mismatches = (arr.basecall != ref) & (arr.basecall != 'N')
+    filter_mismatches = ((arr.basecall != ref) & (arr.basecall != 'N'))
     rms_baseq_mismatches = sqrt(np.mean(sqbaseq[filter_mismatches]))
     rms_baseq_mismatches_fwd = sqrt(np.mean(sqbaseq[filter_fwd & filter_mismatches]))
     rms_baseq_mismatches_rev = sqrt(np.mean(sqbaseq[filter_rev & filter_mismatches]))
