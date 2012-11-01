@@ -184,7 +184,7 @@ cdef class AggVariation:
         self.insertions = PpStrndCounts(all=0, fwd=0, rev=0, pp=0, pp_fwd=0, pp_rev=0)
     
     cdef add(self, PileupRead read, AlignedRead aln, bint is_proper_pair, bint is_reverse):
-        cdef indel = read.indel
+        cdef int indel = read.indel
 #        cdef char base
         cdef int qpos
         if indel < 0:
@@ -204,7 +204,6 @@ cdef class AggVariation:
                 self.G = increment_pp_strnd_counts(self.G, is_proper_pair, is_reverse)
             elif base == 'N':
                 self.N = increment_pp_strnd_counts(self.N, is_proper_pair, is_reverse)
-            
 
 cdef PpStrndCounts increment_pp_strnd_counts(PpStrndCounts c, bint is_proper_pair, bint is_reverse):
     c.all += 1
@@ -703,6 +702,12 @@ class MapqStatsTable(object):
                               'rms_mapq_pp',
                               'rms_mapq_pp_fwd',
                               'rms_mapq_pp_rev',
+                              'median_mapq',
+                              'median_mapq_fwd',
+                              'median_mapq_rev',
+                              'median_mapq_pp',
+                              'median_mapq_pp_fwd',
+                              'median_mapq_pp_rev',
                               'max_mapq',
                               'max_mapq_fwd',
                               'max_mapq_rev',
@@ -794,7 +799,7 @@ cpdef build_mapq_stats(PileupProxy col):
     reads = col.pileups
 
     arr = np.empty((n,), 
-                   dtype=[('mapq', np.uint8), 
+                   dtype=[('mapq', np.uint32), 
                           ('is_proper_pair', np.bool), 
                           ('is_reverse', np.bool)])
     arr = arr.view(np.recarray)
@@ -823,7 +828,7 @@ cpdef build_mapq_stats(PileupProxy col):
     filter_pp = arr.is_proper_pair
     filter_pp_rev = filter_pp & filter_rev
     filter_pp_fwd = filter_pp & filter_fwd
-    
+
     rms_mapq = sqrt(np.mean(sqmapq))
     rms_mapq_fwd = sqrt(np.mean(sqmapq[filter_fwd]))
     rms_mapq_rev = sqrt(np.mean(sqmapq[filter_rev]))
@@ -838,9 +843,15 @@ cpdef build_mapq_stats(PileupProxy col):
     max_mapq_pp_fwd = amax(arr.mapq[filter_pp_fwd])
     max_mapq_pp_rev = amax(arr.mapq[filter_pp_rev])
     
+    median_mapq = np.median(arr.mapq)
+    median_mapq_fwd = np.median(arr.mapq[filter_fwd])
+    median_mapq_rev = np.median(arr.mapq[filter_rev])
+    median_mapq_pp = np.median(arr.mapq[filter_pp])
+    median_mapq_pp_fwd = np.median(arr.mapq[filter_pp_fwd])
+    median_mapq_pp_rev = np.median(arr.mapq[filter_pp_rev])
+    
     # construct output row
     data = {
-            'reads': agg_reads.all,
             'reads_fwd': agg_reads.fwd,
             'reads_rev': agg_reads.rev,
             'reads_pp': agg_reads.pp,
@@ -852,6 +863,12 @@ cpdef build_mapq_stats(PileupProxy col):
             'rms_mapq_pp': rms_mapq_pp,
             'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
             'rms_mapq_pp_rev': rms_mapq_pp_rev,
+            'median_mapq': median_mapq,
+            'median_mapq_fwd': median_mapq_fwd,
+            'median_mapq_rev': median_mapq_rev,
+            'median_mapq_pp': median_mapq_pp,
+            'median_mapq_pp_fwd': median_mapq_pp_fwd,
+            'median_mapq_pp_rev': median_mapq_pp_rev,
             'max_mapq': max_mapq,
             'max_mapq_fwd': max_mapq_fwd,
             'max_mapq_rev': max_mapq_rev,
@@ -870,8 +887,9 @@ cpdef build_mapq_stats(PileupProxy col):
 
 class BaseqStatsTable(object):
     
-    def __init__(self, samfn, chr=None, start=None, end=None):
+    def __init__(self, samfn, fafn, chr=None, start=None, end=None):
         self.samfn = samfn
+        self.fafn = fafn
         self.chr = chr
         self.start = start
         self.end = end
@@ -881,34 +899,61 @@ class BaseqStatsTable(object):
         # define header
         fixed_variables = ['chr', 'pos', 'reads']
         computed_variables = [
+                              'reads_fwd', 
+                              'reads_rev',
+                              'reads_pp',
+                              'reads_pp_fwd',
+                              'reads_pp_rev',
                               'rms_baseq',
                               'rms_baseq_fwd',
                               'rms_baseq_rev',
                               'rms_baseq_pp',
                               'rms_baseq_pp_fwd',
                               'rms_baseq_pp_rev',
+                              'median_baseq',
+                              'median_baseq_fwd',
+                              'median_baseq_rev',
+                              'median_baseq_pp',
+                              'median_baseq_pp_fwd',
+                              'median_baseq_pp_rev',
+                              'rms_baseq_matches',
+                              'rms_baseq_matches_fwd',
+                              'rms_baseq_matches_rev',
+                              'rms_baseq_matches_pp',
+                              'rms_baseq_matches_pp_fwd',
+                              'rms_baseq_matches_pp_rev',
+                              'rms_baseq_mismatches',
+                              'rms_baseq_mismatches_fwd',
+                              'rms_baseq_mismatches_rev',
+                              'rms_baseq_mismatches_pp',
+                              'rms_baseq_mismatches_pp_fwd',
+                              'rms_baseq_mismatches_pp_rev',
                               ]
         header = fixed_variables + computed_variables
         yield header
         
         # open sam file
         sam = Samfile(self.samfn)
+        fa = Fastafile(self.fafn)
         
         # run pileup
         for col in sam.pileup(self.chr, self.start, self.end):
             
             # fixed variables            
             chr = sam.getrname(col.tid)
-            pos = col.pos + 1 # 1-based
-            row = [chr, pos, col.n] 
+            pos = col.pos 
+            row = [chr, pos+1, col.n] # 1-based 
+
+            # reference base
+            ref = fa.fetch(chr, pos, pos+1).upper()
             
             # computed variables
-            data = build_baseq_stats(col)
+            data = build_baseq_stats(col, ref)
             row.extend(data[v] for v in computed_variables) 
             yield row
 
 
-cpdef build_baseq_stats(PileupProxy col):
+cpdef build_baseq_stats(PileupProxy col, ref):
     cdef int n = col.n
     cdef int ri
     cdef int baseq
@@ -920,10 +965,16 @@ cpdef build_baseq_stats(PileupProxy col):
     # access reads
     reads = col.pileups
 
+    # create aggregators
+    agg_reads = AggReads(n)
+
+    # setup array to store data in
     arr = np.empty((n,), 
-                   dtype=[('baseq', np.uint8), 
+                   dtype=[('baseq', np.uint32), 
                           ('is_proper_pair', np.bool), 
-                          ('is_reverse', np.bool)])
+                          ('is_reverse', np.bool),
+                          ('is_del', np.bool),
+                          ('basecall', 'a1')])
     arr = arr.view(np.recarray)
     
     # iterate over reads in the column
@@ -932,13 +983,23 @@ cpdef build_baseq_stats(PileupProxy col):
         aln = read.alignment
         
         # optimisation - access these now so done only once
-        baseq = ord(aln.qual[read.qpos])-33
+        qpos = read.qpos
+        baseq = ord(aln.qual[qpos])-33
         is_proper_pair = aln.is_proper_pair
         is_reverse = aln.is_reverse
+        is_del = read.is_del
+        basecall = aln.seq[qpos]
         
+        # pass to aggregators
+        agg_reads.add(read, aln, is_proper_pair, is_reverse)
+
         # store for computation
-        arr[ri] = (baseq, is_proper_pair, is_reverse)
+        arr[ri] = (baseq, is_proper_pair, is_reverse, is_del, basecall)
         
+    # ignore deletions
+    arr = arr[arr.is_del != True]
+
+    # square base qualities    
     sqbaseq = arr.baseq**2
     
     filter_fwd = arr.is_reverse != True
@@ -954,14 +1015,60 @@ cpdef build_baseq_stats(PileupProxy col):
     rms_baseq_pp_fwd = sqrt(np.mean(sqbaseq[filter_pp_fwd]))
     rms_baseq_pp_rev = sqrt(np.mean(sqbaseq[filter_pp_rev]))
 
+    median_baseq = np.median(arr.baseq)
+    median_baseq_fwd = np.median(arr.baseq[filter_fwd])
+    median_baseq_rev = np.median(arr.baseq[filter_rev])
+    median_baseq_pp = np.median(arr.baseq[filter_pp])
+    median_baseq_pp_fwd = np.median(arr.baseq[filter_pp_fwd])
+    median_baseq_pp_rev = np.median(arr.baseq[filter_pp_rev])
+
+    filter_matches = (arr.basecall == ref)
+    rms_baseq_matches = sqrt(np.mean(sqbaseq[filter_matches]))
+    rms_baseq_matches_fwd = sqrt(np.mean(sqbaseq[filter_fwd & filter_matches]))
+    rms_baseq_matches_rev = sqrt(np.mean(sqbaseq[filter_rev & filter_matches]))
+    rms_baseq_matches_pp = sqrt(np.mean(sqbaseq[filter_pp & filter_matches]))
+    rms_baseq_matches_pp_fwd = sqrt(np.mean(sqbaseq[filter_pp_fwd & filter_matches]))
+    rms_baseq_matches_pp_rev = sqrt(np.mean(sqbaseq[filter_pp_rev & filter_matches]))
+    
+    filter_mismatches = (arr.basecall != ref) & (arr.basecall != 'N')
+    rms_baseq_mismatches = sqrt(np.mean(sqbaseq[filter_mismatches]))
+    rms_baseq_mismatches_fwd = sqrt(np.mean(sqbaseq[filter_fwd & filter_mismatches]))
+    rms_baseq_mismatches_rev = sqrt(np.mean(sqbaseq[filter_rev & filter_mismatches]))
+    rms_baseq_mismatches_pp = sqrt(np.mean(sqbaseq[filter_pp & filter_mismatches]))
+    rms_baseq_mismatches_pp_fwd = sqrt(np.mean(sqbaseq[filter_pp_fwd & filter_mismatches]))
+    rms_baseq_mismatches_pp_rev = sqrt(np.mean(sqbaseq[filter_pp_rev & filter_mismatches]))
+    
     # construct output row
     data = {
+            'reads_fwd': agg_reads.fwd,
+            'reads_rev': agg_reads.rev,
+            'reads_pp': agg_reads.pp,
+            'reads_pp_fwd': agg_reads.pp_fwd,
+            'reads_pp_rev': agg_reads.pp_rev,
             'rms_baseq': rms_baseq,
             'rms_baseq_fwd': rms_baseq_fwd,
             'rms_baseq_rev': rms_baseq_rev,
             'rms_baseq_pp': rms_baseq_pp,
             'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
             'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            'median_baseq': median_baseq,
+            'median_baseq_fwd': median_baseq_fwd,
+            'median_baseq_rev': median_baseq_rev,
+            'median_baseq_pp': median_baseq_pp,
+            'median_baseq_pp_fwd': median_baseq_pp_fwd,
+            'median_baseq_pp_rev': median_baseq_pp_rev,
+            'rms_baseq_matches': rms_baseq_matches,
+            'rms_baseq_matches_fwd': rms_baseq_matches_fwd,
+            'rms_baseq_matches_rev': rms_baseq_matches_rev,
+            'rms_baseq_matches_pp': rms_baseq_matches_pp,
+            'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd,
+            'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
+            'rms_baseq_mismatches': rms_baseq_mismatches,
+            'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd,
+            'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev,
+            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp,
+            'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd,
+            'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
             }
     return data
 
