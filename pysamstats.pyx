@@ -1,5 +1,3 @@
-# cython: profile=True
-
 """
 TODO doc me
 
