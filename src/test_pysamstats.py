@@ -3,10 +3,10 @@ from nose.tools import eq_
 
 
 import pyximport; pyximport.install()
-from pysamstats import construct_rec_coverage
+from pysamstats import construct_rec_coverage, construct_rec_coverage2
 
 
-def test_construct_rec_coverage():
+def _test_construct_rec_coverage(f):
     
     # mock samfile
     samfile = Mock()
@@ -31,21 +31,27 @@ def test_construct_rec_coverage():
     read4 = Mock()
     read4.alignment.is_reverse = True
     read4.alignment.is_proper_pair = False
-    col.pileups = Mock(return_value=[read1, read2, read3, read4])
+    col.pileups = [read1, read2, read3, read4]
 
     # call function under test
-    rec = construct_rec_coverage(samfile, col)
+    rec = f(samfile, col)
 
     # assertions
     eq_('chr1', rec['chr'])
     eq_(0, rec['pos'])
     eq_(4, rec['reads']['all'])
-    eq_(2, rec['reads']['fwd'])
     eq_(2, rec['reads']['rev'])
+    eq_(2, rec['reads']['fwd'])
     eq_(2, rec['reads']['pp'])
-    eq_(1, rec['reads']['pp_fwd'])
     eq_(1, rec['reads']['pp_rev'])
+    eq_(1, rec['reads']['pp_fwd'])
 
 
+def test_construct_rec_coverage():
+    _test_construct_rec_coverage(construct_rec_coverage)
+
+
+def test_construct_rec_coverage2():
+    _test_construct_rec_coverage(construct_rec_coverage2)
             
     
