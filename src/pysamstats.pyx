@@ -21,7 +21,7 @@ cdef struct RecCoverage:
     CountPpStrand reads
 
 
-cdef void init_pp_strand(CountPpStrand *c):
+cdef inline void init_pp_strand(CountPpStrand *c):
     c.all = 0
     c.rev = 0
     c.fwd = 0
@@ -30,7 +30,7 @@ cdef void init_pp_strand(CountPpStrand *c):
     c.pp_rev = 0
 
 
-cdef void incr_pp_strand(CountPpStrand *c, bint is_reverse, bint is_proper_pair):
+cdef inline void incr_pp_strand(CountPpStrand *c, bint is_reverse, bint is_proper_pair):
     c.all += 1
     if is_reverse:
         c.rev += 1
