@@ -10,8 +10,21 @@ from pysamstats import print_coverage, print_coverage_strand
 
 
 stats_types = ('coverage', 'coverage_strand')
-usage = 'usage: %prog [options] FILE'
-parser = OptionParser()
+usage = 'usage: %prog [options] FILE\nTry "%prog --help" for more information.'
+epilog = """
+Calculate statistics from a SAM or BAM file and print them to stdout. E.g.:
+
+    pysamstats --type coverage example.bam > example.coverage.txt
+    pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
+    
+Supported statistics types:
+
+    * coverage - number of reads aligned to each genome position (total and properly paired)
+    * coverage_strand - as coverage, but with forward/reverse counts also
+    
+"""
+OptionParser.format_epilog = lambda self, formatter: self.epilog
+parser = OptionParser(usage=usage, epilog=epilog)
 parser.add_option('-t', '--type', dest='type', help='type of statistics to print: %s' % ', '.join(stats_types), default='coverage')
 parser.add_option('-c', '--chromosome', dest='chromosome', help='chromosome name', default=None)
 parser.add_option('-s', '--start', dest='start', type='int', help='start position (1-based)', default=None)
@@ -21,7 +34,7 @@ parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header r
 parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=100000)
 options, args = parser.parse_args()
 if len(args) != 1:
-    parser.error('incorrect number of arguments; expected one argument (SAM or BAM file name)')
+    parser.error('missing file operand')
 
 samfile = Samfile(args[0])
 chrom = options.chromosome
