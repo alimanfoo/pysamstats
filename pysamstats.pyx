@@ -7,12 +7,19 @@ cimport numpy as np
 import time
 
 
+def normalise_coords(start, end, one_based):
+    if one_based:
+        start = start - 1 if start is not None else None
+        end = end - 1 if end is not None else None
+    return start, end
+
+
 #############################
 # BASIC COVERAGE STATISTICS #
 #############################
 
 
-cpdef object construct_rec_coverage(object samfile, object col):
+cpdef object construct_rec_coverage(object samfile, object col, bint one_based=False):
 
     # statically typed variables
     cdef int i # loop index
@@ -27,7 +34,7 @@ cpdef object construct_rec_coverage(object samfile, object col):
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
-    pos = col.pos
+    pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads
     reads = col.pileups
@@ -47,12 +54,13 @@ cpdef object construct_rec_coverage(object samfile, object col):
     return (chrom, pos, reads_all, reads_pp)
 
 
-def stat_coverage(samfile, chrom=None, start=None, end=None):
+def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
     for col in samfile.pileup(chrom, start, end):
-        yield construct_rec_coverage(samfile, col)
+        yield construct_rec_coverage(samfile, col, one_based)
         
         
-def print_coverage(samfile, chrom=None, start=None, end=None, delimiter='\t', omit_header=False, progress=100000):
+def print_stats(statfun, samfile, chrom=None, start=None, end=None, one_based=False, delimiter='\t', omit_header=False, progress=100000):
     cdef long long counter = 0
     cdef long long modulus
     modulus = progress
@@ -61,9 +69,9 @@ def print_coverage(samfile, chrom=None, start=None, end=None, delimiter='\t', om
         print >>sys.stdout, delimiter.join(header)
     before = time.time()
     before_all = before
-    for col in samfile.pileup(chrom, start, end):
+    for rec in statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based):
         counter += 1
-        print >>sys.stdout, delimiter.join([str(v) for v in construct_rec_coverage(samfile, col)])
+        print >>sys.stdout, delimiter.join([str(v) for v in rec])
         if counter % modulus == 0:
             after = time.time()
             print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (progress, after-before, progress/(after-before))
@@ -72,12 +80,16 @@ def print_coverage(samfile, chrom=None, start=None, end=None, delimiter='\t', om
     print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, after_all-before_all, counter/(after_all-before_all))
     
     
+def print_coverage(samfile, chrom=None, start=None, end=None, one_based=False, delimiter='\t', omit_header=False, progress=100000):
+    print_stats(stat_coverage, samfile, chrom=chrom, start=start, end=end, one_based=one_based, delimiter=delimiter, omit_header=omit_header, progress=progress)
+    
+    
 ################################
 # STRANDED COVERAGE STATISTICS #
 ################################
 
 
-cpdef object construct_rec_coverage_strand(object samfile, object col):
+cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_based=False):
 
     # statically typed variables
     cdef int i # loop index
@@ -124,29 +136,14 @@ cpdef object construct_rec_coverage_strand(object samfile, object col):
     return (chrom, pos, reads_all, reads_fwd, reads_rev, reads_pp, reads_pp_fwd, reads_pp_rev)
 
 
-def stat_coverage_strand(samfile, chrom=None, start=None, end=None):
+def stat_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
     for col in samfile.pileup(chrom, start, end):
-        yield construct_rec_coverage_strand(samfile, col)
+        yield construct_rec_coverage_strand(samfile, col, one_based)
         
         
-def print_coverage_strand(samfile, chrom=None, start=None, end=None, delimiter='\t', omit_header=False, progress=100000):
-    cdef long long counter = 0
-    cdef long long modulus
-    modulus = progress
-    header = ('chr', 'pos', 'reads_all', 'reads_fwd', 'reads_rev', 'reads_pp', 'reads_pp_fwd', 'reads_pp_rev')
-    if not omit_header:
-        print >>sys.stdout, delimiter.join(header)
-    before = time.time()
-    before_all = before
-    for col in samfile.pileup(chrom, start, end):
-        counter += 1
-        print >>sys.stdout, delimiter.join([str(v) for v in construct_rec_coverage_strand(samfile, col)])
-        if counter % modulus == 0:
-            after = time.time()
-            print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (progress, after-before, progress/(after-before))
-            before = after
-    after_all = time.time()
-    print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, after_all-before_all, counter/(after_all-before_all))
+def print_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=False, delimiter='\t', omit_header=False, progress=100000):
+    print_stats(stat_coverage_strand, samfile, chrom=chrom, start=start, end=end, one_based=one_based, delimiter=delimiter, omit_header=omit_header, progress=progress)
     
     
     

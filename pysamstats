@@ -10,44 +10,44 @@ from pysamstats import print_coverage, print_coverage_strand
 
 
 stats_types = ('coverage', 'coverage_strand')
-usage = 'usage: %prog [options] FILE\nTry "%prog --help" for more information.'
+usage = 'usage: %prog [options] FILE'
+description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
 epilog = """
-Calculate statistics from a SAM or BAM file and print them to stdout. E.g.:
-
-    pysamstats --type coverage example.bam > example.coverage.txt
-    pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
-    
 Supported statistics types:
 
     * coverage - number of reads aligned to each genome position (total and properly paired)
     * coverage_strand - as coverage, but with forward/reverse counts also
     
+Examples:
+
+    pysamstats --type coverage example.bam > example.coverage.txt
+    pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
+    
 """
 OptionParser.format_epilog = lambda self, formatter: self.epilog
-parser = OptionParser(usage=usage, epilog=epilog)
+parser = OptionParser(usage=usage, description=description, epilog=epilog)
 parser.add_option('-t', '--type', dest='type', help='type of statistics to print: %s' % ', '.join(stats_types), default='coverage')
 parser.add_option('-c', '--chromosome', dest='chromosome', help='chromosome name', default=None)
 parser.add_option('-s', '--start', dest='start', type='int', help='start position (1-based)', default=None)
 parser.add_option('-e', '--end', dest='end', type='int', help='end position (1-based)', default=None)
+parser.add_option('-z', '--zero-based', dest='zero_based', help='use zero-based coordinates (default is false, i.e., use one-based coords)', action='store_true')
 parser.add_option('-d', '--delimiter', dest='delimiter', help='field delimiter for output (default is tab character)', default='\t')
 parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
 parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=100000)
 options, args = parser.parse_args()
 if len(args) != 1:
-    parser.error('missing file operand')
+    parser.error('missing file operand\n\nTry "pysamstats --help" for more information.')
 
 samfile = Samfile(args[0])
-chrom = options.chromosome
-start = options.start - 1 if options.start is not None else None
-end = options.end - 1 if options.end is not None else None
+one_based = not options.zero_based
 
 try:
 
     if options.type == 'coverage':
-        print_coverage(samfile, chrom, start, end, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
+        print_coverage(samfile, options.chromosome, options.start, options.end, one_based=one_based, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
         
     elif options.type == 'coverage_strand':
-        print_coverage_strand(samfile, chrom, start, end, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
+        print_coverage_strand(samfile, options.chromosome, options.start, options.end, one_based=one_based, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
         
     else:
         parser.error('unsupported statistics type: "%s"; expected one of %s' % (options.type, stats_types))
