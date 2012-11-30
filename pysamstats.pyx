@@ -47,14 +47,10 @@ cpdef object construct_rec_coverage(object samfile, object col, bint one_based=F
     # set up various boolean arrays
     is_proper_pair.dtype = np.bool
 
-    # determine counts
-    reads_all = n
-    reads_pp = np.count_nonzero(is_proper_pair)
-
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': reads_all, 
-            'reads_pp': reads_pp}
+            'reads_all': n, 
+            'reads_pp': np.count_nonzero(is_proper_pair)}
 
 
 def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
@@ -149,22 +145,14 @@ cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_
     is_pp_fwd = is_forward & is_proper_pair
     is_pp_rev = is_reverse & is_proper_pair
 
-    # determine counts
-    reads_all = n
-    reads_fwd = np.count_nonzero(is_forward)
-    reads_rev = np.count_nonzero(is_reverse)
-    reads_pp = np.count_nonzero(is_proper_pair)
-    reads_pp_fwd = np.count_nonzero(is_pp_fwd)
-    reads_pp_rev = np.count_nonzero(is_pp_rev)
-
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': reads_all, 
-            'reads_fwd': reads_fwd, 
-            'reads_rev': reads_rev, 
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev}
+            'reads_all': n, 
+            'reads_fwd': np.count_nonzero(is_forward), 
+            'reads_rev': np.count_nonzero(is_reverse), 
+            'reads_pp': np.count_nonzero(is_proper_pair),
+            'reads_pp_fwd': np.count_nonzero(is_pp_fwd),
+            'reads_pp_rev': np.count_nonzero(is_pp_rev)}
 
 
 def stat_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=False):
