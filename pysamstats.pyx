@@ -68,6 +68,9 @@ def print_stats(statfun, samfile, chrom=None, start=None, end=None,
                 progress=None):
     cdef long long counter = 0
     cdef long long modulus
+    
+    # TODO work with dictionary records
+    
     if header is not None:
         print >>sys.stdout, delimiter.join(header)
     if progress is None:
