@@ -6,12 +6,12 @@ import errno
 
 
 from pysam import Samfile
-from pysamstats import write_coverage, write_coverage_strand
+from pysamstats import write_coverage, write_coverage_strand, write_coverage_ext
 
 
 if __name__ == '__main__':
     
-    stats_types = ('coverage', 'coverage_strand')
+    stats_types = ('coverage', 'coverage_strand', 'coverage_ext')
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
     epilog = """
@@ -19,6 +19,7 @@ if __name__ == '__main__':
     
         * coverage - number of reads aligned to each genome position (total and properly paired)
         * coverage_strand - as coverage, but with forward/reverse counts also
+        * coverage_ext - various additional coverage metrics 
         
     Examples:
     
@@ -60,6 +61,13 @@ if __name__ == '__main__':
                                   chrom=options.chromosome, start=options.start, end=options.end, 
                                   one_based=one_based,  
                                   progress=options.progress)
+            
+        elif options.type == 'coverage_ext':
+            write_coverage_ext(sys.stdout, samfile, 
+                               write_header=write_header, 
+                               chrom=options.chromosome, start=options.start, end=options.end, 
+                               one_based=one_based,  
+                               progress=options.progress)
             
         else:
             parser.error('unsupported statistics type: "%s"\nTry one of %s or "pysamstats --help" for more information.' % (options.type, stats_types))

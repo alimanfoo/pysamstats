@@ -92,7 +92,6 @@ def test_construct_rec_coverage_ext():
     read1.alignment.is_proper_pair = True
     read1.alignment.is_reverse = False
     read1.alignment.mate_is_unmapped = False
-    read1.alignment.tid = 0
     read1.alignment.rnext = 0 # mate same chromosome
     read1.alignment.mate_is_reverse = True
     read1.alignment.tlen = 170 # leftmost
@@ -104,7 +103,6 @@ def test_construct_rec_coverage_ext():
     read2.alignment.is_proper_pair = False
     read2.alignment.is_reverse = False
     read2.alignment.mate_is_unmapped = False
-    read2.alignment.tid = 0
     read2.alignment.rnext = 0 # mate same chromosome
     read2.alignment.mate_is_reverse = True
     read2.alignment.tlen = 17000 # leftmost
@@ -116,6 +114,7 @@ def test_construct_rec_coverage_ext():
     read3.alignment.is_proper_pair = False
     read3.alignment.is_reverse = False
     read3.alignment.mate_is_unmapped = True
+    read3.alignment.tlen = 0
     read3.alignment.opt = Mock(side_effect=lambda tag: 2 if tag == 'NM' else None)
     read3.alignment.cigar = ((0, 10),) # no soft clipping
 
@@ -124,8 +123,8 @@ def test_construct_rec_coverage_ext():
     read4.alignment.is_proper_pair = False
     read4.alignment.is_reverse = False
     read4.alignment.mate_is_unmapped = False
-    read4.alignment.tid = 0
     read4.alignment.rnext = 1 # mate other chromosome
+    read4.alignment.tlen = 0
     read4.alignment.opt = Mock(side_effect=lambda tag: 2 if tag == 'NM' else None)
     read4.alignment.cigar = ((0, 10),) # no soft clipping
 
@@ -134,7 +133,6 @@ def test_construct_rec_coverage_ext():
     read5.alignment.is_proper_pair = False
     read5.alignment.is_reverse = False
     read5.alignment.mate_is_unmapped = False
-    read5.alignment.tid = 0
     read5.alignment.rnext = 0 # mate same chromosome
     read5.alignment.mate_is_reverse = False
     read5.alignment.tlen = 170 # leftmost
@@ -146,7 +144,6 @@ def test_construct_rec_coverage_ext():
     read6.alignment.is_proper_pair = False
     read6.alignment.is_reverse = False
     read6.alignment.mate_is_unmapped = False
-    read6.alignment.tid = 0
     read6.alignment.rnext = 0 # mate same chromosome
     read6.alignment.mate_is_reverse = True
     read6.alignment.tlen = -170 # rightmost
@@ -158,7 +155,6 @@ def test_construct_rec_coverage_ext():
     read7.alignment.is_proper_pair = True
     read7.alignment.is_reverse = False
     read7.alignment.mate_is_unmapped = False
-    read7.alignment.tid = 0
     read7.alignment.rnext = 0 # mate same chromosome
     read7.alignment.mate_is_reverse = True
     read7.alignment.tlen = 170 # leftmost
@@ -170,7 +166,6 @@ def test_construct_rec_coverage_ext():
     read8.alignment.is_proper_pair = True
     read8.alignment.is_reverse = False
     read8.alignment.mate_is_unmapped = False
-    read8.alignment.tid = 0
     read8.alignment.rnext = 0 # mate same chromosome
     read8.alignment.mate_is_reverse = True
     read8.alignment.tlen = 170 # leftmost
@@ -196,7 +191,9 @@ def test_construct_rec_coverage_ext():
     eq_(3, rec['reads_pp'])
     eq_(1, rec['reads_mate_unmapped'])
     eq_(1, rec['reads_mate_other_chr'])
-    
+    eq_(1, rec['reads_mate_same_strand'])
+    eq_(1, rec['reads_faceaway'])
+    # TODO test other properties
 
 
 

@@ -24,8 +24,8 @@ def test1():
     print count
 
 print timeit.repeat('test1()', number=1, repeat=3, setup='from __main__ import test1')
-cProfile.runctx('test1()', globals(), locals(), 'test1.prof')
-s = pstats.Stats('test1.prof')
+cProfile.runctx('test1()', globals(), locals(), 'profile/test1.prof')
+s = pstats.Stats('profile/test1.prof')
 s.strip_dirs().sort_stats('time').print_stats()
 
 
@@ -39,8 +39,8 @@ def test2():
     print count
 
 print timeit.repeat('test2()', number=1, repeat=3, setup='from __main__ import test2')
-cProfile.runctx('test2()', globals(), locals(), 'test2.prof')
-s = pstats.Stats('test2.prof')
+cProfile.runctx('test2()', globals(), locals(), 'profile/test2.prof')
+s = pstats.Stats('profile/test2.prof')
 s.strip_dirs().sort_stats('time').print_stats()
 
 
@@ -54,8 +54,23 @@ def test3():
     print count
 
 print timeit.repeat('test3()', number=1, repeat=3, setup='from __main__ import test3')
-cProfile.runctx('test3()', globals(), locals(), 'test3.prof')
-s = pstats.Stats('test3.prof')
+cProfile.runctx('test3()', globals(), locals(), 'profile/test3.prof')
+s = pstats.Stats('profile/test3.prof')
+s.strip_dirs().sort_stats('time').print_stats()
+
+
+print 'stat_coverage_ext'
+
+def test4():
+    samfile = Samfile('fixture/test.bam')
+    count = 0
+    for rec in pysamstats.stat_coverage_ext(samfile, 'Pf3D7_01_v3'):
+        count += 1
+    print count
+
+print timeit.repeat('test4()', number=1, repeat=3, setup='from __main__ import test4')
+cProfile.runctx('test4()', globals(), locals(), 'profile/test4.prof')
+s = pstats.Stats('profile/test4.prof')
 s.strip_dirs().sort_stats('time').print_stats()
 
 
