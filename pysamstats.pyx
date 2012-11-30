@@ -5,7 +5,7 @@ import sys
 import numpy as np
 cimport numpy as np
 import time
-
+import csv
 
 def normalise_coords(start, end, one_based):
     if one_based:
@@ -63,45 +63,49 @@ def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
         yield construct_rec_coverage(samfile, col, one_based)
         
         
-def print_stats(statfun, samfile, chrom=None, start=None, end=None, 
-                one_based=False, delimiter='\t', header=None, 
-                progress=None):
+def write_stats(statfun, outfile, fieldnames, samfile,
+                dialect=csv.excel_tab, write_header=True, 
+                chrom=None, start=None, end=None, 
+                one_based=False, progress=None):
     cdef long long counter = 0
     cdef long long modulus
     
     # TODO work with dictionary records
+    writer = csv.DictWriter(outfile, fieldnames, dialect=dialect)
     
-    if header is not None:
-        print >>sys.stdout, delimiter.join(header)
+    if write_header:
+        writer.writeheader()
+    
     if progress is None:
-        for rec in statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based):
-            print >>sys.stdout, delimiter.join(str(v) for v in rec)        
+        recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based)
+        writer.writerows(recs)
+
     else:
         modulus = progress
         before = time.time()
         before_all = before
         for rec in statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based):
             counter += 1
-            print >>sys.stdout, delimiter.join(str(v) for v in rec)
+            writer.writerow(rec)
             if counter % modulus == 0:
                 after = time.time()
-                elapsed = after - before
-                print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (progress, elapsed, progress/elapsed)
+                elapsed = after - before_all
+                batch_elapsed = after - before
+                print >>sys.stderr, '%s rows in %.2fs (%d rows/s); batch in %.2fs (%d rows/s)' % (counter, elapsed, counter/elapsed, batch_elapsed, progress/batch_elapsed)
                 before = after
         after_all = time.time()
         elapsed_all = after_all - before_all
         print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, elapsed_all, counter/elapsed_all)
     
     
-def print_coverage(samfile, chrom=None, start=None, end=None, one_based=False, 
-                   delimiter='\t', omit_header=False, progress=None):
-    if omit_header:
-        header = None
-    else:
-        header = ('chr', 'pos', 'reads_all', 'reads_pp')
-    print_stats(stat_coverage, samfile, chrom=chrom, start=start, end=end, 
-                one_based=one_based, delimiter=delimiter, header=header, 
-                progress=progress)
+def write_coverage(outfile, samfile, dialect=csv.excel_tab, write_header=True,
+                   chrom=None, start=None, end=None, 
+                   one_based=False, progress=None):
+    fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp')
+    write_stats(stat_coverage, outfile, fieldnames, samfile, 
+                dialect=dialect, write_header=write_header,
+                chrom=chrom, start=start, end=end, 
+                one_based=one_based, progress=progress)
     
     
 ################################
@@ -169,18 +173,16 @@ def stat_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=Fa
         yield construct_rec_coverage_strand(samfile, col, one_based)
         
         
-def print_coverage_strand(samfile, chrom=None, start=None, end=None, 
-                          one_based=False, delimiter='\t', omit_header=False, 
-                          progress=None):
-    if omit_header:
-        header = None
-    else:
-        header = ('chr', 'pos', 
+def write_coverage_strand(outfile, samfile, dialect=csv.excel_tab, write_header=True,
+                          chrom=None, start=None, end=None, 
+                          one_based=False, progress=None):
+    fieldnames = ('chr', 'pos', 
                   'reads_all', 'reads_fwd', 'reads_rev', 
                   'reads_pp', 'reads_pp_fwd', 'reads_pp_rev')
-    print_stats(stat_coverage_strand, samfile, chrom=chrom, start=start, end=end, 
-                one_based=one_based, delimiter=delimiter, header=header, 
-                progress=progress)
+    write_stats(stat_coverage_strand, outfile, fieldnames, samfile, 
+                dialect=dialect, write_header=write_header,
+                chrom=chrom, start=start, end=end, 
+                one_based=one_based, progress=progress)
     
     
 ################################
