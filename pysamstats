@@ -33,8 +33,10 @@ parser.add_option('-e', '--end', dest='end', type='int', help='end position (1-b
 parser.add_option('-z', '--zero-based', dest='zero_based', help='use zero-based coordinates (default is false, i.e., use one-based coords)', action='store_true')
 parser.add_option('-d', '--delimiter', dest='delimiter', help='field delimiter for output (default is tab character)', default='\t')
 parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
-parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=100000)
+parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
+
 options, args = parser.parse_args()
+
 if len(args) != 1:
     parser.error('missing file operand\n\nTry "pysamstats --help" for more information.')
 
@@ -44,13 +46,19 @@ one_based = not options.zero_based
 try:
 
     if options.type == 'coverage':
-        print_coverage(samfile, options.chromosome, options.start, options.end, one_based=one_based, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
+        print_coverage(samfile, options.chromosome, options.start, options.end, 
+                       one_based=one_based, delimiter=options.delimiter, 
+                       omit_header=options.omit_header, 
+                       progress=options.progress)
         
     elif options.type == 'coverage_strand':
-        print_coverage_strand(samfile, options.chromosome, options.start, options.end, one_based=one_based, delimiter=options.delimiter, omit_header=options.omit_header, progress=options.progress)
+        print_coverage_strand(samfile, options.chromosome, options.start, options.end, 
+                              one_based=one_based, delimiter=options.delimiter, 
+                              omit_header=options.omit_header, 
+                              progress=options.progress)
         
     else:
-        parser.error('unsupported statistics type: "%s"; expected one of %s' % (options.type, stats_types))
+        parser.error('unsupported statistics type: "%s"\nTry one of %s or "pysamstats --help" for more information.' % (options.type, stats_types))
 
 except IOError as e:
     if e.errno == errno.EPIPE:
