@@ -57,13 +57,12 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
-    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair 
+    cdef bint b_is_proper_pair
+    cdef unsigned int reads_pp = 0
 
     # initialise variables
     n = col.n
     plp = col.plp
-    is_proper_pair = np.zeros((n,), dtype=np.uint8)
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -74,15 +73,14 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
-
-    # set up various boolean arrays
-    is_proper_pair.dtype = np.bool
+        b_is_proper_pair = flag & BAM_FPROPER_PAIR
+        if b_is_proper_pair:
+            reads_pp += 1
 
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
-            'reads_pp': np.count_nonzero(is_proper_pair)}
+            'reads_pp': reads_pp}
 
 
 def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
@@ -149,15 +147,17 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
-    cdef np.ndarray[np.uint8_t, ndim=1] is_reverse 
-    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair 
-
+    cdef bint b_is_reverse 
+    cdef bint b_is_proper_pair 
+    cdef unsigned int reads_fwd = 0
+    cdef unsigned int reads_rev = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_fwd = 0
+    cdef unsigned int reads_pp_rev = 0
+    
     # initialise variables
     n = col.n
     plp = col.plp
-    is_reverse = np.zeros((n,), dtype=np.uint8)
-    is_proper_pair = np.zeros((n,), dtype=np.uint8)
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -168,24 +168,27 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        is_reverse[i] = flag & BAM_FREVERSE
-        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
-
-    # set up various boolean arrays
-    is_reverse.dtype = np.bool
-    is_proper_pair.dtype = np.bool
-    is_forward = ~is_reverse
-    is_pp_fwd = is_forward & is_proper_pair
-    is_pp_rev = is_reverse & is_proper_pair
+        b_is_reverse = flag & BAM_FREVERSE
+        if b_is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        b_is_proper_pair = flag & BAM_FPROPER_PAIR
+        if b_is_proper_pair:
+            reads_pp += 1
+            if b_is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
 
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
-            'reads_fwd': np.count_nonzero(is_forward), 
-            'reads_rev': np.count_nonzero(is_reverse), 
-            'reads_pp': np.count_nonzero(is_proper_pair),
-            'reads_pp_fwd': np.count_nonzero(is_pp_fwd),
-            'reads_pp_rev': np.count_nonzero(is_pp_rev)}
+            'reads_fwd': reads_fwd, 
+            'reads_rev': reads_rev, 
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev}
 
 
 def stat_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=False):
