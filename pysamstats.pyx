@@ -7,6 +7,8 @@ cimport numpy as np
 import time
 import csv
 from libc.stdint cimport uint32_t
+from csamtools cimport bam1_t, bam_pileup1_t, Samfile, PileupProxy
+
 
 ## These are bits set in the flag.
 ## have to put these definitions here, in csamtools.pxd they got ignored
@@ -46,30 +48,32 @@ def normalise_coords(start, end, one_based):
 #############################
 
 
-cpdef object construct_rec_coverage(object samfile, object col, bint one_based=False):
+cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_based=False):
 
     # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair # whether the read is mapped in a proper pair
     # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
+    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair 
 
     # initialise variables
     n = col.n
+    plp = col.plp
     is_proper_pair = np.zeros((n,), dtype=np.uint8)
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
-    # loop over reads
-    reads = col.pileups
+    # loop over reads, extract what we need
     for i in range(n):
-        read = reads[i]
-        aln = read.alignment
-        flag = aln.flag
-#        is_proper_pair[i] = <bint>aln.is_proper_pair
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
         is_proper_pair[i] = flag & BAM_FPROPER_PAIR
 
     # set up various boolean arrays
@@ -94,7 +98,6 @@ def write_stats(statfun, outfile, fieldnames, samfile,
     cdef long long counter = 0
     cdef long long modulus
     
-    # TODO work with dictionary records
     writer = csv.DictWriter(outfile, fieldnames, dialect=dialect)
     
     if write_header:
@@ -137,18 +140,22 @@ def write_coverage(outfile, samfile, dialect=csv.excel_tab, write_header=True,
 ################################
 
 
-cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_based=False):
+cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bint one_based=False):
 
     # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    cdef np.ndarray[np.uint8_t, ndim=1] is_reverse # whether read is mapped to reverse strand
-    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair # whether the read is mapped in a proper pair
     # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
+    cdef np.ndarray[np.uint8_t, ndim=1] is_reverse 
+    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair 
 
     # initialise variables
     n = col.n
+    plp = col.plp
     is_reverse = np.zeros((n,), dtype=np.uint8)
     is_proper_pair = np.zeros((n,), dtype=np.uint8)
 
@@ -156,15 +163,12 @@ cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_
     chrom = samfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
-    # loop over reads
-    reads = col.pileups
+    # loop over reads, extract what we need
     for i in range(n):
-        read = reads[i]
-        aln = read.alignment
-        flag = aln.flag
-#        is_reverse[i] = <bint>aln.is_reverse
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
         is_reverse[i] = flag & BAM_FREVERSE
-#        is_proper_pair[i] = <bint>aln.is_proper_pair
         is_proper_pair[i] = flag & BAM_FPROPER_PAIR
 
     # set up various boolean arrays
@@ -207,9 +211,12 @@ def write_coverage_strand(outfile, samfile, dialect=csv.excel_tab, write_header=
 ################################
 
 
-cpdef object construct_rec_coverage_ext(object samfile, object col, bint one_based=False):
+cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint one_based=False):
 
     # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
     # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
@@ -222,6 +229,7 @@ cpdef object construct_rec_coverage_ext(object samfile, object col, bint one_bas
 
     # initialise variables
     n = col.n
+    plp = col.plp
     is_reverse = np.zeros((n,), dtype=np.uint8)
     is_proper_pair = np.zeros((n,), dtype=np.uint8)
     mate_is_unmapped = np.zeros((n,), dtype=np.uint8)
@@ -234,20 +242,17 @@ cpdef object construct_rec_coverage_ext(object samfile, object col, bint one_bas
     chrom = samfile.getrname(tid)
     pos = col.pos + 1 if one_based else col.pos
     
-    # loop over reads
-    reads = col.pileups
+    # loop over reads, extract what we need
     for i in range(n):
-        read = reads[i]
-        aln = read.alignment
-        is_reverse[i] = <bint>aln.is_reverse
-        is_proper_pair[i] = <bint>aln.is_proper_pair
-        _mate_is_unmapped = aln.mate_is_unmapped
-        mate_is_unmapped[i] = <bint>_mate_is_unmapped
-        if not _mate_is_unmapped:
-            # only bother to access these if mate is mapped
-            rnext[i] = <unsigned int>aln.rnext
-            mate_is_reverse[i] = <bint>aln.mate_is_reverse
-            tlen[i] = <int>aln.tlen
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_reverse[i] = flag & BAM_FREVERSE
+        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
+        mate_is_unmapped[i] = flag & BAM_FMUNMAP
+        rnext[i] = aln.core.mtid
+        mate_is_reverse[i] = flag & BAM_FMREVERSE
+        tlen[i] = aln.core.isize
         
     # set up various boolean arrays
     is_reverse.dtype = np.bool
@@ -284,7 +289,10 @@ def write_coverage_ext(outfile, samfile, dialect=csv.excel_tab, write_header=Tru
                        one_based=False, progress=None):
     fieldnames = ('chr', 'pos', 
                   'reads_all', 'reads_pp', 
-                  'reads_mate_unmapped', 'reads_mate_other_chr')
+                  'reads_mate_unmapped', 
+                  'reads_mate_other_chr',
+                  'reads_mate_same_strand',
+                  'reads_faceaway')
     write_stats(stat_coverage_ext, outfile, fieldnames, samfile, 
                 dialect=dialect, write_header=write_header,
                 chrom=chrom, start=start, end=end, 

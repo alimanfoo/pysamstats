@@ -6,5 +6,5 @@ setup(
     name='pysamstats',
     scripts=['pysamstats'],
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("pysamstats", ["pysamstats.pyx"])]
+    ext_modules = [Extension("pysamstats", ["pysamstats.pyx"], include_dirs=["pysam"])]
 )
