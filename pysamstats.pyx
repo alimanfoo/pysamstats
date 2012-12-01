@@ -6,6 +6,33 @@ import numpy as np
 cimport numpy as np
 import time
 import csv
+from libc.stdint cimport uint32_t
+
+## These are bits set in the flag.
+## have to put these definitions here, in csamtools.pxd they got ignored
+## @abstract the read is paired in sequencing, no matter whether it is mapped in a pair */
+DEF BAM_FPAIRED       =1
+## @abstract the read is mapped in a proper pair */
+DEF BAM_FPROPER_PAIR  =2
+## @abstract the read itself is unmapped; conflictive with BAM_FPROPER_PAIR */
+DEF BAM_FUNMAP        =4
+## @abstract the mate is unmapped */
+DEF BAM_FMUNMAP       =8
+## @abstract the read is mapped to the reverse strand */
+DEF BAM_FREVERSE      =16
+## @abstract the mate is mapped to the reverse strand */
+DEF BAM_FMREVERSE     =32
+## @abstract this is read1 */
+DEF BAM_FREAD1        =64
+## @abstract this is read2 */
+DEF BAM_FREAD2       =128
+## @abstract not primary alignment */
+DEF BAM_FSECONDARY   =256
+## @abstract QC failure */
+DEF BAM_FQCFAIL      =512
+## @abstract optical or PCR duplicate */
+DEF BAM_FDUP        =1024
+
 
 def normalise_coords(start, end, one_based):
     if one_based:
@@ -24,6 +51,7 @@ cpdef object construct_rec_coverage(object samfile, object col, bint one_based=F
     # statically typed variables
     cdef int i # loop index
     cdef int n # total number of reads in column
+    cdef uint32_t flag
     cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair # whether the read is mapped in a proper pair
     # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
 
@@ -40,7 +68,9 @@ cpdef object construct_rec_coverage(object samfile, object col, bint one_based=F
     for i in range(n):
         read = reads[i]
         aln = read.alignment
-        is_proper_pair[i] = <bint>aln.is_proper_pair
+        flag = aln.flag
+#        is_proper_pair[i] = <bint>aln.is_proper_pair
+        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
 
     # set up various boolean arrays
     is_proper_pair.dtype = np.bool
@@ -112,6 +142,7 @@ cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_
     # statically typed variables
     cdef int i # loop index
     cdef int n # total number of reads in column
+    cdef uint32_t flag
     cdef np.ndarray[np.uint8_t, ndim=1] is_reverse # whether read is mapped to reverse strand
     cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair # whether the read is mapped in a proper pair
     # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
@@ -130,8 +161,11 @@ cpdef object construct_rec_coverage_strand(object samfile, object col, bint one_
     for i in range(n):
         read = reads[i]
         aln = read.alignment
-        is_reverse[i] = <bint>aln.is_reverse
-        is_proper_pair[i] = <bint>aln.is_proper_pair
+        flag = aln.flag
+#        is_reverse[i] = <bint>aln.is_reverse
+        is_reverse[i] = flag & BAM_FREVERSE
+#        is_proper_pair[i] = <bint>aln.is_proper_pair
+        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
 
     # set up various boolean arrays
     is_reverse.dtype = np.bool
