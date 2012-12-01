@@ -15,7 +15,7 @@ import pysamstats
 def test():
     samfile = Samfile('fixture/test.bam')
     count = 0
-    for _ in pysamstats.stat_coverage(samfile, chrom='Pf3D7_01_v3', start=0, end=1000):
+    for _ in pysamstats.stat_coverage_strand(samfile, chrom='Pf3D7_01_v3', start=0, end=1000):
         count += 1
 #    print count
 
