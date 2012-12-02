@@ -6,8 +6,7 @@ import numpy as np
 cimport numpy as np
 import time
 import csv
-from libc.stdint cimport uint32_t
-from csamtools cimport bam1_t, bam_pileup1_t, Samfile, PileupProxy
+from csamtools cimport Samfile, PileupProxy, bam1_t, bam_pileup1_t
 
 
 ## These are bits set in the flag.
@@ -34,6 +33,20 @@ DEF BAM_FSECONDARY   =256
 DEF BAM_FQCFAIL      =512
 ## @abstract optical or PCR duplicate */
 DEF BAM_FDUP        =1024
+
+# CIGAR operations
+DEF BAM_CIGAR_SHIFT=4
+DEF BAM_CIGAR_MASK=((1 << BAM_CIGAR_SHIFT) - 1)
+
+DEF BAM_CMATCH     = 0
+DEF BAM_CINS       = 1
+DEF BAM_CDEL       = 2
+DEF BAM_CREF_SKIP  = 3
+DEF BAM_CSOFT_CLIP = 4
+DEF BAM_CHARD_CLIP = 5
+DEF BAM_CPAD       = 6
+DEF BAM_CEQUAL     = 7
+DEF BAM_CDIFF      = 8
 
 
 def normalise_coords(start, end, one_based):
@@ -222,23 +235,22 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
     cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
-    # N.B., cython doesn't explicitly support boolean arrays, so we use uint8 here
-    cdef np.ndarray[np.uint8_t, ndim=1] is_reverse 
-    cdef np.ndarray[np.uint8_t, ndim=1] is_proper_pair
-    cdef np.ndarray[np.uint8_t, ndim=1] mate_is_unmapped
-    cdef np.ndarray[np.uint8_t, ndim=1] mate_is_reverse
-    cdef np.ndarray[np.uint8_t, ndim=1] rnext
-    cdef np.ndarray[np.int32_t, ndim=1] tlen 
+    cdef bint b_is_reverse 
+    cdef bint b_is_proper_pair 
+    cdef bint b_mate_is_unmappped 
+    cdef bint b_mate_is_reverse
+    cdef int tlen
+    # counting variables 
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_mate_unmapped = 0
+    cdef unsigned int reads_mate_other_chr = 0
+    cdef unsigned int reads_mate_same_strand = 0
+    cdef unsigned int reads_faceaway = 0
+    cdef unsigned int reads_softclipped = 0
 
     # initialise variables
     n = col.n
     plp = col.plp
-    is_reverse = np.zeros((n,), dtype=np.uint8)
-    is_proper_pair = np.zeros((n,), dtype=np.uint8)
-    mate_is_unmapped = np.zeros((n,), dtype=np.uint8)
-    mate_is_reverse = np.zeros((n,), dtype=np.uint8)
-    rnext = np.zeros((n,), dtype=np.uint8)
-    tlen = np.zeros((n,), dtype=np.int32)
 
     # get chromosome name and position
     tid = col.tid
@@ -250,35 +262,41 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        is_reverse[i] = flag & BAM_FREVERSE
-        is_proper_pair[i] = flag & BAM_FPROPER_PAIR
-        mate_is_unmapped[i] = flag & BAM_FMUNMAP
-        rnext[i] = aln.core.mtid
-        mate_is_reverse[i] = flag & BAM_FMREVERSE
-        tlen[i] = aln.core.isize
-        
-    # set up various boolean arrays
-    is_reverse.dtype = np.bool
-    is_forward = ~is_reverse
-    is_proper_pair.dtype = np.bool
-    mate_is_unmapped.dtype = np.bool
-    mate_is_reverse.dtype = np.bool
-    mate_is_mapped = ~mate_is_unmapped
-    mate_is_other_chr = mate_is_mapped & np.not_equal(rnext, tid)
-    mate_is_same_strand = mate_is_mapped & np.equal(is_reverse, mate_is_reverse)
-    is_leftmost = tlen > 0
-    is_rightmost = tlen < 0
-    is_faceaway = mate_is_mapped & ((is_leftmost & is_reverse) | (is_rightmost & is_forward))
+        b_is_reverse = flag & BAM_FREVERSE
+        b_is_proper_pair = flag & BAM_FPROPER_PAIR
+        b_mate_is_unmapped = flag & BAM_FMUNMAP
+        b_mate_is_reverse = flag & BAM_FMREVERSE
+        tlen = aln.core.isize
+        if b_is_proper_pair:
+            reads_pp += 1
+        if b_mate_is_unmapped:
+            reads_mate_unmapped += 1
+        elif tid != aln.core.mtid:
+            reads_mate_other_chr += 1
+        elif b_is_reverse == b_mate_is_reverse:
+            reads_mate_same_strand += 1
+        elif (b_is_reverse and tlen > 0) or (not b_is_reverse and tlen < 0):
+            reads_faceaway += 1
+        if is_softclipped(aln):
+            reads_softclipped += 1
+            
+    return {'chr': chrom, 'pos': pos, 
+               'reads_all': n, 
+               'reads_pp': reads_pp,
+               'reads_mate_unmapped': reads_mate_unmapped,
+               'reads_mate_other_chr': reads_mate_other_chr,
+               'reads_mate_same_strand': reads_mate_same_strand,
+               'reads_faceaway': reads_faceaway,
+               'reads_softclipped': reads_softclipped}
 
-    return {'chr': chrom, 
-            'pos': pos, 
-            'reads_all': n, 
-            'reads_pp': np.count_nonzero(is_proper_pair),
-            'reads_mate_unmapped': np.count_nonzero(mate_is_unmapped),
-            'reads_mate_other_chr': np.count_nonzero(mate_is_other_chr),
-            'reads_mate_same_strand': np.count_nonzero(mate_is_same_strand),
-            'reads_faceaway': np.count_nonzero(is_faceaway),
-            }
+
+cdef bint is_softclipped(bam1_t * aln):
+    cigar_p = bam1_cigar(aln);
+    for k in range(aln.core.n_cigar):
+        op = cigar_p[k] & BAM_CIGAR_MASK
+        if op == BAM_CSOFT_CLIP:
+            return 1
+    return 0
 
 
 def stat_coverage_ext(samfile, chrom=None, start=None, end=None, one_based=False):
@@ -295,7 +313,7 @@ def write_coverage_ext(outfile, samfile, dialect=csv.excel_tab, write_header=Tru
                   'reads_mate_unmapped', 
                   'reads_mate_other_chr',
                   'reads_mate_same_strand',
-                  'reads_faceaway')
+                  'reads_faceaway', 'reads_softclipped')
     write_stats(stat_coverage_ext, outfile, fieldnames, samfile, 
                 dialect=dialect, write_header=write_header,
                 chrom=chrom, start=start, end=end, 
