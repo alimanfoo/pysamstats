@@ -322,3 +322,165 @@ def write_coverage_ext(outfile, samfile, dialect=csv.excel_tab, write_header=Tru
                 one_based=one_based, progress=progress)
     
     
+##########################################
+# EXTENDED COVERAGE STATISTICS BY STRAND #
+##########################################
+
+
+cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef bint b_is_reverse 
+    cdef bint b_is_proper_pair 
+    cdef bint b_mate_is_unmappped 
+    cdef bint b_mate_is_reverse
+    cdef int tlen
+    # counting variables 
+    cdef unsigned int reads_rev = 0
+    cdef unsigned int reads_fwd = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_rev = 0
+    cdef unsigned int reads_pp_fwd = 0
+    cdef unsigned int reads_mate_unmapped = 0
+    cdef unsigned int reads_mate_unmapped_rev = 0
+    cdef unsigned int reads_mate_unmapped_fwd = 0
+    cdef unsigned int reads_mate_other_chr = 0
+    cdef unsigned int reads_mate_other_chr_rev = 0
+    cdef unsigned int reads_mate_other_chr_fwd = 0
+    cdef unsigned int reads_mate_same_strand = 0
+    cdef unsigned int reads_mate_same_strand_rev = 0
+    cdef unsigned int reads_mate_same_strand_fwd = 0
+    cdef unsigned int reads_faceaway = 0
+    cdef unsigned int reads_faceaway_rev = 0
+    cdef unsigned int reads_faceaway_fwd = 0
+    cdef unsigned int reads_softclipped = 0
+    cdef unsigned int reads_softclipped_rev = 0
+    cdef unsigned int reads_softclipped_fwd = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    tid = col.tid
+    chrom = samfile.getrname(tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        b_is_reverse = <bint>(flag & BAM_FREVERSE)
+        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        b_mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        b_mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        tlen = aln.core.isize
+        if b_is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if b_is_proper_pair:
+            reads_pp += 1
+            if b_is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
+        if b_mate_is_unmapped:
+            reads_mate_unmapped += 1
+            if b_is_reverse:
+                reads_mate_unmapped_rev += 1
+            else:
+                reads_mate_unmapped_fwd += 1
+        elif tid != aln.core.mtid:
+            reads_mate_other_chr += 1
+            if b_is_reverse:
+                reads_mate_other_chr_rev += 1
+            else:
+                reads_mate_other_chr_fwd += 1
+        elif b_is_reverse and b_mate_is_reverse:
+            reads_mate_same_strand += 1
+            reads_mate_same_strand_rev += 1
+        elif not b_is_reverse and not b_mate_is_reverse:
+            reads_mate_same_strand += 1
+            reads_mate_same_strand_fwd += 1
+        elif (b_is_reverse and tlen > 0) or (not b_is_reverse and tlen < 0):
+            reads_faceaway += 1
+            if b_is_reverse:
+                reads_faceaway_rev += 1
+            else:
+                reads_faceaway_fwd += 1
+        if is_softclipped(aln):
+            reads_softclipped += 1
+            if b_is_reverse:
+                reads_softclipped_rev += 1
+            else:
+                reads_softclipped_fwd += 1
+            
+    return {'chr': chrom, 'pos': pos, 
+           'reads_all': n, 
+           'reads_fwd': reads_fwd,
+           'reads_rev': reads_rev,
+           'reads_pp': reads_pp,
+           'reads_pp_fwd': reads_pp_fwd,
+           'reads_pp_rev': reads_pp_rev,
+           'reads_mate_unmapped': reads_mate_unmapped,
+           'reads_mate_unmapped_fwd': reads_mate_unmapped_fwd,
+           'reads_mate_unmapped_rev': reads_mate_unmapped_rev,
+           'reads_mate_other_chr': reads_mate_other_chr,
+           'reads_mate_other_chr_fwd': reads_mate_other_chr_fwd,
+           'reads_mate_other_chr_rev': reads_mate_other_chr_rev,
+           'reads_mate_same_strand': reads_mate_same_strand,
+           'reads_mate_same_strand_fwd': reads_mate_same_strand_fwd,
+           'reads_mate_same_strand_rev': reads_mate_same_strand_rev,
+           'reads_faceaway': reads_faceaway,
+           'reads_faceaway_fwd': reads_faceaway_fwd,
+           'reads_faceaway_rev': reads_faceaway_rev,
+           'reads_softclipped': reads_softclipped,
+           'reads_softclipped_fwd': reads_softclipped_fwd,
+           'reads_softclipped_rev': reads_softclipped_rev}
+
+
+def stat_coverage_ext_strand(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(chrom, start, end):
+        yield construct_rec_coverage_ext_strand(samfile, col, one_based)
+        
+        
+def write_coverage_ext_strand(outfile, samfile, dialect=csv.excel_tab, write_header=True,
+                              chrom=None, start=None, end=None, 
+                              one_based=False, progress=None):
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 
+                  'reads_fwd', 
+                  'reads_rev', 
+                  'reads_pp', 
+                  'reads_pp_fwd', 
+                  'reads_pp_rev', 
+                  'reads_mate_unmapped', 
+                  'reads_mate_unmapped_fwd', 
+                  'reads_mate_unmapped_rev', 
+                  'reads_mate_other_chr',
+                  'reads_mate_other_chr_fwd',
+                  'reads_mate_other_chr_rev',
+                  'reads_mate_same_strand',
+                  'reads_mate_same_strand_fwd',
+                  'reads_mate_same_strand_rev',
+                  'reads_faceaway', 
+                  'reads_faceaway_fwd', 
+                  'reads_faceaway_rev', 
+                  'reads_softclipped',
+                  'reads_softclipped_fwd',
+                  'reads_softclipped_rev',
+                  )
+    write_stats(stat_coverage_ext_strand, outfile, fieldnames, samfile, 
+                dialect=dialect, write_header=write_header,
+                chrom=chrom, start=start, end=end, 
+                one_based=one_based, progress=progress)
+    
+    
