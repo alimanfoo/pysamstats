@@ -480,7 +480,8 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
             if is_proper_pair:
                 deletions_pp += 1
         else:
-            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
+#            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
+            alnbase = get_seq_base(aln, read.qpos)
 #            print refbase, alnbase
             if alnbase == 'A':
                 A += 1
@@ -608,23 +609,20 @@ cdef inline bint is_softclipped(bam1_t * aln):
     return 0
 
 
-cdef inline object get_seq_range(bam1_t *src, uint32_t start, uint32_t end):
+cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     cdef uint8_t * p
-    cdef uint32_t k
     cdef char * s
 
     if not src.core.l_qseq:
         return None
 
-    seq = PyBytes_FromStringAndSize(NULL, end - start)
+    seq = PyBytes_FromStringAndSize(NULL, 1)
     s   = <char*>seq
     p   = bam1_seq(src)
 
-    for k from start <= k < end:
-        # equivalent to bam_nt16_rev_table[bam1_seqi(s, i)] (see bam.c)
-        # note: do not use string literal as it will be a python string
-        s[k-start] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
+    # equivalent to bam_nt16_rev_table[bam1_seqi(s, i)] (see bam.c)
+    # note: do not use string literal as it will be a python string
+    s[0] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
 
     return seq
-
 
