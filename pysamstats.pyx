@@ -50,13 +50,6 @@ DEF BAM_CEQUAL     = 7
 DEF BAM_CDIFF      = 8
 
 
-def normalise_coords(start, end, one_based):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
-    return start, end
-
-
 #############################
 # BASIC COVERAGE STATISTICS #
 #############################
@@ -103,50 +96,9 @@ def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
         yield construct_rec_coverage(samfile, col, one_based)
         
         
-def write_stats(statfun, outfile, fieldnames, samfile,
-                dialect=csv.excel_tab, write_header=True, 
-                chrom=None, start=None, end=None, 
-                one_based=False, progress=None):
-    cdef long long counter = 0
-    cdef long long modulus
-    
-    writer = csv.DictWriter(outfile, fieldnames, dialect=dialect)
-    
-    if write_header:
-        writer.writeheader()
-    
-    if progress is None:
-        recs = statfun(samfile, chrom=chrom, start=start, end=end, 
-                       one_based=one_based)
-        writer.writerows(recs)
-
-    else:
-        modulus = progress
-        before = time.time()
-        before_all = before
-        for rec in statfun(samfile, chrom=chrom, start=start, end=end, 
-                           one_based=one_based):
-            counter += 1
-            writer.writerow(rec)
-            if counter % modulus == 0:
-                after = time.time()
-                elapsed = after - before_all
-                batch_elapsed = after - before
-                print >>sys.stderr, '%s rows in %.2fs (%d rows/s); batch in %.2fs (%d rows/s)' % (counter, elapsed, counter/elapsed, batch_elapsed, progress/batch_elapsed)
-                before = after
-        after_all = time.time()
-        elapsed_all = after_all - before_all
-        print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, elapsed_all, counter/elapsed_all)
-    
-    
-def write_coverage(outfile, samfile, dialect=csv.excel_tab, write_header=True,
-                   chrom=None, start=None, end=None, 
-                   one_based=False, progress=None):
+def write_coverage(*args, **kwargs):
     fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp')
-    write_stats(stat_coverage, outfile, fieldnames, samfile, 
-                dialect=dialect, write_header=write_header,
-                chrom=chrom, start=start, end=end, 
-                one_based=one_based, progress=progress)
+    write_stats(stat_coverage, fieldnames, *args, **kwargs)
     
     
 ################################
@@ -213,16 +165,11 @@ def stat_coverage_strand(samfile, chrom=None, start=None, end=None, one_based=Fa
         yield construct_rec_coverage_strand(samfile, col, one_based)
         
         
-def write_coverage_strand(outfile, samfile, dialect=csv.excel_tab, write_header=True,
-                          chrom=None, start=None, end=None, 
-                          one_based=False, progress=None):
+def write_coverage_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
                   'reads_all', 'reads_fwd', 'reads_rev', 
                   'reads_pp', 'reads_pp_fwd', 'reads_pp_rev')
-    write_stats(stat_coverage_strand, outfile, fieldnames, samfile, 
-                dialect=dialect, write_header=write_header,
-                chrom=chrom, start=start, end=end, 
-                one_based=one_based, progress=progress)
+    write_stats(stat_coverage_strand, fieldnames, *args, **kwargs)
     
     
 ################################
@@ -293,35 +240,22 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
                'reads_softclipped': reads_softclipped}
 
 
-cdef bint is_softclipped(bam1_t * aln):
-    cigar_p = bam1_cigar(aln);
-    for k in range(aln.core.n_cigar):
-        op = cigar_p[k] & BAM_CIGAR_MASK
-        if op == BAM_CSOFT_CLIP:
-            return 1
-    return 0
-
-
 def stat_coverage_ext(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(start, end, one_based)
     for col in samfile.pileup(chrom, start, end):
         yield construct_rec_coverage_ext(samfile, col, one_based)
         
         
-def write_coverage_ext(outfile, samfile, dialect=csv.excel_tab, write_header=True,
-                       chrom=None, start=None, end=None, 
-                       one_based=False, progress=None):
+def write_coverage_ext(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
-                  'reads_all', 'reads_pp', 
+                  'reads_all', 
+                  'reads_pp', 
                   'reads_mate_unmapped', 
                   'reads_mate_other_chr',
                   'reads_mate_same_strand',
                   'reads_faceaway', 
                   'reads_softclipped')
-    write_stats(stat_coverage_ext, outfile, fieldnames, samfile, 
-                dialect=dialect, write_header=write_header,
-                chrom=chrom, start=start, end=end, 
-                one_based=one_based, progress=progress)
+    write_stats(stat_coverage_ext, fieldnames, *args, **kwargs)
     
     
 ##########################################
@@ -454,9 +388,7 @@ def stat_coverage_ext_strand(samfile, chrom=None, start=None, end=None, one_base
         yield construct_rec_coverage_ext_strand(samfile, col, one_based)
         
         
-def write_coverage_ext_strand(outfile, samfile, dialect=csv.excel_tab, write_header=True,
-                              chrom=None, start=None, end=None, 
-                              one_based=False, progress=None):
+def write_coverage_ext_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
                   'reads_all', 
                   'reads_fwd', 
@@ -478,11 +410,63 @@ def write_coverage_ext_strand(outfile, samfile, dialect=csv.excel_tab, write_hea
                   'reads_faceaway_rev', 
                   'reads_softclipped',
                   'reads_softclipped_fwd',
-                  'reads_softclipped_rev',
-                  )
-    write_stats(stat_coverage_ext_strand, outfile, fieldnames, samfile, 
-                dialect=dialect, write_header=write_header,
-                chrom=chrom, start=start, end=end, 
-                one_based=one_based, progress=progress)
+                  'reads_softclipped_rev')
+    write_stats(stat_coverage_ext_strand, fieldnames, *args, **kwargs)
+
+
+#####################
+# UTILITY FUNCTIONS #
+#####################  
+
+
+def normalise_coords(start, end, one_based):
+    if one_based:
+        start = start - 1 if start is not None else None
+        end = end - 1 if end is not None else None
+    return start, end
+
+    
+def write_stats(statfun, fieldnames, outfile, samfile,
+                dialect=csv.excel_tab, write_header=True, 
+                chrom=None, start=None, end=None, 
+                one_based=False, progress=None):
+    cdef long long counter = 0
+    cdef long long modulus
+    
+    writer = csv.DictWriter(outfile, fieldnames, dialect=dialect)
+    
+    if write_header:
+        writer.writeheader()
+
+    recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based)
+    
+    if progress is None:
+        writer.writerows(recs)
+
+    else:
+        modulus = progress
+        before = time.time()
+        before_all = before
+        for rec in recs:
+            counter += 1
+            writer.writerow(rec)
+            if counter % modulus == 0:
+                after = time.time()
+                elapsed = after - before_all
+                batch_elapsed = after - before
+                print >>sys.stderr, '%s rows in %.2fs (%d rows/s); batch in %.2fs (%d rows/s)' % (counter, elapsed, counter/elapsed, batch_elapsed, progress/batch_elapsed)
+                before = after
+        after_all = time.time()
+        elapsed_all = after_all - before_all
+        print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, elapsed_all, counter/elapsed_all)
     
     
+cdef bint is_softclipped(bam1_t * aln):
+    cigar_p = bam1_cigar(aln);
+    for k in range(aln.core.n_cigar):
+        op = cigar_p[k] & BAM_CIGAR_MASK
+        if op == BAM_CSOFT_CLIP:
+            return 1
+    return 0
+
+
