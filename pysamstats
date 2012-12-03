@@ -6,8 +6,7 @@ import errno
 
 
 from pysam import Samfile
-from pysamstats import write_coverage, write_coverage_strand, write_coverage_ext, \
-    write_coverage_ext_strand
+import pysamstats
 
 
 if __name__ == '__main__':
@@ -16,16 +15,20 @@ if __name__ == '__main__':
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
     epilog = """
-    Supported statistics types:
+Supported statistics types:
+
+    * coverage            - number of reads aligned to each genome position 
+                            (total and properly paired)
+    * coverage_strand     - as coverage but with forward/reverse counts also
+    * coverage_ext        - various additional coverage metrics, including 
+                            coverage for reads not properly paired (mate 
+                            unmapped, mate on other chromosome, ...)
+    * coverage_ext_strand - as coverage_ext but with forward/reverse counts also
     
-        * coverage - number of reads aligned to each genome position (total and properly paired)
-        * coverage_strand - as coverage, but with forward/reverse counts also
-        * coverage_ext - various additional coverage metrics 
-        
-    Examples:
-    
-        pysamstats --type coverage example.bam > example.coverage.txt
-        pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
+Examples:
+
+    pysamstats --type coverage example.bam > example.coverage.txt
+    pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
 """
 
@@ -48,34 +51,15 @@ if __name__ == '__main__':
     write_header = not options.omit_header
     
     try:
-    
-        if options.type == 'coverage':
-            write_coverage(sys.stdout, samfile,
-                           write_header=write_header, 
-                           chrom=options.chromosome, start=options.start, end=options.end, 
-                           one_based=one_based, 
-                           progress=options.progress)
-            
-        elif options.type == 'coverage_strand':
-            write_coverage_strand(sys.stdout, samfile, 
-                                  write_header=write_header, 
-                                  chrom=options.chromosome, start=options.start, end=options.end, 
-                                  one_based=one_based,  
-                                  progress=options.progress)
-            
-        elif options.type == 'coverage_ext':
-            write_coverage_ext(sys.stdout, samfile, 
-                               write_header=write_header, 
-                               chrom=options.chromosome, start=options.start, end=options.end, 
-                               one_based=one_based,  
-                               progress=options.progress)
-            
-        elif options.type == 'coverage_ext_strand':
-            write_coverage_ext_strand(sys.stdout, samfile, 
-                                      write_header=write_header, 
-                                      chrom=options.chromosome, start=options.start, end=options.end, 
-                                      one_based=one_based,  
-                                      progress=options.progress)
+
+        fname = 'write_' + options.type
+        if hasattr(pysamstats, fname):
+            f = getattr(pysamstats, fname)
+            f(sys.stdout, samfile,
+              write_header=write_header, 
+              chrom=options.chromosome, start=options.start, end=options.end, 
+              one_based=one_based, 
+              progress=options.progress)
             
         else:
             parser.error('unsupported statistics type: "%s"\nTry one of %s or "pysamstats --help" for more information.' % (options.type, stats_types))

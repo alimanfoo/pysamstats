@@ -71,7 +71,7 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    cdef bint b_is_proper_pair
+    cdef bint is_proper_pair
     cdef unsigned int reads_pp = 0
 
     # initialise variables
@@ -87,8 +87,8 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if b_is_proper_pair:
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
             reads_pp += 1
 
     return {'chr': chrom, 
@@ -99,7 +99,7 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
 
 def stat_coverage(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(chrom, start, end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
         yield construct_rec_coverage(samfile, col, one_based)
         
         
@@ -116,14 +116,16 @@ def write_stats(statfun, outfile, fieldnames, samfile,
         writer.writeheader()
     
     if progress is None:
-        recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based)
+        recs = statfun(samfile, chrom=chrom, start=start, end=end, 
+                       one_based=one_based)
         writer.writerows(recs)
 
     else:
         modulus = progress
         before = time.time()
         before_all = before
-        for rec in statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based):
+        for rec in statfun(samfile, chrom=chrom, start=start, end=end, 
+                           one_based=one_based):
             counter += 1
             writer.writerow(rec)
             if counter % modulus == 0:
@@ -161,8 +163,8 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    cdef bint b_is_reverse 
-    cdef bint b_is_proper_pair 
+    cdef bint is_reverse 
+    cdef bint is_proper_pair 
     cdef unsigned int reads_fwd = 0
     cdef unsigned int reads_rev = 0
     cdef unsigned int reads_pp = 0
@@ -182,15 +184,15 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_reverse = <bint>(flag & BAM_FREVERSE)
-        if b_is_reverse:
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        if is_reverse:
             reads_rev += 1
         else:
             reads_fwd += 1
-        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if b_is_proper_pair:
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
             reads_pp += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_pp_rev += 1
             else:
                 reads_pp_fwd += 1
@@ -236,10 +238,10 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
     cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
-    cdef bint b_is_reverse 
-    cdef bint b_is_proper_pair 
-    cdef bint b_mate_is_unmappped 
-    cdef bint b_mate_is_reverse
+    cdef bint is_reverse 
+    cdef bint is_proper_pair 
+    cdef bint mate_is_unmappped 
+    cdef bint mate_is_reverse
     cdef int tlen
     # counting variables 
     cdef unsigned int reads_pp = 0
@@ -263,20 +265,20 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_reverse = <bint>(flag & BAM_FREVERSE)
-        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        b_mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        b_mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
         tlen = aln.core.isize
-        if b_is_proper_pair:
+        if is_proper_pair:
             reads_pp += 1
-        if b_mate_is_unmapped:
+        if mate_is_unmapped:
             reads_mate_unmapped += 1
         elif tid != aln.core.mtid:
             reads_mate_other_chr += 1
-        elif (b_is_reverse and b_mate_is_reverse) or (not b_is_reverse and not b_mate_is_reverse):
+        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
             reads_mate_same_strand += 1
-        elif (b_is_reverse and tlen > 0) or (not b_is_reverse and tlen < 0):
+        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
             reads_faceaway += 1
         if is_softclipped(aln):
             reads_softclipped += 1
@@ -335,10 +337,10 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
     cdef bam1_t * aln
     cdef int i # loop index
     cdef int n # total number of reads in column
-    cdef bint b_is_reverse 
-    cdef bint b_is_proper_pair 
-    cdef bint b_mate_is_unmappped 
-    cdef bint b_mate_is_reverse
+    cdef bint is_reverse 
+    cdef bint is_proper_pair 
+    cdef bint mate_is_unmappped 
+    cdef bint mate_is_reverse
     cdef int tlen
     # counting variables 
     cdef unsigned int reads_rev = 0
@@ -376,48 +378,48 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_reverse = <bint>(flag & BAM_FREVERSE)
-        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        b_mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        b_mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
         tlen = aln.core.isize
-        if b_is_reverse:
+        if is_reverse:
             reads_rev += 1
         else:
             reads_fwd += 1
-        if b_is_proper_pair:
+        if is_proper_pair:
             reads_pp += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_pp_rev += 1
             else:
                 reads_pp_fwd += 1
-        if b_mate_is_unmapped:
+        if mate_is_unmapped:
             reads_mate_unmapped += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_mate_unmapped_rev += 1
             else:
                 reads_mate_unmapped_fwd += 1
         elif tid != aln.core.mtid:
             reads_mate_other_chr += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_mate_other_chr_rev += 1
             else:
                 reads_mate_other_chr_fwd += 1
-        elif b_is_reverse and b_mate_is_reverse:
+        elif is_reverse and mate_is_reverse:
             reads_mate_same_strand += 1
             reads_mate_same_strand_rev += 1
-        elif not b_is_reverse and not b_mate_is_reverse:
+        elif not is_reverse and not mate_is_reverse:
             reads_mate_same_strand += 1
             reads_mate_same_strand_fwd += 1
-        elif (b_is_reverse and tlen > 0) or (not b_is_reverse and tlen < 0):
+        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
             reads_faceaway += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_faceaway_rev += 1
             else:
                 reads_faceaway_fwd += 1
         if is_softclipped(aln):
             reads_softclipped += 1
-            if b_is_reverse:
+            if is_reverse:
                 reads_softclipped_rev += 1
             else:
                 reads_softclipped_fwd += 1
