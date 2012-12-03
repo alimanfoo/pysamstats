@@ -6,8 +6,9 @@ import numpy as np
 cimport numpy as np
 import time
 import csv
-from libc.stdint cimport uint32_t
-from csamtools cimport Samfile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar
+from libc.stdint cimport uint32_t, uint8_t
+from cpython cimport PyBytes_FromStringAndSize
+from csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq
 
 
 ## These are bits set in the flag.
@@ -49,6 +50,7 @@ DEF BAM_CPAD       = 6
 DEF BAM_CEQUAL     = 7
 DEF BAM_CDIFF      = 8
 
+cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 #############################
 # BASIC COVERAGE STATISTICS #
@@ -414,6 +416,139 @@ def write_coverage_ext_strand(*args, **kwargs):
     write_stats(stat_coverage_ext_strand, fieldnames, *args, **kwargs)
 
 
+########################
+# VARIATION STATISTICS #
+########################
+
+
+cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile, 
+                                     PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    # counting variables
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int matches = 0
+    cdef unsigned int matches_pp = 0
+    cdef unsigned int mismatches = 0
+    cdef unsigned int mismatches_pp = 0
+    cdef unsigned int deletions = 0
+    cdef unsigned int deletions_pp = 0
+    cdef unsigned int insertions = 0
+    cdef unsigned int insertions_pp = 0
+    cdef unsigned int A = 0
+    cdef unsigned int A_pp = 0
+    cdef unsigned int C = 0
+    cdef unsigned int C_pp = 0
+    cdef unsigned int T = 0
+    cdef unsigned int T_pp = 0
+    cdef unsigned int G = 0
+    cdef unsigned int G_pp = 0
+    cdef unsigned int N = 0
+    cdef unsigned int N_pp = 0
+    
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # reference base
+    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        # read.qpos
+        # read.is_del
+        # read.indel
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+        if read.is_del:
+            deletions += 1
+            if is_proper_pair:
+                deletions_pp += 1
+        else:
+            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
+#            print refbase, alnbase
+            if alnbase == 'A':
+                A += 1
+                if is_proper_pair:
+                    A_pp += 1
+            elif alnbase == 'T':
+                T += 1
+                if is_proper_pair:
+                    T_pp += 1
+            elif alnbase == 'C':
+                C += 1
+                if is_proper_pair:
+                    C_pp += 1
+            elif alnbase == 'G':
+                G += 1
+                if is_proper_pair:
+                    G_pp += 1
+            elif alnbase == 'N':
+                N += 1
+                if is_proper_pair:
+                    N_pp += 1
+            if read.indel > 0:
+                insertions += 1
+                if is_proper_pair:
+                    insertions_pp += 1
+            if alnbase == refbase:
+                matches += 1
+                if is_proper_pair:
+                    matches_pp += 1
+            else:
+                mismatches += 1
+                if is_proper_pair:
+                    mismatches_pp += 1
+
+    return {'chr': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': n, 'reads_pp': reads_pp,
+            'matches': matches,
+            'matches_pp': matches_pp,
+            'mismatches': mismatches,
+            'mismatches_pp': mismatches_pp,
+            'deletions': deletions,
+            'deletions_pp': deletions_pp,
+            'insertions': insertions,
+            'insertions_pp': insertions_pp,
+            'A': A, 'A_pp': A_pp,
+            'C': C, 'C_pp': C_pp,
+            'T': T, 'T_pp': T_pp,
+            'G': G, 'G_pp': G_pp,
+            'N': N, 'N_pp': N_pp}
+
+
+def stat_variation(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_variation(samfile, fafile, col, one_based)
+        
+        
+def write_variation(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 'ref', 
+                  'reads_all', 'reads_pp',
+                  'matches', 'matches_pp',
+                  'mismatches', 'mismatches_pp',
+                  'deletions', 'deletions_pp',
+                  'insertions', 'insertions_pp',
+                  'A', 'A_pp', 'C', 'C_pp', 'T', 'T_pp', 'G', 'G_pp', 'N', 'N_pp')
+    write_stats(stat_variation, fieldnames, *args, **kwargs)
+    
+    
 #####################
 # UTILITY FUNCTIONS #
 #####################  
@@ -426,7 +561,7 @@ def normalise_coords(start, end, one_based):
     return start, end
 
     
-def write_stats(statfun, fieldnames, outfile, samfile,
+def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
                 dialect=csv.excel_tab, write_header=True, 
                 chrom=None, start=None, end=None, 
                 one_based=False, progress=None):
@@ -438,8 +573,11 @@ def write_stats(statfun, fieldnames, outfile, samfile,
     if write_header:
         writer.writeheader()
 
-    recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based)
-    
+    if fafile is None:
+        recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based)
+    else:
+        recs = statfun(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
+
     if progress is None:
         writer.writerows(recs)
 
@@ -461,12 +599,32 @@ def write_stats(statfun, fieldnames, outfile, samfile,
         print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, elapsed_all, counter/elapsed_all)
     
     
-cdef bint is_softclipped(bam1_t * aln):
+cdef inline bint is_softclipped(bam1_t * aln):
     cigar_p = bam1_cigar(aln);
     for k in range(aln.core.n_cigar):
         op = cigar_p[k] & BAM_CIGAR_MASK
         if op == BAM_CSOFT_CLIP:
             return 1
     return 0
+
+
+cdef inline object get_seq_range(bam1_t *src, uint32_t start, uint32_t end):
+    cdef uint8_t * p
+    cdef uint32_t k
+    cdef char * s
+
+    if not src.core.l_qseq:
+        return None
+
+    seq = PyBytes_FromStringAndSize(NULL, end - start)
+    s   = <char*>seq
+    p   = bam1_seq(src)
+
+    for k from start <= k < end:
+        # equivalent to bam_nt16_rev_table[bam1_seqi(s, i)] (see bam.c)
+        # note: do not use string literal as it will be a python string
+        s[k-start] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
+
+    return seq
 
 
