@@ -28,7 +28,6 @@ pip-log.txt
 
 spike*
 *.so
-*.c
 *.html
 *~
 *.prof

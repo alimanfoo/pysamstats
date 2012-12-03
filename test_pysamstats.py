@@ -89,6 +89,7 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_bas
                                      and (read.alignment.is_reverse == read.alignment.mate_is_reverse))
         reads_faceaway = sum(1 for read in reads
                              if not read.alignment.mate_is_unmapped
+                             and read.alignment.is_reverse != read.alignment.mate_is_reverse
                              and ((read.alignment.is_reverse and read.alignment.tlen > 0) # mapped to reverse strand but leftmost
                                   or (not read.alignment.is_reverse and read.alignment.tlen < 0)) # mapped to fwd strand but rightmost
                              )

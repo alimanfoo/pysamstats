@@ -6,7 +6,8 @@ import numpy as np
 cimport numpy as np
 import time
 import csv
-from csamtools cimport Samfile, PileupProxy, bam1_t, bam_pileup1_t
+from libc.stdint cimport uint32_t
+from csamtools cimport Samfile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar
 
 
 ## These are bits set in the flag.
@@ -86,7 +87,7 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_proper_pair = flag & BAM_FPROPER_PAIR
+        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         if b_is_proper_pair:
             reads_pp += 1
 
@@ -181,12 +182,12 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_reverse = flag & BAM_FREVERSE
+        b_is_reverse = <bint>(flag & BAM_FREVERSE)
         if b_is_reverse:
             reads_rev += 1
         else:
             reads_fwd += 1
-        b_is_proper_pair = flag & BAM_FPROPER_PAIR
+        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         if b_is_proper_pair:
             reads_pp += 1
             if b_is_reverse:
@@ -262,10 +263,10 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
         read = &(plp[0][i])
         aln = read.b
         flag = aln.core.flag
-        b_is_reverse = flag & BAM_FREVERSE
-        b_is_proper_pair = flag & BAM_FPROPER_PAIR
-        b_mate_is_unmapped = flag & BAM_FMUNMAP
-        b_mate_is_reverse = flag & BAM_FMREVERSE
+        b_is_reverse = <bint>(flag & BAM_FREVERSE)
+        b_is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        b_mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        b_mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
         tlen = aln.core.isize
         if b_is_proper_pair:
             reads_pp += 1
@@ -273,7 +274,7 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
             reads_mate_unmapped += 1
         elif tid != aln.core.mtid:
             reads_mate_other_chr += 1
-        elif b_is_reverse == b_mate_is_reverse:
+        elif (b_is_reverse and b_mate_is_reverse) or (not b_is_reverse and not b_mate_is_reverse):
             reads_mate_same_strand += 1
         elif (b_is_reverse and tlen > 0) or (not b_is_reverse and tlen < 0):
             reads_faceaway += 1
@@ -313,7 +314,8 @@ def write_coverage_ext(outfile, samfile, dialect=csv.excel_tab, write_header=Tru
                   'reads_mate_unmapped', 
                   'reads_mate_other_chr',
                   'reads_mate_same_strand',
-                  'reads_faceaway', 'reads_softclipped')
+                  'reads_faceaway', 
+                  'reads_softclipped')
     write_stats(stat_coverage_ext, outfile, fieldnames, samfile, 
                 dialect=dialect, write_header=write_header,
                 chrom=chrom, start=start, end=end, 
