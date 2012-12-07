@@ -11,8 +11,15 @@ import pysamstats
 
 if __name__ == '__main__':
     
-    stats_types = ('coverage', 'coverage_strand', 'coverage_ext', 'coverage_ext_strand', 'variation')
-    stats_types_requiring_fasta = ('variation',)
+    stats_types = ('coverage', 
+                   'coverage_strand', 
+                   'coverage_ext', 
+                   'coverage_ext_strand', 
+                   'variation', 
+                   'variation_strand',
+                   'tlen',
+                   'tlen_strand')
+    stats_types_requiring_fasta = ('variation', 'variation_strand')
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
     epilog = """
@@ -25,6 +32,11 @@ Supported statistics types:
                             coverage for reads not properly paired (mate 
                             unmapped, mate on other chromosome, ...)
     * coverage_ext_strand - as coverage_ext but with forward/reverse counts also
+    * variation           - numbers of matches, mismatches, deletions, 
+                            insertions, etc.
+    * variation_strand    - TODO
+    * tlen                - insert size statistics
+    * tlen_strand         - TODO
     
 Examples:
 

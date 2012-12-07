@@ -3,10 +3,12 @@
 
 import sys
 import numpy as np
+#import numpy.ma as ma
 cimport numpy as np
 import time
 import csv
-from libc.stdint cimport uint32_t, uint8_t
+from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
+from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
 from csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq
 
@@ -51,6 +53,7 @@ DEF BAM_CEQUAL     = 7
 DEF BAM_CDIFF      = 8
 
 cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
+
 
 #############################
 # BASIC COVERAGE STATISTICS #
@@ -550,6 +553,105 @@ def write_variation(*args, **kwargs):
     write_stats(stat_variation, fieldnames, *args, **kwargs)
     
     
+# TODO variation by strand
+    
+##########################
+# INSERT SIZE STATISTICS #
+##########################
+
+
+cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col, 
+                                bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint mate_is_unmappped 
+    cdef bint mate_other_chr
+    cdef unsigned int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
+    cdef unsigned int reads_pp = 0 # reads "properly paired", as defined by aligner
+    cdef int64_t tlen
+    cdef uint64_t tlen_squared
+    cdef uint64_t tlen_p_squared_sum = 0
+    cdef uint64_t tlen_pp_squared_sum = 0
+    
+    # initialise variables
+    n = col.n
+    plp = col.plp
+    tlen_p = []
+    tlen_pp = []
+    
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+
+        # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we 
+        # follow their naming convention
+        tlen = aln.core.isize 
+        tlen_squared = tlen**2
+
+        if is_proper_pair:
+            reads_p += 1
+            tlen_p.append(tlen)
+            tlen_p_squared_sum += tlen_squared
+            reads_pp += 1
+            tlen_pp.append(tlen)
+            tlen_pp_squared_sum += tlen_squared
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        elif not mate_is_unmapped and not mate_other_chr:
+            reads_p += 1
+            tlen_p.append(tlen)
+            tlen_p_squared_sum += tlen_squared
+
+    # calculate output variables
+    rms_tlen = sqrt(tlen_p_squared_sum*1. / reads_p)
+    std_tlen = np.std(np.array(tlen_p, dtype=np.int))
+    rms_tlen_pp = sqrt(tlen_pp_squared_sum*1. / reads_pp)
+    std_tlen_pp = np.std(np.array(tlen_pp, dtype=np.int))
+
+    # round values to nearest integer, any finer precision is probably not
+    # interesting    
+    return {'chr': chrom, 
+            'pos': pos, 
+            'reads_all': n, 
+            'reads_pp': reads_pp,
+            'rms_tlen': int(round(rms_tlen)),
+            'rms_tlen_pp': int(round(rms_tlen_pp)),
+            'std_tlen': int(round(std_tlen)),
+            'std_tlen_pp': int(round(std_tlen_pp))}
+
+
+def stat_tlen(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_tlen(samfile, col, one_based)
+        
+        
+def write_tlen(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp', 
+                  'rms_tlen', 'rms_tlen_pp',
+                  'std_tlen', 'std_tlen_pp')
+    write_stats(stat_tlen, fieldnames, *args, **kwargs)
+    
+    
+# TODO tlen stats by strand
+
+
 #####################
 # UTILITY FUNCTIONS #
 #####################  
