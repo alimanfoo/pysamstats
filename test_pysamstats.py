@@ -160,7 +160,7 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, 
                           ]
         reads_softclipped = [read for read in reads
                              if any((op[0] == 4) for op in read.alignment.cigar)]
-        reads_fwd =fwd(reads)
+        reads_fwd = fwd(reads)
         reads_rev = rev(reads)
         reads_pp_fwd = fwd(reads_pp)
         reads_pp_rev = rev(reads_pp)
@@ -268,6 +268,74 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
 
 def test_stat_variation():
     _test_withrefseq(pysamstats.stat_variation, stat_variation_refimpl)
+
+        
+def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_nodel = [read for read in reads if not read.is_del]
+        reads_pp = [read for read in reads if read.alignment.is_proper_pair]
+        reads_pp_nodel = [read for read in reads if read.alignment.is_proper_pair and not read.is_del]
+        ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
+        matches = [read for read in reads_nodel
+                      if read.alignment.seq[read.qpos] == ref]
+        matches_pp = [read for read in reads_pp_nodel
+                         if read.alignment.seq[read.qpos] == ref]
+        mismatches = [read for read in reads_nodel
+                         if read.alignment.seq[read.qpos] != ref]
+        mismatches_pp = [read for read in reads_pp_nodel
+                            if read.alignment.seq[read.qpos] != ref]
+        deletions = [read for read in reads
+                        if read.is_del]
+        deletions_pp = [read for read in reads_pp
+                           if read.is_del]
+        insertions = [read for read in reads
+                         if read.indel > 0]
+        insertions_pp = [read for read in reads_pp
+                            if read.indel > 0]
+        A = [read for read in reads_nodel
+                if read.alignment.seq[read.qpos] == 'A']
+        A_pp = [read for read in reads_pp_nodel
+                   if read.alignment.seq[read.qpos] == 'A']
+        C = [read for read in reads_nodel
+                if read.alignment.seq[read.qpos] == 'C']
+        C_pp = [read for read in reads_pp_nodel
+                   if read.alignment.seq[read.qpos] == 'C']
+        T = [read for read in reads_nodel
+                if read.alignment.seq[read.qpos] == 'T']
+        T_pp = [read for read in reads_pp_nodel
+                   if read.alignment.seq[read.qpos] == 'T']
+        G = [read for read in reads_nodel
+                if read.alignment.seq[read.qpos] == 'G']
+        G_pp = [read for read in reads_pp_nodel
+                   if read.alignment.seq[read.qpos] == 'G']
+        N = [read for read in reads_nodel
+                if read.alignment.seq[read.qpos] == 'N']
+        N_pp = [read for read in reads_pp_nodel
+                   if read.alignment.seq[read.qpos] == 'N']
+        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+               'reads_all': len(reads),
+               'reads_pp':len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'matches':len(matches), 'matches_fwd': len(fwd(matches)), 'matches_rev': len(rev(matches)),
+               'matches_pp':len(matches_pp), 'matches_pp_fwd': len(fwd(matches_pp)), 'matches_pp_rev': len(rev(matches_pp)),
+               'mismatches':len(mismatches), 'mismatches_fwd': len(fwd(mismatches)), 'mismatches_rev': len(rev(mismatches)),
+               'mismatches_pp':len(mismatches_pp), 'mismatches_pp_fwd': len(fwd(mismatches_pp)), 'mismatches_pp_rev': len(rev(mismatches_pp)),
+               'deletions':len(deletions), 'deletions_fwd': len(fwd(deletions)), 'deletions_rev': len(rev(deletions)),
+               'deletions_pp':len(deletions_pp), 'deletions_pp_fwd': len(fwd(deletions_pp)), 'deletions_pp_rev': len(rev(deletions_pp)),
+               'insertions':len(insertions), 'insertions_fwd': len(fwd(insertions)), 'insertions_rev': len(rev(insertions)),
+               'insertions_pp':len(insertions_pp), 'insertions_pp_fwd': len(fwd(insertions_pp)), 'insertions_pp_rev': len(rev(insertions_pp)),
+               'A':len(A), 'A_fwd': len(fwd(A)), 'A_rev': len(rev(A)), 'A_pp':len(A_pp), 'A_pp_fwd': len(fwd(A_pp)), 'A_pp_rev': len(rev(A_pp)),
+               'C':len(C), 'C_fwd': len(fwd(C)), 'C_rev': len(rev(C)), 'C_pp':len(C_pp), 'C_pp_fwd': len(fwd(C_pp)), 'C_pp_rev': len(rev(C_pp)),
+               'T':len(T), 'T_fwd': len(fwd(T)), 'T_rev': len(rev(T)), 'T_pp':len(T_pp), 'T_pp_fwd': len(fwd(T_pp)), 'T_pp_rev': len(rev(T_pp)),
+               'G':len(G), 'G_fwd': len(fwd(G)), 'G_rev': len(rev(G)), 'G_pp':len(G_pp), 'G_pp_fwd': len(fwd(G_pp)), 'G_pp_rev': len(rev(G_pp)),
+               'N':len(N), 'N_fwd': len(fwd(N)), 'N_rev': len(rev(N)), 'N_pp':len(N_pp), 'N_pp_fwd': len(fwd(N_pp)), 'N_pp_rev': len(rev(N_pp))}
+
+
+def test_stat_variation_strand():
+    _test_withrefseq(pysamstats.stat_variation_strand, stat_variation_strand_refimpl)
 
         
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
