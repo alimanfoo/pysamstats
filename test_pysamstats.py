@@ -55,10 +55,15 @@ def _test_withrefseq(impl, refimpl):
                 raise
 
 
-def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+def normalise_coords(one_based, start, end):
     if one_based:
         start = start - 1 if start is not None else None
         end = end - 1 if end is not None else None
+    return start, end
+
+
+def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
@@ -72,9 +77,7 @@ def test_stat_coverage():
 
         
 def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
@@ -94,9 +97,7 @@ def test_stat_coverage_strand():
 
 
 def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
@@ -131,9 +132,7 @@ def test_stat_coverage_ext():
 
 
 def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
@@ -196,9 +195,7 @@ def test_stat_coverage_ext_strand():
 
 
 def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
@@ -266,9 +263,7 @@ def test_stat_variation():
 
         
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
+    start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
