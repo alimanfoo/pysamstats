@@ -558,6 +558,28 @@ def write_variation(*args, **kwargs):
 #################################
 
 
+cdef struct CountPpStrand:
+    unsigned int all, pp, fwd, rev, pp_fwd, pp_rev
+
+
+cdef inline init_pp_strand(CountPpStrand* c):
+    c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0    
+
+
+cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse, bint is_proper_pair):
+    c.all += 1
+    if is_reverse:
+        c.rev += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_rev += 1
+    else:
+        c.fwd += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_fwd += 1
+                
+
 cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile, 
                                             PileupProxy col, bint one_based=False):
 
@@ -568,31 +590,23 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
     cdef int i # loop index
     cdef int n # total number of reads in column
     cdef uint32_t flag
-    cdef bint is_proper_pair
+    cdef bint is_proper_pair, is_reverse
     # counting variables
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int matches = 0
-    cdef unsigned int matches_pp = 0
-    cdef unsigned int mismatches = 0
-    cdef unsigned int mismatches_pp = 0
-    cdef unsigned int deletions = 0
-    cdef unsigned int deletions_pp = 0
-    cdef unsigned int insertions = 0
-    cdef unsigned int insertions_pp = 0
-    cdef unsigned int A = 0
-    cdef unsigned int A_pp = 0
-    cdef unsigned int C = 0
-    cdef unsigned int C_pp = 0
-    cdef unsigned int T = 0
-    cdef unsigned int T_pp = 0
-    cdef unsigned int G = 0
-    cdef unsigned int G_pp = 0
-    cdef unsigned int N = 0
-    cdef unsigned int N_pp = 0
+    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, A, C, T, G, N
     
     # initialise variables
     n = col.n
     plp = col.plp
+    init_pp_strand(&reads)
+    init_pp_strand(&matches)
+    init_pp_strand(&mismatches)
+    init_pp_strand(&deletions)
+    init_pp_strand(&insertions)
+    init_pp_strand(&A)
+    init_pp_strand(&T)
+    init_pp_strand(&C)
+    init_pp_strand(&G)
+    init_pp_strand(&N)
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -610,64 +624,41 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        incr_pp_strand(&reads, is_reverse, is_proper_pair)
         if read.is_del:
-            deletions += 1
-            if is_proper_pair:
-                deletions_pp += 1
+            incr_pp_strand(&deletions, is_reverse, is_proper_pair)
         else:
-#            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
             alnbase = get_seq_base(aln, read.qpos)
-#            print refbase, alnbase
             if alnbase == 'A':
-                A += 1
-                if is_proper_pair:
-                    A_pp += 1
+                incr_pp_strand(&A, is_reverse, is_proper_pair)
             elif alnbase == 'T':
-                T += 1
-                if is_proper_pair:
-                    T_pp += 1
+                incr_pp_strand(&T, is_reverse, is_proper_pair)
             elif alnbase == 'C':
-                C += 1
-                if is_proper_pair:
-                    C_pp += 1
+                incr_pp_strand(&C, is_reverse, is_proper_pair)
             elif alnbase == 'G':
-                G += 1
-                if is_proper_pair:
-                    G_pp += 1
+                incr_pp_strand(&G, is_reverse, is_proper_pair)
             elif alnbase == 'N':
-                N += 1
-                if is_proper_pair:
-                    N_pp += 1
+                incr_pp_strand(&N, is_reverse, is_proper_pair)
             if read.indel > 0:
-                insertions += 1
-                if is_proper_pair:
-                    insertions_pp += 1
+                incr_pp_strand(&insertions, is_reverse, is_proper_pair)
             if alnbase == refbase:
-                matches += 1
-                if is_proper_pair:
-                    matches_pp += 1
+                incr_pp_strand(&matches, is_reverse, is_proper_pair)
             else:
-                mismatches += 1
-                if is_proper_pair:
-                    mismatches_pp += 1
+                incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
     return {'chr': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_pp': reads_pp,
-            'matches': matches,
-            'matches_pp': matches_pp,
-            'mismatches': mismatches,
-            'mismatches_pp': mismatches_pp,
-            'deletions': deletions,
-            'deletions_pp': deletions_pp,
-            'insertions': insertions,
-            'insertions_pp': insertions_pp,
-            'A': A, 'A_pp': A_pp,
-            'C': C, 'C_pp': C_pp,
-            'T': T, 'T_pp': T_pp,
-            'G': G, 'G_pp': G_pp,
-            'N': N, 'N_pp': N_pp}
+            'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
+            'matches': matches.all, 'matches_fwd': matches.fwd, 'matches_rev': matches.rev, 'matches_pp': matches.pp, 'matches_pp_fwd': matches.pp_fwd, 'matches_pp_rev': matches.pp_rev,
+            'mismatches': mismatches.all, 'mismatches_fwd': mismatches.fwd, 'mismatches_rev': mismatches.rev, 'mismatches_pp': mismatches.pp, 'mismatches_pp_fwd': mismatches.pp_fwd, 'mismatches_pp_rev': mismatches.pp_rev,
+            'deletions': deletions.all, 'deletions_fwd': deletions.fwd, 'deletions_rev': deletions.rev, 'deletions_pp': deletions.pp, 'deletions_pp_fwd': deletions.pp_fwd, 'deletions_pp_rev': deletions.pp_rev,
+            'insertions': insertions.all, 'insertions_fwd': insertions.fwd, 'insertions_rev': insertions.rev, 'insertions_pp': insertions.pp, 'insertions_pp_fwd': insertions.pp_fwd, 'insertions_pp_rev': insertions.pp_rev,
+            'A': A.all, 'A_fwd': A.fwd, 'A_rev': A.rev, 'A_pp': A.pp, 'A_pp_fwd': A.pp_fwd, 'A_pp_rev': A.pp_rev,
+            'C': C.all, 'C_fwd': C.fwd, 'C_rev': C.rev, 'C_pp': C.pp, 'C_pp_fwd': C.pp_fwd, 'C_pp_rev': C.pp_rev,
+            'T': T.all, 'T_fwd': T.fwd, 'T_rev': T.rev, 'T_pp': T.pp, 'T_pp_fwd': T.pp_fwd, 'T_pp_rev': T.pp_rev,
+            'G': G.all, 'G_fwd': G.fwd, 'G_rev': G.rev, 'G_pp': G.pp, 'G_pp_fwd': G.pp_fwd, 'G_pp_rev': G.pp_rev,
+            'N': N.all, 'N_fwd': N.fwd, 'N_rev': N.rev, 'N_pp': N.pp, 'N_pp_fwd': N.pp_fwd, 'N_pp_rev': N.pp_rev,
+            }
 
 
 def stat_variation_strand(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
@@ -678,12 +669,16 @@ def stat_variation_strand(samfile, fafile, chrom=None, start=None, end=None, one
         
 def write_variation_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 'ref', 
-                  'reads_all', 'reads_pp',
-                  'matches', 'matches_pp',
-                  'mismatches', 'mismatches_pp',
-                  'deletions', 'deletions_pp',
-                  'insertions', 'insertions_pp',
-                  'A', 'A_pp', 'C', 'C_pp', 'T', 'T_pp', 'G', 'G_pp', 'N', 'N_pp')
+                'reads_all', 'reads_fwd', 'reads_rev', 'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
+                'matches', 'matches_fwd', 'matches_rev', 'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
+                'mismatches', 'mismatches_fwd', 'mismatches_rev', 'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev',
+                'deletions', 'deletions_fwd', 'deletions_rev', 'deletions_pp', 'deletions_pp_fwd', 'deletions_pp_rev',
+                'insertions', 'insertions_fwd', 'insertions_rev', 'insertions_pp', 'insertions_pp_fwd', 'insertions_pp_rev',
+                'A', 'A_fwd', 'A_rev', 'A_pp', 'A_pp_fwd', 'A_pp_rev',
+                'C', 'C_fwd', 'C_rev', 'C_pp', 'C_pp_fwd', 'C_pp_rev',
+                'T', 'T_fwd', 'T_rev', 'T_pp', 'T_pp_fwd', 'T_pp_rev',
+                'G', 'G_fwd', 'G_rev', 'G_pp', 'G_pp_fwd', 'G_pp_rev',
+                'N', 'N_fwd', 'N_rev', 'N_pp', 'N_pp_fwd', 'N_pp_rev')
     write_stats(stat_variation_strand, fieldnames, *args, **kwargs)
     
     

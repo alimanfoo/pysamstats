@@ -27,14 +27,14 @@ Supported statistics types:
 
     * coverage            - number of reads aligned to each genome position 
                             (total and properly paired)
-    * coverage_strand     - as coverage but with forward/reverse counts also
+    * coverage_strand     - as coverage but with forward/reverse strand counts
     * coverage_ext        - various additional coverage metrics, including 
                             coverage for reads not properly paired (mate 
                             unmapped, mate on other chromosome, ...)
-    * coverage_ext_strand - as coverage_ext but with forward/reverse counts also
+    * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts        
     * variation           - numbers of matches, mismatches, deletions, 
                             insertions, etc.
-    * variation_strand    - TODO
+    * variation_strand    - as variation but with forward/reverse strand counts
     * tlen                - insert size statistics
     * tlen_strand         - TODO
     
