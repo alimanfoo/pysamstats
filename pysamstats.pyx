@@ -703,15 +703,21 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     cdef unsigned int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
     cdef unsigned int reads_pp = 0 # reads "properly paired", as defined by aligner
     cdef int64_t tlen
-    cdef uint64_t tlen_squared
-    cdef uint64_t tlen_p_squared_sum = 0
-    cdef uint64_t tlen_pp_squared_sum = 0
+    cdef int64_t tlen_squared
+    cdef int64_t tlen_p_sum = 0
+    cdef double tlen_p_mean = 0
+    cdef double tlen_p_dev_squared
+    cdef double tlen_p_dev_squared_sum = 0
+    cdef int64_t tlen_p_squared_sum = 0
+    cdef int64_t tlen_pp_sum = 0
+    cdef double tlen_pp_mean = 0
+    cdef double tlen_pp_dev_squared
+    cdef double tlen_pp_dev_squared_sum = 0
+    cdef int64_t tlen_pp_squared_sum = 0
     
     # initialise variables
     n = col.n
     plp = col.plp
-    tlen_p = []
-    tlen_pp = []
     
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -732,31 +738,55 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
         tlen = aln.core.isize 
         tlen_squared = tlen**2
 
-        
         # N.B. insert size is only meaningful if mate is mapped to same chromosome
         if not mate_is_unmapped and not mate_other_chr:
             reads_p += 1
-            tlen_p.append(tlen)
+            tlen_p_sum += tlen
             tlen_p_squared_sum += tlen_squared
             if is_proper_pair:
                 reads_pp += 1
-                tlen_pp.append(tlen)
+                tlen_pp_sum += tlen
                 tlen_pp_squared_sum += tlen_squared
 
+    # calculate intermediate variables
+    if reads_p > 0:
+        tlen_p_mean = tlen_p_sum * 1. / reads_p
+    if reads_pp > 0:
+        tlen_pp_mean = tlen_pp_sum * 1. / reads_pp
+        
+    # loop over reads again to calculate variance (and hence std)
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        tlen = aln.core.isize
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
+            tlen_p_dev_squared_sum += tlen_p_dev_squared
+            if is_proper_pair:
+                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
+                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
+
     # calculate output variables
+    # N.B. round values to nearest integer, any finer precision is probably not
+    # interesting    
     if reads_p > 0:
         rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
-        std_tlen = int(round(np.std(np.array(tlen_p, dtype=np.int))))
+        variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
+        std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = 'NA'
     if reads_pp > 0:
         rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
-        std_tlen_pp = int(round(np.std(np.array(tlen_pp, dtype=np.int))))
+        variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
+        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = 'NA'
 
-    # round values to nearest integer, any finer precision is probably not
-    # interesting    
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
@@ -796,9 +826,10 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     cdef int n # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
-    cdef bint is_reverse
     cdef bint mate_is_unmappped 
     cdef bint mate_other_chr
+    
+    # counting variables
     cdef unsigned int reads_fwd = 0
     cdef unsigned int reads_rev = 0
     cdef unsigned int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
@@ -807,24 +838,45 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     cdef unsigned int reads_pp = 0 # reads "properly paired", as defined by aligner
     cdef unsigned int reads_pp_fwd = 0
     cdef unsigned int reads_pp_rev = 0
+    
     cdef int64_t tlen
-    cdef uint64_t tlen_squared
-    cdef uint64_t tlen_p_squared_sum = 0
-    cdef uint64_t tlen_p_fwd_squared_sum = 0
-    cdef uint64_t tlen_p_rev_squared_sum = 0
-    cdef uint64_t tlen_pp_squared_sum = 0
-    cdef uint64_t tlen_pp_fwd_squared_sum = 0
-    cdef uint64_t tlen_pp_rev_squared_sum = 0
+    cdef int64_t tlen_squared
+    
+    cdef int64_t tlen_p_sum = 0
+    cdef double tlen_p_mean = 0
+    cdef double tlen_p_dev_squared
+    cdef double tlen_p_dev_squared_sum = 0
+    cdef int64_t tlen_p_squared_sum = 0
+    cdef int64_t tlen_p_fwd_sum = 0
+    cdef double tlen_p_fwd_mean = 0
+    cdef double tlen_p_fwd_dev_squared
+    cdef double tlen_p_fwd_dev_squared_sum = 0
+    cdef int64_t tlen_p_fwd_squared_sum = 0
+    cdef int64_t tlen_p_rev_sum = 0
+    cdef double tlen_p_rev_mean = 0
+    cdef double tlen_p_rev_dev_squared
+    cdef double tlen_p_rev_dev_squared_sum = 0
+    cdef int64_t tlen_p_rev_squared_sum = 0
+
+    cdef int64_t tlen_pp_sum = 0
+    cdef double tlen_pp_mean = 0
+    cdef double tlen_pp_dev_squared
+    cdef double tlen_pp_dev_squared_sum = 0
+    cdef int64_t tlen_pp_squared_sum = 0
+    cdef int64_t tlen_pp_fwd_sum = 0
+    cdef double tlen_pp_fwd_mean = 0
+    cdef double tlen_pp_fwd_dev_squared
+    cdef double tlen_pp_fwd_dev_squared_sum = 0
+    cdef int64_t tlen_pp_fwd_squared_sum = 0
+    cdef int64_t tlen_pp_rev_sum = 0
+    cdef double tlen_pp_rev_mean = 0
+    cdef double tlen_pp_rev_dev_squared
+    cdef double tlen_pp_rev_dev_squared_sum = 0
+    cdef int64_t tlen_pp_rev_squared_sum = 0
     
     # initialise variables
     n = col.n
     plp = col.plp
-    tlen_p = []
-    tlen_p_fwd = []
-    tlen_p_rev = []
-    tlen_pp = []
-    tlen_pp_fwd = []
-    tlen_pp_rev = []
     
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -840,13 +892,13 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
         is_reverse = <bint>(flag & BAM_FREVERSE)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-
-        # TODO not sure it makes sense to record this
+        
+        # not sure these are really needed
         if is_reverse:
             reads_rev += 1
         else:
             reads_fwd += 1
-            
+
         # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we 
         # follow their naming convention
         tlen = aln.core.isize 
@@ -855,64 +907,114 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
         # N.B. insert size is only meaningful if mate is mapped to same chromosome
         if not mate_is_unmapped and not mate_other_chr:
             reads_p += 1
-            tlen_p.append(tlen)
+            tlen_p_sum += tlen
             tlen_p_squared_sum += tlen_squared
             if is_reverse:
                 reads_p_rev += 1
-                tlen_p_rev.append(tlen)
+                tlen_p_rev_sum += tlen
                 tlen_p_rev_squared_sum += tlen_squared
             else:
                 reads_p_fwd += 1
-                tlen_p_fwd.append(tlen)
+                tlen_p_fwd_sum += tlen
                 tlen_p_fwd_squared_sum += tlen_squared
+                
             if is_proper_pair:
                 reads_pp += 1
-                tlen_pp.append(tlen)
+                tlen_pp_sum += tlen
                 tlen_pp_squared_sum += tlen_squared
                 if is_reverse:
                     reads_pp_rev += 1
-                    tlen_pp_rev.append(tlen)
+                    tlen_pp_rev_sum += tlen
                     tlen_pp_rev_squared_sum += tlen_squared
                 else:
                     reads_pp_fwd += 1
-                    tlen_pp_fwd.append(tlen)
+                    tlen_pp_fwd_sum += tlen
                     tlen_pp_fwd_squared_sum += tlen_squared
 
+    # calculate intermediate variables
+    if reads_p > 0:
+        tlen_p_mean = tlen_p_sum * 1. / reads_p
+        if reads_p_rev > 0:
+            tlen_p_rev_mean = tlen_p_rev_sum * 1. / reads_p_rev
+        if reads_p_fwd > 0:
+            tlen_p_fwd_mean = tlen_p_fwd_sum * 1. / reads_p_fwd
+    if reads_pp > 0:
+        tlen_pp_mean = tlen_pp_sum * 1. / reads_pp
+        if reads_pp_rev > 0:
+            tlen_pp_rev_mean = tlen_pp_rev_sum * 1. / reads_pp_rev
+        if reads_pp_fwd > 0:
+            tlen_pp_fwd_mean = tlen_pp_fwd_sum * 1. / reads_pp_fwd
+        
+    # loop over reads again to calculate variance (and hence std)
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        tlen = aln.core.isize
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
+            tlen_p_dev_squared_sum += tlen_p_dev_squared
+            if is_reverse:
+                tlen_p_rev_dev_squared = (tlen - tlen_p_rev_mean)**2
+                tlen_p_rev_dev_squared_sum += tlen_p_rev_dev_squared
+            else:
+                tlen_p_fwd_dev_squared = (tlen - tlen_p_fwd_mean)**2
+                tlen_p_fwd_dev_squared_sum += tlen_p_fwd_dev_squared
+            if is_proper_pair:
+                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
+                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
+                if is_reverse:
+                    tlen_pp_rev_dev_squared = (tlen - tlen_pp_rev_mean)**2
+                    tlen_pp_rev_dev_squared_sum += tlen_pp_rev_dev_squared
+                else:
+                    tlen_pp_fwd_dev_squared = (tlen - tlen_pp_fwd_mean)**2
+                    tlen_pp_fwd_dev_squared_sum += tlen_pp_fwd_dev_squared
+                    
     # calculate output variables
+    # N.B. round values to nearest integer, any finer precision is probably not
+    # interesting    
     if reads_p > 0:
         rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
-        std_tlen = int(round(np.std(np.array(tlen_p, dtype=np.int))))
+        variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
+        std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = 'NA'
-    if reads_p_fwd > 0:
-        rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum*1. / reads_p_fwd)))
-        std_tlen_fwd = int(round(np.std(np.array(tlen_p_fwd, dtype=np.int))))
-    else:
-        rms_tlen_fwd = std_tlen_fwd = 'NA'
     if reads_p_rev > 0:
         rms_tlen_rev = int(round(sqrt(tlen_p_rev_squared_sum*1. / reads_p_rev)))
-        std_tlen_rev = int(round(np.std(np.array(tlen_p_rev, dtype=np.int))))
+        variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
+        std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
         rms_tlen_rev = std_tlen_rev = 'NA'
-
+    if reads_p_fwd > 0:
+        rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum*1. / reads_p_fwd)))
+        variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
+        std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
+    else:
+        rms_tlen_fwd = std_tlen_fwd = 'NA'
     if reads_pp > 0:
         rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
-        std_tlen_pp = int(round(np.std(np.array(tlen_pp, dtype=np.int))))
+        variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
+        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = 'NA'
-    if reads_pp_fwd > 0:
-        rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum*1. / reads_pp_fwd)))
-        std_tlen_pp_fwd = int(round(np.std(np.array(tlen_pp_fwd, dtype=np.int))))
-    else:
-        rms_tlen_pp_fwd = std_tlen_pp_fwd = 'NA'
     if reads_pp_rev > 0:
         rms_tlen_pp_rev = int(round(sqrt(tlen_pp_rev_squared_sum*1. / reads_pp_rev)))
-        std_tlen_pp_rev = int(round(np.std(np.array(tlen_pp_rev, dtype=np.int))))
+        variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
+        std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
         rms_tlen_pp_rev = std_tlen_pp_rev = 'NA'
+    if reads_pp_fwd > 0:
+        rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum*1. / reads_pp_fwd)))
+        variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
+        std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
+    else:
+        rms_tlen_pp_fwd = std_tlen_pp_fwd = 'NA'
 
-    # round values to nearest integer, any finer precision is probably not
-    # interesting    
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
