@@ -36,7 +36,7 @@ Supported statistics types:
                             insertions, etc.
     * variation_strand    - as variation but with forward/reverse strand counts
     * tlen                - insert size statistics
-    * tlen_strand         - TODO
+    * tlen_strand         - as tlen but with statistics by forward/reverse strand
     
 Examples:
 
