@@ -790,6 +790,7 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
+            'reads_paired': reads_p,
             'reads_pp': reads_pp,
             'rms_tlen': rms_tlen,
             'rms_tlen_pp': rms_tlen_pp,
@@ -804,7 +805,8 @@ def stat_tlen(samfile, chrom=None, start=None, end=None, one_based=False):
         
         
 def write_tlen(*args, **kwargs):
-    fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp', 
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 'reads_paired', 'reads_pp', 
                   'rms_tlen', 'rms_tlen_pp',
                   'std_tlen', 'std_tlen_pp')
     write_stats(stat_tlen, fieldnames, *args, **kwargs)
@@ -1020,6 +1022,9 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'reads_all': n, 
             'reads_fwd': reads_fwd, 
             'reads_rev': reads_rev,
+            'reads_paired': reads_p,
+            'reads_paired_fwd': reads_p_fwd,
+            'reads_paired_rev': reads_p_rev,
             'reads_pp': reads_pp,
             'reads_pp_fwd': reads_pp_fwd,
             'reads_pp_rev': reads_pp_rev,
@@ -1046,6 +1051,7 @@ def stat_tlen_strand(samfile, chrom=None, start=None, end=None, one_based=False)
 def write_tlen_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
                   'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
                   'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
                   'rms_tlen', 'rms_tlen_fwd', 'rms_tlen_rev', 
                   'rms_tlen_pp', 'rms_tlen_pp_fwd', 'rms_tlen_pp_rev',

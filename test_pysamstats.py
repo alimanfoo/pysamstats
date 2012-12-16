@@ -327,6 +327,7 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = col.pileups
+        # N.B., tlen only means something if mate is mapped to same chromosome
         reads_paired = [read for read in reads if not read.alignment.mate_is_unmapped and read.alignment.rnext == col.tid]
         if reads_paired:
             tlen = [read.alignment.tlen for read in reads_paired]
@@ -343,6 +344,7 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
             rms_tlen_pp = std_tlen_pp = 'NA'
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 
+               'reads_paired': len(reads_paired),
                'reads_pp': len(reads_pp),
                'rms_tlen': rms_tlen,
                'rms_tlen_pp': rms_tlen_pp,
@@ -410,6 +412,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         # yield record
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
                'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
                'rms_tlen': rms_tlen, 'rms_tlen_fwd': rms_tlen_fwd, 'rms_tlen_rev': rms_tlen_rev,
                'rms_tlen_pp': rms_tlen_pp, 'rms_tlen_pp_fwd': rms_tlen_pp_fwd, 'rms_tlen_pp_rev': rms_tlen_pp_rev,
