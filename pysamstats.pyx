@@ -1368,7 +1368,9 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
     cdef int n # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
+    cdef unsigned int reads_nodel = 0
     cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_nodel = 0
     cdef uint64_t baseq, baseq_squared
     cdef uint64_t baseq_squared_sum = 0
     cdef uint64_t baseq_pp_squared_sum = 0
@@ -1387,17 +1389,25 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        baseq = bam1_qual(aln)[read.qpos]
-        baseq_squared = baseq**2
-        baseq_squared_sum += baseq_squared
         if is_proper_pair:
             reads_pp += 1
-            baseq_pp_squared_sum += baseq_squared
+        # N.B., base quality only makes sense if the aligned read is not a deletion
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = bam1_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
 
     # output variables
-    rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / n)))
-    if reads_pp > 0:
-        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp)))
+    if reads_nodel > 0:
+        rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / reads_nodel)))
+    else:
+        rms_baseq = 'NA'
+    if reads_pp_nodel > 0:
+        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp_nodel)))
     else:
         rms_baseq_pp = 'NA'
     return {'chr': chrom, 
@@ -1456,6 +1466,12 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
     cdef unsigned int reads_pp = 0
     cdef unsigned int reads_pp_rev = 0
     cdef unsigned int reads_pp_fwd = 0
+    cdef unsigned int reads_nodel = 0
+    cdef unsigned int reads_rev_nodel = 0
+    cdef unsigned int reads_fwd_nodel = 0
+    cdef unsigned int reads_pp_nodel = 0
+    cdef unsigned int reads_pp_rev_nodel = 0
+    cdef unsigned int reads_pp_fwd_nodel = 0
 
     # initialise variables
     n = col.n
@@ -1472,47 +1488,61 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        baseq = bam1_qual(aln)[read.qpos]
-        baseq_squared = baseq**2
-
-        baseq_squared_sum += baseq_squared
         if is_reverse:
             reads_rev += 1
-            baseq_rev_squared_sum += baseq_squared
         else:
             reads_fwd += 1
-            baseq_fwd_squared_sum += baseq_squared
-
         if is_proper_pair:
             reads_pp += 1
-            baseq_pp_squared_sum += baseq_squared
             if is_reverse:
                 reads_pp_rev += 1
-                baseq_pp_rev_squared_sum += baseq_squared
             else:
                 reads_pp_fwd += 1
-                baseq_pp_fwd_squared_sum += baseq_squared
+        # N.B., baseq only makes sense if not a deletion
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = bam1_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_reverse:
+                reads_rev_nodel += 1
+                baseq_rev_squared_sum += baseq_squared
+            else:
+                reads_fwd_nodel += 1
+                baseq_fwd_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+                if is_reverse:
+                    reads_pp_rev_nodel += 1
+                    baseq_pp_rev_squared_sum += baseq_squared
+                else:
+                    reads_pp_fwd_nodel += 1
+                    baseq_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / n)))
-    if reads_rev > 0:
-        rms_baseq_rev = int(round(sqrt(baseq_rev_squared_sum * 1. / reads_rev)))
+    if reads_nodel > 0:
+        rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / reads_nodel)))
+    else:
+        rms_baseq = 'NA'
+    if reads_rev_nodel > 0:
+        rms_baseq_rev = int(round(sqrt(baseq_rev_squared_sum * 1. / reads_rev_nodel)))
     else:
         rms_baseq_rev = 'NA'
-    if reads_fwd > 0:
-        rms_baseq_fwd = int(round(sqrt(baseq_fwd_squared_sum * 1. / reads_fwd)))
+    if reads_fwd_nodel > 0:
+        rms_baseq_fwd = int(round(sqrt(baseq_fwd_squared_sum * 1. / reads_fwd_nodel)))
     else:
         rms_baseq_fwd = 'NA'
-    if reads_pp > 0:
-        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp)))
+    if reads_pp_nodel > 0:
+        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp_nodel)))
     else:
         rms_baseq_pp = 'NA'
-    if reads_pp_fwd > 0:
-        rms_baseq_pp_fwd = int(round(sqrt(baseq_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
+    if reads_pp_fwd_nodel > 0:
+        rms_baseq_pp_fwd = int(round(sqrt(baseq_pp_fwd_squared_sum * 1. / reads_pp_fwd_nodel)))
     else:
         rms_baseq_pp_fwd = 'NA'
-    if reads_pp_rev > 0:
-        rms_baseq_pp_rev = int(round(sqrt(baseq_pp_rev_squared_sum * 1. / reads_pp_rev)))
+    if reads_pp_rev_nodel > 0:
+        rms_baseq_pp_rev = int(round(sqrt(baseq_pp_rev_squared_sum * 1. / reads_pp_rev_nodel)))
     else:
         rms_baseq_pp_rev = 'NA'
         
