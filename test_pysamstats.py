@@ -561,4 +561,70 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 def test_stat_mapq_strand():
     _test(pysamstats.stat_mapq_strand, stat_mapq_strand_refimpl)
 
+
+def baseq(reads):
+    return [ord(read.alignment.qual[read.qpos])-33 for read in reads]
+        
+        
+def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_pp = pp(reads)
+        rms_baseq = rms(baseq(reads))
+        if reads_pp:
+            rms_baseq_pp = rms(baseq(reads_pp))
+        else:
+            rms_baseq_pp = 'NA'
+        yield {'chr': chrom, 'pos': pos, 
+               'reads_all': len(reads), 
+               'reads_pp': len(reads_pp),
+               'rms_baseq': rms_baseq,
+               'rms_baseq_pp': rms_baseq_pp}
+        
+
+def test_stat_baseq():
+    _test(pysamstats.stat_baseq, stat_baseq_refimpl)
+
+
+def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_nodel = [read for read in reads if not read.is_del]
+        reads_pp = pp(reads)
+        reads_pp_nodel = [read for read in reads_pp if not read.is_del]
+        ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
+        matches = [read for read in reads_nodel
+                      if read.alignment.seq[read.qpos] == ref]
+        matches_pp = [read for read in reads_pp_nodel
+                         if read.alignment.seq[read.qpos] == ref]
+        mismatches = [read for read in reads_nodel
+                         if read.alignment.seq[read.qpos] != ref]
+        mismatches_pp = [read for read in reads_pp_nodel
+                            if read.alignment.seq[read.qpos] != ref]
+        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+               'reads_all': len(reads), 
+               'reads_pp': len(reads_pp),
+               'matches': len(matches),
+               'matches_pp': len(matches_pp),
+               'mismatches': len(mismatches),
+               'mismatches_pp': len(mismatches_pp),
+               'rms_baseq': rms(baseq(reads)),
+               'rms_baseq_pp': rms(baseq(reads_pp)),
+               'rms_baseq_matches': rms(baseq(matches)),
+               'rms_baseq_matches_pp': rms(baseq(matches_pp)),
+               'rms_baseq_mismatches': rms(baseq(mismatches)),
+               'rms_baseq_mismatches_pp': rms(baseq(mismatches_pp))}
+        
+
+def test_stat_baseq_ext():
+    _test_withrefseq(pysamstats.stat_baseq_ext, stat_baseq_ext_refimpl)
+
+
+
         

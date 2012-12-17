@@ -20,7 +20,8 @@ if __name__ == '__main__':
                    'tlen',
                    'tlen_strand',
                    'mapq',
-                   'mapq_strand')
+                   'mapq_strand',
+                   'baseq')
     stats_types_requiring_fasta = ('variation', 'variation_strand')
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
@@ -40,7 +41,8 @@ Supported statistics types:
     * tlen                - insert size statistics
     * tlen_strand         - as tlen but with statistics by forward/reverse strand
     * mapq                - mapping quality statistics
-    * mapq_strand         - TODO
+    * mapq_strand         - as mapq but with statistics by forward/reverse strand
+    * baseq               - baseq quality statistics
     
 Examples:
 

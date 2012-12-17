@@ -2,15 +2,15 @@
 
 
 import sys
-import numpy as np
+#import numpy as np
 #import numpy.ma as ma
-cimport numpy as np
+#cimport numpy as np
 import time
 import csv
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
-from csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq
+from csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual
 
 
 ## These are bits set in the flag.
@@ -1353,8 +1353,76 @@ def write_mapq_strand(*args, **kwargs):
     write_stats(stat_mapq_strand, fieldnames, *args, **kwargs)
     
     
+#############################
+# BASIC COVERAGE STATISTICS #
+#############################
+
+
+cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef unsigned int reads_pp = 0
+    cdef uint64_t baseq, baseq_squared
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        baseq = bam1_qual(aln)[read.qpos]
+        baseq_squared = baseq**2
+        baseq_squared_sum += baseq_squared
+        if is_proper_pair:
+            reads_pp += 1
+            baseq_pp_squared_sum += baseq_squared
+
+    # output variables
+    rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / n)))
+    if reads_pp > 0:
+        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp)))
+    else:
+        rms_baseq_pp = 'NA'
+    return {'chr': chrom, 
+            'pos': pos, 
+            'reads_all': n, 
+            'reads_pp': reads_pp,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_pp': rms_baseq_pp}
+
+
+def stat_baseq(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_baseq(samfile, col, one_based)
+        
+        
+def write_baseq(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp', 'rms_baseq', 'rms_baseq_pp')
+    write_stats(stat_baseq, fieldnames, *args, **kwargs)
+    
+    
 # TODO baseq stats
 # TODO baseq stats by strand
+# TODO extended baseq stats
+# TODO extended baseq stats by strand
 # TODO normed coverage
 
 
@@ -1433,4 +1501,5 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     s[0] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
 
     return seq
+
 
