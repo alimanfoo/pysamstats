@@ -986,41 +986,47 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     # N.B. round values to nearest integer, any finer precision is probably not
     # interesting    
     if reads_p > 0:
+        mean_tlen = int(round(tlen_p_mean))
         rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
-        rms_tlen = std_tlen = 'NA'
+        rms_tlen = std_tlen = mean_tlen = 'NA'
     if reads_p_rev > 0:
+        mean_tlen_rev = int(round(tlen_p_rev_mean))
         rms_tlen_rev = int(round(sqrt(tlen_p_rev_squared_sum*1. / reads_p_rev)))
         variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
-        rms_tlen_rev = std_tlen_rev = 'NA'
+        rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
     if reads_p_fwd > 0:
+        mean_tlen_fwd = int(round(tlen_p_fwd_mean))
         rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum*1. / reads_p_fwd)))
         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
-        rms_tlen_fwd = std_tlen_fwd = 'NA'
+        rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
     if reads_pp > 0:
+        mean_tlen_pp = int(round(tlen_pp_mean))
         rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
-        rms_tlen_pp = std_tlen_pp = 'NA'
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
     if reads_pp_rev > 0:
+        mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
         rms_tlen_pp_rev = int(round(sqrt(tlen_pp_rev_squared_sum*1. / reads_pp_rev)))
         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
-        rms_tlen_pp_rev = std_tlen_pp_rev = 'NA'
+        rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
     if reads_pp_fwd > 0:
+        mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
         rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum*1. / reads_pp_fwd)))
         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
-        rms_tlen_pp_fwd = std_tlen_pp_fwd = 'NA'
+        rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 'NA'
 
     return {'chr': chrom, 
             'pos': pos, 
@@ -1033,6 +1039,12 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'reads_pp': reads_pp,
             'reads_pp_fwd': reads_pp_fwd,
             'reads_pp_rev': reads_pp_rev,
+            'mean_tlen': mean_tlen,
+            'mean_tlen_fwd': mean_tlen_fwd,
+            'mean_tlen_rev': mean_tlen_rev,
+            'mean_tlen_pp': mean_tlen_pp,
+            'mean_tlen_pp_fwd': mean_tlen_pp_fwd,
+            'mean_tlen_pp_rev': mean_tlen_pp_rev,
             'rms_tlen': rms_tlen,
             'rms_tlen_fwd': rms_tlen_fwd,
             'rms_tlen_rev': rms_tlen_rev,
@@ -1058,6 +1070,8 @@ def write_tlen_strand(*args, **kwargs):
                   'reads_all', 'reads_fwd', 'reads_rev', 
                   'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
                   'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+                  'mean_tlen', 'mean_tlen_fwd', 'mean_tlen_rev', 
+                  'mean_tlen_pp', 'mean_tlen_pp_fwd', 'mean_tlen_pp_rev',
                   'rms_tlen', 'rms_tlen_fwd', 'rms_tlen_rev', 
                   'rms_tlen_pp', 'rms_tlen_pp_fwd', 'rms_tlen_pp_rev',
                   'std_tlen', 'std_tlen_fwd', 'std_tlen_rev', 

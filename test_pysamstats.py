@@ -360,6 +360,13 @@ def test_stat_tlen():
     _test(pysamstats.stat_tlen, stat_tlen_refimpl)
 
         
+        
+def int_mean_rms_std(a):
+    return (int(round(np.mean(a))),
+            int(round(sqrt(np.mean(np.power(a, 2))))),
+            int(round(np.std(a))))
+    
+    
 def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -371,53 +378,49 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         reads_paired = [read for read in reads if not read.alignment.mate_is_unmapped and read.alignment.rnext == col.tid]
         if reads_paired:
             tlen = [read.alignment.tlen for read in reads_paired]
-            rms_tlen = int(round(sqrt(np.mean(np.power(tlen, 2)))))
-            std_tlen = int(round(np.std(tlen)))
+            mean_tlen, rms_tlen, std_tlen = int_mean_rms_std(tlen)
         else:
-            rms_tlen = std_tlen = 'NA'
+            rms_tlen = std_tlen = mean_tlen = 'NA'
         reads_paired_fwd = fwd(reads_paired)
         if reads_paired_fwd:
             tlen_fwd = [read.alignment.tlen for read in reads_paired_fwd]
-            rms_tlen_fwd = int(round(sqrt(np.mean(np.power(tlen_fwd, 2)))))
-            std_tlen_fwd = int(round(np.std(tlen_fwd)))
+            mean_tlen_fwd, rms_tlen_fwd, std_tlen_fwd = int_mean_rms_std(tlen_fwd)
         else:
-            rms_tlen_fwd = std_tlen_fwd = 'NA'
+            rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
         reads_paired_rev = rev(reads_paired)
         if reads_paired_rev:
             tlen_rev = [read.alignment.tlen for read in reads_paired_rev]
-            rms_tlen_rev = int(round(sqrt(np.mean(np.power(tlen_rev, 2)))))
-            std_tlen_rev = int(round(np.std(tlen_rev)))
+            mean_tlen_rev, rms_tlen_rev, std_tlen_rev = int_mean_rms_std(tlen_rev)
         else:
-            rms_tlen_rev = std_tlen_rev = 'NA'
+            rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
         
         # properly paired reads
         reads_pp = pp(reads)
         if reads_pp:
             tlen_pp = [read.alignment.tlen for read in reads_pp]
-            rms_tlen_pp = int(round(sqrt(np.mean(np.power(tlen_pp, 2))) ))
-            std_tlen_pp = int(round(np.std(tlen_pp)))
+            mean_tlen_pp, rms_tlen_pp, std_tlen_pp = int_mean_rms_std(tlen_pp)
         else:
-            rms_tlen_pp = std_tlen_pp = 'NA'
+            rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
         reads_pp_fwd = fwd(reads_pp)
         if reads_pp_fwd:
             tlen_pp_fwd = [read.alignment.tlen for read in reads_pp_fwd]
-            rms_tlen_pp_fwd = int(round(sqrt(np.mean(np.power(tlen_pp_fwd, 2))) ))
-            std_tlen_pp_fwd = int(round(np.std(tlen_pp_fwd)))
+            mean_tlen_pp_fwd, rms_tlen_pp_fwd, std_tlen_pp_fwd = int_mean_rms_std(tlen_pp_fwd)
         else:
-            rms_tlen_pp_fwd = std_tlen_pp_fwd = 'NA'
+            rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 'NA'
         reads_pp_rev = rev(reads_pp)
         if reads_pp_rev:
             tlen_pp_rev = [read.alignment.tlen for read in reads_pp_rev]
-            rms_tlen_pp_rev = int(round(sqrt(np.mean(np.power(tlen_pp_rev, 2))) ))
-            std_tlen_pp_rev = int(round(np.std(tlen_pp_rev)))
+            mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = int_mean_rms_std(tlen_pp_rev)
         else:
-            rms_tlen_pp_rev = std_tlen_pp_rev = 'NA'
+            rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
 
         # yield record
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
                'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
                'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'mean_tlen': mean_tlen, 'mean_tlen_fwd': mean_tlen_fwd, 'mean_tlen_rev': mean_tlen_rev,
+               'mean_tlen_pp': mean_tlen_pp, 'mean_tlen_pp_fwd': mean_tlen_pp_fwd, 'mean_tlen_pp_rev': mean_tlen_pp_rev,
                'rms_tlen': rms_tlen, 'rms_tlen_fwd': rms_tlen_fwd, 'rms_tlen_rev': rms_tlen_rev,
                'rms_tlen_pp': rms_tlen_pp, 'rms_tlen_pp_fwd': rms_tlen_pp_fwd, 'rms_tlen_pp_rev': rms_tlen_pp_rev,
                'std_tlen': std_tlen, 'std_tlen_fwd': std_tlen_fwd, 'std_tlen_rev': std_tlen_rev,
