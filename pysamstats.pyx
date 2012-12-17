@@ -1169,8 +1169,190 @@ def write_mapq(*args, **kwargs):
     write_stats(stat_mapq, fieldnames, *args, **kwargs)
     
     
-# TODO mapq stats
-# TODO mapq stats by strand
+##############################
+# MAPPING QUALITY STATISTICS #
+##############################
+
+
+cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+
+    cdef uint32_t flag
+    cdef uint64_t mapq
+    cdef uint64_t mapq_squared
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+
+    cdef uint64_t mapq_max = 0
+    cdef uint64_t mapq_rev_max = 0
+    cdef uint64_t mapq_fwd_max = 0
+    cdef uint64_t mapq_pp_max = 0
+    cdef uint64_t mapq_pp_rev_max = 0
+    cdef uint64_t mapq_pp_fwd_max = 0
+    cdef uint64_t mapq_squared_sum = 0
+    cdef uint64_t mapq_fwd_squared_sum = 0
+    cdef uint64_t mapq_rev_squared_sum = 0
+    cdef uint64_t mapq_pp_squared_sum = 0
+    cdef uint64_t mapq_pp_fwd_squared_sum = 0
+    cdef uint64_t mapq_pp_rev_squared_sum = 0
+
+    cdef unsigned int reads_rev = 0
+    cdef unsigned int reads_fwd = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_rev = 0
+    cdef unsigned int reads_pp_fwd = 0
+    cdef unsigned int reads_mapq0 = 0
+    cdef unsigned int reads_mapq0_fwd = 0
+    cdef unsigned int reads_mapq0_rev = 0
+    cdef unsigned int reads_mapq0_pp = 0
+    cdef unsigned int reads_mapq0_pp_fwd = 0
+    cdef unsigned int reads_mapq0_pp_rev = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        mapq = aln.core.qual
+        mapq_squared = mapq**2
+
+        mapq_squared_sum += mapq_squared
+        if mapq > mapq_max:
+            mapq_max = mapq
+        if is_reverse:
+            reads_rev += 1
+            mapq_rev_squared_sum += mapq_squared
+            if mapq > mapq_rev_max:
+                mapq_rev_max = mapq
+        else:
+            reads_fwd += 1
+            mapq_fwd_squared_sum += mapq_squared
+            if mapq > mapq_fwd_max:
+                mapq_fwd_max = mapq
+
+        if mapq == 0:
+            reads_mapq0 += 1
+            if is_reverse:
+                reads_mapq0_rev += 1
+            else:
+                reads_mapq0_fwd += 1
+
+        if is_proper_pair:
+            reads_pp += 1
+            mapq_pp_squared_sum += mapq_squared
+            if mapq > mapq_pp_max:
+                mapq_pp_max = mapq
+            if is_reverse:
+                reads_pp_rev += 1
+                mapq_pp_rev_squared_sum += mapq_squared
+                if mapq > mapq_pp_rev_max:
+                    mapq_pp_rev_max = mapq
+            else:
+                reads_pp_fwd += 1
+                mapq_pp_fwd_squared_sum += mapq_squared
+                if mapq > mapq_pp_fwd_max:
+                    mapq_pp_fwd_max = mapq
+            if mapq == 0:
+                reads_mapq0_pp += 1
+                if is_reverse:
+                    reads_mapq0_pp_rev += 1
+                else:
+                    reads_mapq0_pp_fwd += 1
+
+    # construct output variables
+    rms_mapq = int(round(sqrt(mapq_squared_sum * 1. / n)))
+    max_mapq = mapq_max
+    if reads_rev > 0:
+        rms_mapq_rev = int(round(sqrt(mapq_rev_squared_sum * 1. / reads_rev)))
+        max_mapq_rev = mapq_rev_max
+    else:
+        rms_mapq_rev = max_mapq_rev = 'NA'
+    if reads_fwd > 0:
+        rms_mapq_fwd = int(round(sqrt(mapq_fwd_squared_sum * 1. / reads_fwd)))
+        max_mapq_fwd = mapq_fwd_max
+    else:
+        rms_mapq_fwd = max_mapq_fwd = 'NA'
+    if reads_pp > 0:
+        rms_mapq_pp = int(round(sqrt(mapq_pp_squared_sum * 1. / reads_pp)))
+        max_mapq_pp = mapq_pp_max
+    else:
+        rms_mapq_pp = max_mapq_pp = 'NA'
+    if reads_pp_fwd > 0:
+        rms_mapq_pp_fwd = int(round(sqrt(mapq_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
+        max_mapq_pp_fwd = mapq_pp_fwd_max
+    else:
+        rms_mapq_pp_fwd = max_mapq_pp_fwd = 'NA'
+    if reads_pp_rev > 0:
+        rms_mapq_pp_rev = int(round(sqrt(mapq_pp_rev_squared_sum * 1. / reads_pp_rev)))
+        max_mapq_pp_rev = mapq_pp_rev_max
+    else:
+        rms_mapq_pp_rev = max_mapq_pp_rev = 'NA'
+        
+    return {'chr': chrom, 
+            'pos': pos, 
+            'reads_all': n,
+            'reads_fwd': reads_fwd, 
+            'reads_rev': reads_rev, 
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
+            'reads_mapq0': reads_mapq0,
+            'reads_mapq0_fwd': reads_mapq0_fwd, 
+            'reads_mapq0_rev': reads_mapq0_rev, 
+            'reads_mapq0_pp': reads_mapq0_pp,
+            'reads_mapq0_pp_fwd': reads_mapq0_pp_fwd,
+            'reads_mapq0_pp_rev': reads_mapq0_pp_rev,
+            'rms_mapq': rms_mapq,
+            'rms_mapq_fwd': rms_mapq_fwd,
+            'rms_mapq_rev': rms_mapq_rev,
+            'rms_mapq_pp': rms_mapq_pp,
+            'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
+            'rms_mapq_pp_rev': rms_mapq_pp_rev,
+            'max_mapq': max_mapq,
+            'max_mapq_fwd': max_mapq_fwd,
+            'max_mapq_rev': max_mapq_rev,
+            'max_mapq_pp': max_mapq_pp,
+            'max_mapq_pp_fwd': max_mapq_pp_fwd,
+            'max_mapq_pp_rev': max_mapq_pp_rev,
+            }
+
+
+def stat_mapq_strand(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_mapq_strand(samfile, col, one_based)
+        
+        
+def write_mapq_strand(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+                  'reads_mapq0', 'reads_mapq0_fwd', 'reads_mapq0_rev', 
+                  'reads_mapq0_pp', 'reads_mapq0_pp_fwd', 'reads_mapq0_pp_rev', 
+                  'rms_mapq', 'rms_mapq_fwd', 'rms_mapq_rev', 
+                  'rms_mapq_pp', 'rms_mapq_pp_fwd', 'rms_mapq_pp_rev', 
+                  'max_mapq', 'max_mapq_fwd', 'max_mapq_rev', 
+                  'max_mapq_pp', 'max_mapq_pp_fwd', 'max_mapq_pp_rev', 
+                  )
+    write_stats(stat_mapq_strand, fieldnames, *args, **kwargs)
+    
+    
 # TODO baseq stats
 # TODO baseq stats by strand
 # TODO normed coverage

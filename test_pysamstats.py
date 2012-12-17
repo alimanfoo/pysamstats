@@ -439,7 +439,15 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 def test_stat_tlen_strand():
     _test(pysamstats.stat_tlen_strand, stat_tlen_strand_refimpl)
 
-        
+
+def mapq0(reads):
+    return [read for read in reads if read.alignment.mapq == 0]
+
+
+def mapq(reads):
+    return [read.alignment.mapq for read in reads]        
+    
+
 def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -447,15 +455,15 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         pos = col.pos + 1 if one_based else col.pos
         reads = col.pileups
         reads_pp = pp(reads)
-        reads_mapq0 = [reads for read in reads if read.alignment.mapq == 0]
-        reads_mapq0_pp = [reads for read in reads_pp if read.alignment.mapq == 0]
+        reads_mapq0 = mapq0(reads)
+        reads_mapq0_pp = mapq0(reads_pp)
         if reads:
-            mapq = [read.alignment.mapq for read in reads]
+            mapq = mapq(reads)
             rms_mapq, max_mapq = rms(mapq), max(mapq)
         else:
             rms_mapq = max_mapq = 'NA'
         if reads_pp:
-            mapq_pp = [read.alignment.mapq for read in reads_pp]
+            mapq_pp = mapq(reads_pp)
             rms_mapq_pp, max_mapq_pp = rms(mapq_pp), max(mapq_pp)
         else:
             rms_mapq_pp = max_mapq_pp = 'NA'
@@ -473,5 +481,84 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
 
 def test_stat_mapq():
     _test(pysamstats.stat_mapq, stat_mapq_refimpl)
+
+        
+def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_fwd = fwd(reads)
+        reads_rev = rev(reads)
+        reads_pp = pp(reads)
+        reads_pp_fwd = fwd(reads_pp)
+        reads_pp_rev = rev(reads_pp)
+        reads_mapq0 = mapq0(reads)
+        reads_mapq0_fwd = mapq0(reads_fwd)
+        reads_mapq0_rev = mapq0(reads_rev)
+        reads_mapq0_pp = mapq0(reads_pp)
+        reads_mapq0_pp_fwd = mapq0(reads_pp_fwd)
+        reads_mapq0_pp_rev = mapq0(reads_pp_rev)
+        if reads:
+            mapq_all = mapq(reads)
+            rms_mapq, max_mapq = rms(mapq_all), max(mapq_all)
+        else:
+            rms_mapq = max_mapq = 'NA'
+        if reads_fwd:
+            mapq_fwd = mapq(reads_fwd)
+            rms_mapq_fwd, max_mapq_fwd = rms(mapq_fwd), max(mapq_fwd)
+        else:
+            rms_mapq_fwd = max_mapq_fwd = 'NA'
+        if reads_rev:
+            mapq_rev = mapq(reads_rev)
+            rms_mapq_rev, max_mapq_rev = rms(mapq_rev), max(mapq_rev)
+        else:
+            rms_mapq_rev = max_mapq_rev = 'NA'
+        if reads_pp:
+            mapq_pp = mapq(reads_pp)
+            rms_mapq_pp, max_mapq_pp = rms(mapq_pp), max(mapq_pp)
+        else:
+            rms_mapq_pp = max_mapq_pp = 'NA'
+        if reads_pp_fwd:
+            mapq_pp_fwd = mapq(reads_pp_fwd)
+            rms_mapq_pp_fwd, max_mapq_pp_fwd = rms(mapq_pp_fwd), max(mapq_pp_fwd)
+        else:
+            rms_mapq_pp_fwd = max_mapq_pp_fwd = 'NA'
+        if reads_pp_rev:
+            mapq_pp_rev = mapq(reads_pp_rev)
+            rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), max(mapq_pp_rev)
+        else:
+            rms_mapq_pp_rev = max_mapq_pp_rev = 'NA'
+        yield {'chr': chrom, 'pos': pos, 
+               'reads_all': col.n, 
+               'reads_fwd': len(reads_fwd),
+               'reads_rev': len(reads_rev),
+               'reads_pp': len(reads_pp),
+               'reads_pp_fwd': len(reads_pp_fwd),
+               'reads_pp_rev': len(reads_pp_rev),
+               'reads_mapq0': len(reads_mapq0),
+               'reads_mapq0_fwd': len(reads_mapq0_fwd),
+               'reads_mapq0_rev': len(reads_mapq0_rev),
+               'reads_mapq0_pp': len(reads_mapq0_pp),
+               'reads_mapq0_pp_fwd': len(reads_mapq0_pp_fwd),
+               'reads_mapq0_pp_rev': len(reads_mapq0_pp_rev),
+               'rms_mapq': rms_mapq,
+               'rms_mapq_fwd': rms_mapq_fwd,
+               'rms_mapq_rev': rms_mapq_rev,
+               'rms_mapq_pp': rms_mapq_pp,
+               'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
+               'rms_mapq_pp_rev': rms_mapq_pp_rev,
+               'max_mapq': max_mapq,
+               'max_mapq_fwd': max_mapq_fwd,
+               'max_mapq_rev': max_mapq_rev,
+               'max_mapq_pp': max_mapq_pp,
+               'max_mapq_pp_fwd': max_mapq_pp_fwd,
+               'max_mapq_pp_rev': max_mapq_pp_rev,
+               }
+        
+
+def test_stat_mapq_strand():
+    _test(pysamstats.stat_mapq_strand, stat_mapq_strand_refimpl)
 
         
