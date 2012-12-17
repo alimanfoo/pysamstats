@@ -1353,9 +1353,9 @@ def write_mapq_strand(*args, **kwargs):
     write_stats(stat_mapq_strand, fieldnames, *args, **kwargs)
     
     
-#############################
-# BASIC COVERAGE STATISTICS #
-#############################
+###########################
+# BASE QUALITY STATISTICS #
+###########################
 
 
 cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_based=False):
@@ -1415,16 +1415,147 @@ def stat_baseq(samfile, chrom=None, start=None, end=None, one_based=False):
         
         
 def write_baseq(*args, **kwargs):
-    fieldnames = ('chr', 'pos', 'reads_all', 'reads_pp', 'rms_baseq', 'rms_baseq_pp')
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 
+                  'reads_pp', 
+                  'rms_baseq', 
+                  'rms_baseq_pp',
+                  )
     write_stats(stat_baseq, fieldnames, *args, **kwargs)
     
     
-# TODO baseq stats
+###########################
+# BASE QUALITY STATISTICS #
+###########################
+
+
+cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+
+    cdef uint32_t flag
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_fwd_squared_sum = 0
+    cdef uint64_t baseq_rev_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_pp_rev_squared_sum = 0
+
+    cdef unsigned int reads_rev = 0
+    cdef unsigned int reads_fwd = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_rev = 0
+    cdef unsigned int reads_pp_fwd = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        baseq = bam1_qual(aln)[read.qpos]
+        baseq_squared = baseq**2
+
+        baseq_squared_sum += baseq_squared
+        if is_reverse:
+            reads_rev += 1
+            baseq_rev_squared_sum += baseq_squared
+        else:
+            reads_fwd += 1
+            baseq_fwd_squared_sum += baseq_squared
+
+        if is_proper_pair:
+            reads_pp += 1
+            baseq_pp_squared_sum += baseq_squared
+            if is_reverse:
+                reads_pp_rev += 1
+                baseq_pp_rev_squared_sum += baseq_squared
+            else:
+                reads_pp_fwd += 1
+                baseq_pp_fwd_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / n)))
+    if reads_rev > 0:
+        rms_baseq_rev = int(round(sqrt(baseq_rev_squared_sum * 1. / reads_rev)))
+    else:
+        rms_baseq_rev = 'NA'
+    if reads_fwd > 0:
+        rms_baseq_fwd = int(round(sqrt(baseq_fwd_squared_sum * 1. / reads_fwd)))
+    else:
+        rms_baseq_fwd = 'NA'
+    if reads_pp > 0:
+        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp)))
+    else:
+        rms_baseq_pp = 'NA'
+    if reads_pp_fwd > 0:
+        rms_baseq_pp_fwd = int(round(sqrt(baseq_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
+    else:
+        rms_baseq_pp_fwd = 'NA'
+    if reads_pp_rev > 0:
+        rms_baseq_pp_rev = int(round(sqrt(baseq_pp_rev_squared_sum * 1. / reads_pp_rev)))
+    else:
+        rms_baseq_pp_rev = 'NA'
+        
+    return {'chr': chrom, 
+            'pos': pos, 
+            'reads_all': n,
+            'reads_fwd': reads_fwd, 
+            'reads_rev': reads_rev, 
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_fwd': rms_baseq_fwd,
+            'rms_baseq_rev': rms_baseq_rev,
+            'rms_baseq_pp': rms_baseq_pp,
+            'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
+            'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            }
+
+
+
+
+def stat_baseq_strand(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_baseq_strand(samfile, col, one_based)
+        
+        
+def write_baseq_strand(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+                  'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
+                  'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev', 
+                  )
+    write_stats(stat_baseq_strand, fieldnames, *args, **kwargs)
+    
+    
 # TODO baseq stats by strand
 # TODO extended baseq stats
 # TODO extended baseq stats by strand
 # TODO normed coverage
-
+# TODO check mapq stats and anything else has NA where it should
 
 #####################
 # UTILITY FUNCTIONS #

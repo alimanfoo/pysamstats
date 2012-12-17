@@ -589,6 +589,49 @@ def test_stat_baseq():
     _test(pysamstats.stat_baseq, stat_baseq_refimpl)
 
 
+def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_fwd = fwd(reads)
+        reads_rev = rev(reads)
+        reads_pp = pp(reads)
+        reads_pp_fwd = fwd(reads_pp)
+        reads_pp_rev = rev(reads_pp)
+        rms_baseq = rms(baseq(reads))
+        if reads_fwd:
+            rms_baseq_fwd = rms(baseq(reads_fwd))
+        else:
+            rms_baseq_fwd = 'NA'
+        if reads_rev:
+            rms_baseq_rev = rms(baseq(reads_rev))
+        else:
+            rms_baseq_rev = 'NA'
+        if reads_pp:
+            rms_baseq_pp = rms(baseq(reads_pp))
+        else:
+            rms_baseq_pp = 'NA'
+        if reads_pp_fwd:
+            rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd))
+        else:
+            rms_baseq_pp_fwd = 'NA'
+        if reads_pp_rev:
+            rms_baseq_pp_rev = rms(baseq(reads_pp_rev))
+        else:
+            rms_baseq_pp_rev = 'NA'
+        yield {'chr': chrom, 'pos': pos, 
+               'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
+               'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
+               'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
+               }
+
+def test_stat_baseq_strand():
+    _test(pysamstats.stat_baseq_strand, stat_baseq_strand_refimpl)
+
+
 def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
