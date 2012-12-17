@@ -22,8 +22,10 @@ if __name__ == '__main__':
                    'mapq',
                    'mapq_strand',
                    'baseq',
-                   'baseq_strand')
-    stats_types_requiring_fasta = ('variation', 'variation_strand')
+                   'baseq_strand',
+                   'baseq_ext',
+                   'baseq_ext_strand')
+    stats_types_requiring_fasta = ('variation', 'variation_strand', 'baseq_ext', 'baseq_ext_strand')
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
     epilog = """
@@ -45,6 +47,9 @@ Supported statistics types:
     * mapq_strand         - as mapq but with statistics by forward/reverse strand
     * baseq               - baseq quality statistics
     * baseq_strand        - as baseq but with statistics by forward/reverse strand
+    * baseq_ext           - extended base quality statistics, including qualities
+                            of bases matching and mismatching reference
+    * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
     
 Examples:
 

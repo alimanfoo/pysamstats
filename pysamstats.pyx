@@ -776,14 +776,14 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
+        rms_tlen = int(round(sqrt(tlen_p_squared_sum * 1. / reads_p)))
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 'NA'
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
+        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum * 1. / reads_pp)))
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
@@ -987,42 +987,42 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
+        rms_tlen = int(round(sqrt(tlen_p_squared_sum * 1. / reads_p)))
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 'NA'
     if reads_p_rev > 0:
         mean_tlen_rev = int(round(tlen_p_rev_mean))
-        rms_tlen_rev = int(round(sqrt(tlen_p_rev_squared_sum*1. / reads_p_rev)))
+        rms_tlen_rev = int(round(sqrt(tlen_p_rev_squared_sum * 1. / reads_p_rev)))
         variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
         rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
     if reads_p_fwd > 0:
         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-        rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum*1. / reads_p_fwd)))
+        rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum * 1. / reads_p_fwd)))
         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
         rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
+        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum * 1. / reads_pp)))
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
     if reads_pp_rev > 0:
         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-        rms_tlen_pp_rev = int(round(sqrt(tlen_pp_rev_squared_sum*1. / reads_pp_rev)))
+        rms_tlen_pp_rev = int(round(sqrt(tlen_pp_rev_squared_sum * 1. / reads_pp_rev)))
         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
         rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
     if reads_pp_fwd > 0:
         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-        rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum*1. / reads_pp_fwd)))
+        rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
@@ -1169,9 +1169,9 @@ def write_mapq(*args, **kwargs):
     write_stats(stat_mapq, fieldnames, *args, **kwargs)
     
     
-##############################
-# MAPPING QUALITY STATISTICS #
-##############################
+########################################
+# MAPPING QUALITY STATISTICS BY STRAND #
+########################################
 
 
 cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
@@ -1402,14 +1402,9 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
                 baseq_pp_squared_sum += baseq_squared
 
     # output variables
-    if reads_nodel > 0:
-        rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / reads_nodel)))
-    else:
-        rms_baseq = 'NA'
-    if reads_pp_nodel > 0:
-        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp_nodel)))
-    else:
-        rms_baseq_pp = 'NA'
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
@@ -1434,9 +1429,9 @@ def write_baseq(*args, **kwargs):
     write_stats(stat_baseq, fieldnames, *args, **kwargs)
     
     
-###########################
-# BASE QUALITY STATISTICS #
-###########################
+#####################################
+# BASE QUALITY STATISTICS BY STRAND #
+#####################################
 
 
 cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
@@ -1449,10 +1444,10 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
     cdef int n # total number of reads in column
 
     cdef uint32_t flag
-    cdef uint64_t baseq
-    cdef uint64_t baseq_squared
     cdef bint is_proper_pair
     cdef bint is_reverse
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
 
     cdef uint64_t baseq_squared_sum = 0
     cdef uint64_t baseq_fwd_squared_sum = 0
@@ -1521,30 +1516,12 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
                     baseq_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    if reads_nodel > 0:
-        rms_baseq = int(round(sqrt(baseq_squared_sum * 1. / reads_nodel)))
-    else:
-        rms_baseq = 'NA'
-    if reads_rev_nodel > 0:
-        rms_baseq_rev = int(round(sqrt(baseq_rev_squared_sum * 1. / reads_rev_nodel)))
-    else:
-        rms_baseq_rev = 'NA'
-    if reads_fwd_nodel > 0:
-        rms_baseq_fwd = int(round(sqrt(baseq_fwd_squared_sum * 1. / reads_fwd_nodel)))
-    else:
-        rms_baseq_fwd = 'NA'
-    if reads_pp_nodel > 0:
-        rms_baseq_pp = int(round(sqrt(baseq_pp_squared_sum * 1. / reads_pp_nodel)))
-    else:
-        rms_baseq_pp = 'NA'
-    if reads_pp_fwd_nodel > 0:
-        rms_baseq_pp_fwd = int(round(sqrt(baseq_pp_fwd_squared_sum * 1. / reads_pp_fwd_nodel)))
-    else:
-        rms_baseq_pp_fwd = 'NA'
-    if reads_pp_rev_nodel > 0:
-        rms_baseq_pp_rev = int(round(sqrt(baseq_pp_rev_squared_sum * 1. / reads_pp_rev_nodel)))
-    else:
-        rms_baseq_pp_rev = 'NA'
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
         
     return {'chr': chrom, 
             'pos': pos, 
@@ -1563,8 +1540,6 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
             }
 
 
-
-
 def stat_baseq_strand(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(start, end, one_based)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -1581,11 +1556,127 @@ def write_baseq_strand(*args, **kwargs):
     write_stats(stat_baseq_strand, fieldnames, *args, **kwargs)
     
     
-# TODO baseq stats by strand
-# TODO extended baseq stats
+####################################
+# EXTENDED BASE QUALITY STATISTICS #
+####################################
+
+
+cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile, 
+                                     PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    # counting variables
+    cdef unsigned int reads_nodel = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_nodel = 0
+    cdef unsigned int matches = 0
+    cdef unsigned int matches_pp = 0
+    cdef unsigned int mismatches = 0
+    cdef unsigned int mismatches_pp = 0
+
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_matches_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_squared_sum = 0
+    cdef uint64_t baseq_mismatches_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
+    
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # reference base
+    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = bam1_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+            alnbase = get_seq_base(aln, read.qpos)
+            if alnbase == refbase:
+                matches += 1
+                baseq_matches_squared_sum += baseq_squared
+                if is_proper_pair:
+                    matches_pp += 1
+                    baseq_matches_pp_squared_sum += baseq_squared
+            else:
+                mismatches += 1
+                baseq_mismatches_squared_sum += baseq_squared
+                if is_proper_pair:
+                    mismatches_pp += 1
+                    baseq_mismatches_pp_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
+
+    return {'chr': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': n, 'reads_pp': reads_pp,
+            'matches': matches,
+            'matches_pp': matches_pp,
+            'mismatches': mismatches,
+            'mismatches_pp': mismatches_pp,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_pp': rms_baseq_pp,
+            'rms_baseq_matches': rms_baseq_matches,
+            'rms_baseq_matches_pp': rms_baseq_matches_pp,
+            'rms_baseq_mismatches': rms_baseq_mismatches,
+            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp,
+            }
+
+
+def stat_baseq_ext(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_baseq_ext(samfile, fafile, col, one_based)
+        
+        
+def write_baseq_ext(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 'ref', 
+                  'reads_all', 'reads_pp',
+                  'matches', 'matches_pp',
+                  'mismatches', 'mismatches_pp',
+                  'rms_baseq', 'rms_baseq_pp',
+                  'rms_baseq_matches', 'rms_baseq_matches_pp',
+                  'rms_baseq_mismatches', 'rms_baseq_mismatches_pp',
+                  )
+    write_stats(stat_baseq_ext, fieldnames, *args, **kwargs)
+    
+    
 # TODO extended baseq stats by strand
 # TODO normed coverage
 # TODO check mapq stats and anything else has NA where it should
+
 
 #####################
 # UTILITY FUNCTIONS #
@@ -1664,3 +1755,10 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
+cdef inline object rootmean(uint64_t sqsum, unsigned int count):
+    if count > 0:
+        return int(round(sqrt(sqsum * 1. / count)))
+    else:
+        return 'NA'
+    
+    

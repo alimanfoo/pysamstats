@@ -321,6 +321,34 @@ def test_stat_variation_strand():
     _test_withrefseq(pysamstats.stat_variation_strand, stat_variation_strand_refimpl)
 
 
+def rms(a):
+    if a:
+        return int(round(sqrt(np.mean(np.power(a, 2)))))
+    else:
+        return 'NA'
+
+
+def mean(a):
+    if a:
+        return int(round(np.mean(a)))
+    else:
+        return 'NA'
+
+
+def std(a):
+    if a:
+        return int(round(np.std(a)))
+    else:
+        return 'NA'
+    
+    
+def vmax(a):
+    if a:
+        return max(a)
+    else:
+        return 'NA'
+    
+    
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -329,21 +357,11 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         reads = col.pileups
         # N.B., tlen only means something if mate is mapped to same chromosome
         reads_paired = [read for read in reads if not read.alignment.mate_is_unmapped and read.alignment.rnext == col.tid]
-        if reads_paired:
-            tlen = [read.alignment.tlen for read in reads_paired]
-            rms_tlen = int(round(sqrt(np.mean(np.power(tlen, 2)))))
-            mean_tlen = int(round(np.mean(tlen)))
-            std_tlen = int(round(np.std(tlen)))
-        else:
-            rms_tlen = mean_tlen = std_tlen = 'NA'
+        tlen = [read.alignment.tlen for read in reads_paired]
+        mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
         reads_pp = pp(reads)
-        if reads_pp:
-            tlen_pp = [read.alignment.tlen for read in reads_pp]
-            rms_tlen_pp = int(round(sqrt(np.mean(np.power(tlen_pp, 2)))))
-            mean_tlen_pp = int(round(np.mean(tlen_pp)))
-            std_tlen_pp = int(round(np.std(tlen_pp)))
-        else:
-            rms_tlen_pp = mean_tlen_pp = std_tlen_pp = 'NA'
+        tlen_pp = [read.alignment.tlen for read in reads_pp]
+        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_paired': len(reads_paired),
@@ -360,22 +378,6 @@ def test_stat_tlen():
     _test(pysamstats.stat_tlen, stat_tlen_refimpl)
 
 
-def rms(a):
-    return int(round(sqrt(np.mean(np.power(a, 2)))))
-
-
-def mean(a):
-    return int(round(np.mean(a)))
-
-
-def median(a):
-    return int(round(np.median(a)))
-
-
-def std(a):
-    return int(round(np.std(a)))
-    
-    
 def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -385,43 +387,25 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 
         # all "paired" reads
         reads_paired = [read for read in reads if not read.alignment.mate_is_unmapped and read.alignment.rnext == col.tid]
-        if reads_paired:
-            tlen = [read.alignment.tlen for read in reads_paired]
-            mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
-        else:
-            rms_tlen = std_tlen = mean_tlen = 'NA'
+        tlen = [read.alignment.tlen for read in reads_paired]
+        mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
         reads_paired_fwd = fwd(reads_paired)
-        if reads_paired_fwd:
-            tlen_fwd = [read.alignment.tlen for read in reads_paired_fwd]
-            mean_tlen_fwd, rms_tlen_fwd, std_tlen_fwd = mean(tlen_fwd), rms(tlen_fwd), std(tlen_fwd)
-        else:
-            rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
+        tlen_fwd = [read.alignment.tlen for read in reads_paired_fwd]
+        mean_tlen_fwd, rms_tlen_fwd, std_tlen_fwd = mean(tlen_fwd), rms(tlen_fwd), std(tlen_fwd)
         reads_paired_rev = rev(reads_paired)
-        if reads_paired_rev:
-            tlen_rev = [read.alignment.tlen for read in reads_paired_rev]
-            mean_tlen_rev, rms_tlen_rev, std_tlen_rev = mean(tlen_rev), rms(tlen_rev), std(tlen_rev)
-        else:
-            rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
+        tlen_rev = [read.alignment.tlen for read in reads_paired_rev]
+        mean_tlen_rev, rms_tlen_rev, std_tlen_rev = mean(tlen_rev), rms(tlen_rev), std(tlen_rev)
         
         # properly paired reads
         reads_pp = pp(reads)
-        if reads_pp:
-            tlen_pp = [read.alignment.tlen for read in reads_pp]
-            mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
-        else:
-            rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
+        tlen_pp = [read.alignment.tlen for read in reads_pp]
+        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         reads_pp_fwd = fwd(reads_pp)
-        if reads_pp_fwd:
-            tlen_pp_fwd = [read.alignment.tlen for read in reads_pp_fwd]
-            mean_tlen_pp_fwd, rms_tlen_pp_fwd, std_tlen_pp_fwd = mean(tlen_pp_fwd), rms(tlen_pp_fwd), std(tlen_pp_fwd)
-        else:
-            rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 'NA'
+        tlen_pp_fwd = [read.alignment.tlen for read in reads_pp_fwd]
+        mean_tlen_pp_fwd, rms_tlen_pp_fwd, std_tlen_pp_fwd = mean(tlen_pp_fwd), rms(tlen_pp_fwd), std(tlen_pp_fwd)
         reads_pp_rev = rev(reads_pp)
-        if reads_pp_rev:
-            tlen_pp_rev = [read.alignment.tlen for read in reads_pp_rev]
-            mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = mean(tlen_pp_rev), rms(tlen_pp_rev), std(tlen_pp_rev)
-        else:
-            rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
+        tlen_pp_rev = [read.alignment.tlen for read in reads_pp_rev]
+        mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = mean(tlen_pp_rev), rms(tlen_pp_rev), std(tlen_pp_rev)
 
         # yield record
         yield {'chr': chrom, 'pos': pos, 
@@ -457,16 +441,10 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         reads_pp = pp(reads)
         reads_mapq0 = mapq0(reads)
         reads_mapq0_pp = mapq0(reads_pp)
-        if reads:
-            mapq = mapq(reads)
-            rms_mapq, max_mapq = rms(mapq), max(mapq)
-        else:
-            rms_mapq = max_mapq = 'NA'
-        if reads_pp:
-            mapq_pp = mapq(reads_pp)
-            rms_mapq_pp, max_mapq_pp = rms(mapq_pp), max(mapq_pp)
-        else:
-            rms_mapq_pp = max_mapq_pp = 'NA'
+        mapq_all = mapq(reads)
+        rms_mapq, max_mapq = rms(mapq_all), vmax(mapq_all)
+        mapq_pp = mapq(reads_pp)
+        rms_mapq_pp, max_mapq_pp = rms(mapq_pp), vmax(mapq_pp)
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_pp': len(reads_pp),
@@ -500,36 +478,18 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         reads_mapq0_pp = mapq0(reads_pp)
         reads_mapq0_pp_fwd = mapq0(reads_pp_fwd)
         reads_mapq0_pp_rev = mapq0(reads_pp_rev)
-        if reads:
-            mapq_all = mapq(reads)
-            rms_mapq, max_mapq = rms(mapq_all), max(mapq_all)
-        else:
-            rms_mapq = max_mapq = 'NA'
-        if reads_fwd:
-            mapq_fwd = mapq(reads_fwd)
-            rms_mapq_fwd, max_mapq_fwd = rms(mapq_fwd), max(mapq_fwd)
-        else:
-            rms_mapq_fwd = max_mapq_fwd = 'NA'
-        if reads_rev:
-            mapq_rev = mapq(reads_rev)
-            rms_mapq_rev, max_mapq_rev = rms(mapq_rev), max(mapq_rev)
-        else:
-            rms_mapq_rev = max_mapq_rev = 'NA'
-        if reads_pp:
-            mapq_pp = mapq(reads_pp)
-            rms_mapq_pp, max_mapq_pp = rms(mapq_pp), max(mapq_pp)
-        else:
-            rms_mapq_pp = max_mapq_pp = 'NA'
-        if reads_pp_fwd:
-            mapq_pp_fwd = mapq(reads_pp_fwd)
-            rms_mapq_pp_fwd, max_mapq_pp_fwd = rms(mapq_pp_fwd), max(mapq_pp_fwd)
-        else:
-            rms_mapq_pp_fwd = max_mapq_pp_fwd = 'NA'
-        if reads_pp_rev:
-            mapq_pp_rev = mapq(reads_pp_rev)
-            rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), max(mapq_pp_rev)
-        else:
-            rms_mapq_pp_rev = max_mapq_pp_rev = 'NA'
+        mapq_all = mapq(reads)
+        rms_mapq, max_mapq = rms(mapq_all), vmax(mapq_all)
+        mapq_fwd = mapq(reads_fwd)
+        rms_mapq_fwd, max_mapq_fwd = rms(mapq_fwd), vmax(mapq_fwd)
+        mapq_rev = mapq(reads_rev)
+        rms_mapq_rev, max_mapq_rev = rms(mapq_rev), vmax(mapq_rev)
+        mapq_pp = mapq(reads_pp)
+        rms_mapq_pp, max_mapq_pp = rms(mapq_pp), vmax(mapq_pp)
+        mapq_pp_fwd = mapq(reads_pp_fwd)
+        rms_mapq_pp_fwd, max_mapq_pp_fwd = rms(mapq_pp_fwd), vmax(mapq_pp_fwd)
+        mapq_pp_rev = mapq(reads_pp_rev)
+        rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), vmax(mapq_pp_rev)
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_fwd': len(reads_fwd),
@@ -580,14 +540,8 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=Fals
         reads_nodel = nodel(reads)
         reads_pp = pp(reads)
         reads_pp_nodel = nodel(reads_pp)
-        if reads_nodel:
-            rms_baseq = rms(baseq(reads_nodel))
-        else:
-            rms_baseq = 'NA'
-        if reads_pp_nodel:
-            rms_baseq_pp = rms(baseq(reads_pp_nodel))
-        else:
-            rms_baseq_pp = 'NA'
+        rms_baseq = rms(baseq(reads_nodel))
+        rms_baseq_pp = rms(baseq(reads_pp_nodel))
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_pp': len(reads_pp),
@@ -616,30 +570,12 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_bas
         reads_pp_nodel = nodel(reads_pp)
         reads_pp_fwd_nodel = nodel(reads_pp_fwd)
         reads_pp_rev_nodel = nodel(reads_pp_rev)
-        if reads_nodel:
-            rms_baseq = rms(baseq(reads_nodel))
-        else:
-            rms_baseq = 'NA'
-        if reads_fwd_nodel:
-            rms_baseq_fwd = rms(baseq(reads_fwd_nodel))
-        else:
-            rms_baseq_fwd = 'NA'
-        if reads_rev_nodel:
-            rms_baseq_rev = rms(baseq(reads_rev_nodel))
-        else:
-            rms_baseq_rev = 'NA'
-        if reads_pp_nodel:
-            rms_baseq_pp = rms(baseq(reads_pp_nodel))
-        else:
-            rms_baseq_pp = 'NA'
-        if reads_pp_fwd_nodel:
-            rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd_nodel))
-        else:
-            rms_baseq_pp_fwd = 'NA'
-        if reads_pp_rev_nodel:
-            rms_baseq_pp_rev = rms(baseq(reads_pp_rev_nodel))
-        else:
-            rms_baseq_pp_rev = 'NA'
+        rms_baseq = rms(baseq(reads_nodel))
+        rms_baseq_fwd = rms(baseq(reads_fwd_nodel))
+        rms_baseq_rev = rms(baseq(reads_rev_nodel))
+        rms_baseq_pp = rms(baseq(reads_pp_nodel))
+        rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd_nodel))
+        rms_baseq_pp_rev = rms(baseq(reads_pp_rev_nodel))
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
                'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
@@ -661,8 +597,6 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         reads_pp = pp(reads)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
-        reads = col.pileups
-        reads_pp = pp(reads)
         matches = [read for read in reads_nodel
                       if read.alignment.seq[read.qpos] == ref]
         matches_pp = [read for read in reads_pp_nodel
@@ -672,32 +606,25 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         mismatches_pp = [read for read in reads_pp_nodel
                             if read.alignment.seq[read.qpos] != ref]
 
-        rms_baseq = rms(baseq(reads))
-        if reads_fwd:
-            rms_baseq_fwd = rms(baseq(reads_fwd))
-        else:
-            rms_baseq_fwd = 'NA'
-        if reads_rev:
-            rms_baseq_rev = rms(baseq(reads_rev))
-        else:
-            rms_baseq_rev = 'NA'
-        if reads_pp:
-            rms_baseq_pp = rms(baseq(reads_pp))
-        else:
-            rms_baseq_pp = 'NA'
-        if reads_pp_fwd:
-            rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd))
-        else:
-            rms_baseq_pp_fwd = 'NA'
-        if reads_pp_rev:
-            rms_baseq_pp_rev = rms(baseq(reads_pp_rev))
-        else:
-            rms_baseq_pp_rev = 'NA'
-        yield {'chr': chrom, 'pos': pos, 
-               'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
-               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
-               'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
-               'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
+        rms_baseq = rms(baseq(reads_nodel))
+        rms_baseq_pp = rms(baseq(reads_pp_nodel))
+        rms_baseq_matches = rms(baseq(matches))
+        rms_baseq_matches_pp = rms(baseq(matches_pp))
+        rms_baseq_mismatches = rms(baseq(mismatches))
+        rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
+        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+               'reads_all': len(reads), 
+               'reads_pp': len(reads_pp), 
+               'matches': len(matches),
+               'matches_pp': len(matches_pp),
+               'mismatches': len(mismatches),
+               'mismatches_pp': len(mismatches_pp),
+               'rms_baseq': rms_baseq, 
+               'rms_baseq_pp': rms_baseq_pp, 
+               'rms_baseq_matches': rms_baseq_matches, 
+               'rms_baseq_matches_pp': rms_baseq_matches_pp, 
+               'rms_baseq_mismatches': rms_baseq_mismatches, 
+               'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 
                }
         
 
