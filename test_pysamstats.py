@@ -359,12 +359,21 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
 def test_stat_tlen():
     _test(pysamstats.stat_tlen, stat_tlen_refimpl)
 
-        
-        
-def int_mean_rms_std(a):
-    return (int(round(np.mean(a))),
-            int(round(sqrt(np.mean(np.power(a, 2))))),
-            int(round(np.std(a))))
+
+def rms(a):
+    return int(round(sqrt(np.mean(np.power(a, 2)))))
+
+
+def mean(a):
+    return int(round(np.mean(a)))
+
+
+def median(a):
+    return int(round(np.median(a)))
+
+
+def std(a):
+    return int(round(np.std(a)))
     
     
 def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
@@ -378,19 +387,19 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         reads_paired = [read for read in reads if not read.alignment.mate_is_unmapped and read.alignment.rnext == col.tid]
         if reads_paired:
             tlen = [read.alignment.tlen for read in reads_paired]
-            mean_tlen, rms_tlen, std_tlen = int_mean_rms_std(tlen)
+            mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
         else:
             rms_tlen = std_tlen = mean_tlen = 'NA'
         reads_paired_fwd = fwd(reads_paired)
         if reads_paired_fwd:
             tlen_fwd = [read.alignment.tlen for read in reads_paired_fwd]
-            mean_tlen_fwd, rms_tlen_fwd, std_tlen_fwd = int_mean_rms_std(tlen_fwd)
+            mean_tlen_fwd, rms_tlen_fwd, std_tlen_fwd = mean(tlen_fwd), rms(tlen_fwd), std(tlen_fwd)
         else:
             rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
         reads_paired_rev = rev(reads_paired)
         if reads_paired_rev:
             tlen_rev = [read.alignment.tlen for read in reads_paired_rev]
-            mean_tlen_rev, rms_tlen_rev, std_tlen_rev = int_mean_rms_std(tlen_rev)
+            mean_tlen_rev, rms_tlen_rev, std_tlen_rev = mean(tlen_rev), rms(tlen_rev), std(tlen_rev)
         else:
             rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
         
@@ -398,19 +407,19 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         reads_pp = pp(reads)
         if reads_pp:
             tlen_pp = [read.alignment.tlen for read in reads_pp]
-            mean_tlen_pp, rms_tlen_pp, std_tlen_pp = int_mean_rms_std(tlen_pp)
+            mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         else:
             rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
         reads_pp_fwd = fwd(reads_pp)
         if reads_pp_fwd:
             tlen_pp_fwd = [read.alignment.tlen for read in reads_pp_fwd]
-            mean_tlen_pp_fwd, rms_tlen_pp_fwd, std_tlen_pp_fwd = int_mean_rms_std(tlen_pp_fwd)
+            mean_tlen_pp_fwd, rms_tlen_pp_fwd, std_tlen_pp_fwd = mean(tlen_pp_fwd), rms(tlen_pp_fwd), std(tlen_pp_fwd)
         else:
             rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 'NA'
         reads_pp_rev = rev(reads_pp)
         if reads_pp_rev:
             tlen_pp_rev = [read.alignment.tlen for read in reads_pp_rev]
-            mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = int_mean_rms_std(tlen_pp_rev)
+            mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = mean(tlen_pp_rev), rms(tlen_pp_rev), std(tlen_pp_rev)
         else:
             rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
 
@@ -429,5 +438,40 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 
 def test_stat_tlen_strand():
     _test(pysamstats.stat_tlen_strand, stat_tlen_strand_refimpl)
+
+        
+def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_pp = pp(reads)
+        reads_mapq0 = [reads for read in reads if read.alignment.mapq == 0]
+        reads_mapq0_pp = [reads for read in reads_pp if read.alignment.mapq == 0]
+        if reads:
+            mapq = [read.alignment.mapq for read in reads]
+            rms_mapq, max_mapq = rms(mapq), max(mapq)
+        else:
+            rms_mapq = max_mapq = 'NA'
+        if reads_pp:
+            mapq_pp = [read.alignment.mapq for read in reads_pp]
+            rms_mapq_pp, max_mapq_pp = rms(mapq_pp), max(mapq_pp)
+        else:
+            rms_mapq_pp = max_mapq_pp = 'NA'
+        yield {'chr': chrom, 'pos': pos, 
+               'reads_all': col.n, 
+               'reads_pp': len(reads_pp),
+               'reads_mapq0': len(reads_mapq0),
+               'reads_mapq0_pp': len(reads_mapq0_pp),
+               'rms_mapq': rms_mapq,
+               'rms_mapq_pp': rms_mapq_pp,
+               'max_mapq': max_mapq,
+               'max_mapq_pp': max_mapq_pp,
+               }
+        
+
+def test_stat_mapq():
+    _test(pysamstats.stat_mapq, stat_mapq_refimpl)
 
         

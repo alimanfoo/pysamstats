@@ -1079,6 +1079,96 @@ def write_tlen_strand(*args, **kwargs):
     write_stats(stat_tlen_strand, fieldnames, *args, **kwargs)
     
     
+##############################
+# MAPPING QUALITY STATISTICS #
+##############################
+
+
+cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef uint64_t mapq
+    cdef uint64_t mapq_max = 0
+    cdef uint64_t mapq_pp_max = 0
+    cdef uint64_t mapq_squared
+    cdef uint64_t mapq_squared_sum = 0
+    cdef uint64_t mapq_pp_squared_sum = 0
+    cdef bint is_proper_pair
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_mapq0 = 0
+    cdef unsigned int reads_mapq0_pp = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mapq = aln.core.qual
+        mapq_squared = mapq**2
+        mapq_squared_sum += mapq_squared
+        if mapq == 0:
+            reads_mapq0 += 1
+        if mapq > mapq_max:
+            mapq_max = mapq
+        if is_proper_pair:
+            reads_pp += 1
+            mapq_pp_squared_sum += mapq_squared
+            if mapq > mapq_pp_max:
+                mapq_pp_max = mapq
+            if mapq == 0:
+                reads_mapq0_pp += 1
+
+    # construct output variables
+    rms_mapq = int(round(sqrt(mapq_squared_sum * 1. / n)))
+    max_mapq = mapq_max
+    if reads_pp > 0:
+        rms_mapq_pp = int(round(sqrt(mapq_pp_squared_sum * 1. / reads_pp)))
+        max_mapq_pp = mapq_pp_max
+    else:
+        rms_mapq_pp = max_mapq_pp = 'NA'
+        
+    return {'chr': chrom, 
+            'pos': pos, 
+            'reads_all': n, 
+            'reads_pp': reads_pp,
+            'reads_mapq0': reads_mapq0,
+            'reads_mapq0_pp': reads_mapq0_pp,
+            'rms_mapq': rms_mapq,
+            'rms_mapq_pp': rms_mapq_pp,
+            'max_mapq': max_mapq,
+            'max_mapq_pp': max_mapq_pp}
+
+
+def stat_mapq(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_mapq(samfile, col, one_based)
+        
+        
+def write_mapq(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 
+                  'reads_all', 'reads_pp',
+                  'reads_mapq0', 'reads_mapq0_pp',
+                  'rms_mapq', 'rms_mapq_pp',
+                  'max_mapq', 'max_mapq_pp')
+    write_stats(stat_mapq, fieldnames, *args, **kwargs)
+    
+    
 # TODO mapq stats
 # TODO mapq stats by strand
 # TODO baseq stats
