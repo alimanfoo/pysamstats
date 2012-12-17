@@ -775,23 +775,27 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     # N.B. round values to nearest integer, any finer precision is probably not
     # interesting    
     if reads_p > 0:
+        mean_tlen = int(round(tlen_p_mean))
         rms_tlen = int(round(sqrt(tlen_p_squared_sum*1. / reads_p)))
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
-        rms_tlen = std_tlen = 'NA'
+        rms_tlen = std_tlen = mean_tlen = 'NA'
     if reads_pp > 0:
+        mean_tlen_pp = int(round(tlen_pp_mean))
         rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum*1. / reads_pp)))
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
-        rms_tlen_pp = std_tlen_pp = 'NA'
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
 
     return {'chr': chrom, 
             'pos': pos, 
             'reads_all': n, 
             'reads_paired': reads_p,
             'reads_pp': reads_pp,
+            'mean_tlen': mean_tlen,
+            'mean_tlen_pp': mean_tlen_pp,
             'rms_tlen': rms_tlen,
             'rms_tlen_pp': rms_tlen_pp,
             'std_tlen': std_tlen,
@@ -807,6 +811,7 @@ def stat_tlen(samfile, chrom=None, start=None, end=None, one_based=False):
 def write_tlen(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
                   'reads_all', 'reads_paired', 'reads_pp', 
+                  'mean_tlen', 'mean_tlen_pp',
                   'rms_tlen', 'rms_tlen_pp',
                   'std_tlen', 'std_tlen_pp')
     write_stats(stat_tlen, fieldnames, *args, **kwargs)

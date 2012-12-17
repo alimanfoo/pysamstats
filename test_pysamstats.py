@@ -332,20 +332,24 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         if reads_paired:
             tlen = [read.alignment.tlen for read in reads_paired]
             rms_tlen = int(round(sqrt(np.mean(np.power(tlen, 2)))))
+            mean_tlen = int(round(np.mean(tlen)))
             std_tlen = int(round(np.std(tlen)))
         else:
-            rms_tlen = std_tlen = 'NA'
+            rms_tlen = mean_tlen = std_tlen = 'NA'
         reads_pp = pp(reads)
         if reads_pp:
             tlen_pp = [read.alignment.tlen for read in reads_pp]
-            rms_tlen_pp = int(round(sqrt(np.mean(np.power(tlen_pp, 2))) ))
+            rms_tlen_pp = int(round(sqrt(np.mean(np.power(tlen_pp, 2)))))
+            mean_tlen_pp = int(round(np.mean(tlen_pp)))
             std_tlen_pp = int(round(np.std(tlen_pp)))
         else:
-            rms_tlen_pp = std_tlen_pp = 'NA'
+            rms_tlen_pp = mean_tlen_pp = std_tlen_pp = 'NA'
         yield {'chr': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_paired': len(reads_paired),
                'reads_pp': len(reads_pp),
+               'mean_tlen': mean_tlen,
+               'mean_tlen_pp': mean_tlen_pp,
                'rms_tlen': rms_tlen,
                'rms_tlen_pp': rms_tlen_pp,
                'std_tlen': std_tlen,
