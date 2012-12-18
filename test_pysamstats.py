@@ -36,6 +36,14 @@ def _test(impl, refimpl):
                 print e
                 print a
                 raise
+        for k in a: # check no unexpected fields
+            try:
+                assert k in e
+            except:
+                print k
+                print e
+                print a
+                raise
 
 
 def _test_withrefseq(impl, refimpl):
@@ -363,9 +371,9 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         tlen_pp = [read.alignment.tlen for read in reads_pp]
         mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         yield {'chr': chrom, 'pos': pos, 
-               'reads_all': col.n, 
-               'reads_paired': len(reads_paired),
-               'reads_pp': len(reads_pp),
+#               'reads_all': col.n, 
+#               'reads_paired': len(reads_paired),
+#               'reads_pp': len(reads_pp),
                'mean_tlen': mean_tlen,
                'mean_tlen_pp': mean_tlen_pp,
                'rms_tlen': rms_tlen,
@@ -409,9 +417,9 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 
         # yield record
         yield {'chr': chrom, 'pos': pos, 
-               'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
-               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
-               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+#               'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+#               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
+#               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
                'mean_tlen': mean_tlen, 'mean_tlen_fwd': mean_tlen_fwd, 'mean_tlen_rev': mean_tlen_rev,
                'mean_tlen_pp': mean_tlen_pp, 'mean_tlen_pp_fwd': mean_tlen_pp_fwd, 'mean_tlen_pp_rev': mean_tlen_pp_rev,
                'rms_tlen': rms_tlen, 'rms_tlen_fwd': rms_tlen_fwd, 'rms_tlen_rev': rms_tlen_rev,
@@ -543,8 +551,8 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=Fals
         rms_baseq = rms(baseq(reads_nodel))
         rms_baseq_pp = rms(baseq(reads_pp_nodel))
         yield {'chr': chrom, 'pos': pos, 
-               'reads_all': len(reads), 
-               'reads_pp': len(reads_pp),
+#               'reads_all': len(reads), 
+#               'reads_pp': len(reads_pp),
                'rms_baseq': rms_baseq,
                'rms_baseq_pp': rms_baseq_pp}
         
@@ -577,8 +585,8 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_bas
         rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd_nodel))
         rms_baseq_pp_rev = rms(baseq(reads_pp_rev_nodel))
         yield {'chr': chrom, 'pos': pos, 
-               'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
-               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
+ #              'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
+ #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
                'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
                'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
                }
@@ -613,12 +621,12 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         rms_baseq_mismatches = rms(baseq(mismatches))
         rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
         yield {'chr': chrom, 'pos': pos, 'ref': ref,
-               'reads_all': len(reads), 
-               'reads_pp': len(reads_pp), 
-               'matches': len(matches),
-               'matches_pp': len(matches_pp),
-               'mismatches': len(mismatches),
-               'mismatches_pp': len(mismatches_pp),
+#               'reads_all': len(reads), 
+#               'reads_pp': len(reads_pp), 
+#               'matches': len(matches),
+#               'matches_pp': len(matches_pp),
+#               'mismatches': len(mismatches),
+#               'mismatches_pp': len(mismatches_pp),
                'rms_baseq': rms_baseq, 
                'rms_baseq_pp': rms_baseq_pp, 
                'rms_baseq_matches': rms_baseq_matches, 
@@ -681,20 +689,20 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
         rms_baseq_mismatches_pp_fwd = rms(baseq(mismatches_pp_fwd))
         rms_baseq_mismatches_pp_rev = rms(baseq(mismatches_pp_rev))
         yield {'chr': chrom, 'pos': pos, 'ref': ref,
-               'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
-               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
-               'matches': len(matches),
-               'matches_fwd': len(matches_fwd),
-               'matches_rev': len(matches_rev),
-               'matches_pp': len(matches_pp),
-               'matches_pp_fwd': len(matches_pp_fwd),
-               'matches_pp_rev': len(matches_pp_rev),
-               'mismatches': len(mismatches),
-               'mismatches_fwd': len(mismatches_fwd),
-               'mismatches_rev': len(mismatches_rev),
-               'mismatches_pp': len(mismatches_pp),
-               'mismatches_pp_fwd': len(mismatches_pp_fwd),
-               'mismatches_pp_rev': len(mismatches_pp_rev),
+ #              'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+ #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+ #              'matches': len(matches),
+ #              'matches_fwd': len(matches_fwd),
+ #              'matches_rev': len(matches_rev),
+ #              'matches_pp': len(matches_pp),
+ #              'matches_pp_fwd': len(matches_pp_fwd),
+ #              'matches_pp_rev': len(matches_pp_rev),
+ #              'mismatches': len(mismatches),
+ #              'mismatches_fwd': len(mismatches_fwd),
+ #              'mismatches_rev': len(mismatches_rev),
+ #              'mismatches_pp': len(mismatches_pp),
+ #              'mismatches_pp_fwd': len(mismatches_pp_fwd),
+ #              'mismatches_pp_rev': len(mismatches_pp_rev),
                'rms_baseq': rms_baseq, 
                'rms_baseq_fwd': rms_baseq_fwd, 
                'rms_baseq_rev': rms_baseq_rev, 

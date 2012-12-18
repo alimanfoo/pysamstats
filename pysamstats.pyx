@@ -796,9 +796,9 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
 
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': n, 
-            'reads_paired': reads_p,
-            'reads_pp': reads_pp,
+#            'reads_all': n, 
+#            'reads_paired': reads_p,
+#            'reads_pp': reads_pp,
             'mean_tlen': mean_tlen,
             'mean_tlen_pp': mean_tlen_pp,
             'rms_tlen': rms_tlen,
@@ -815,7 +815,7 @@ def stat_tlen(samfile, chrom=None, start=None, end=None, one_based=False):
         
 def write_tlen(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
-                  'reads_all', 'reads_paired', 'reads_pp', 
+ #                 'reads_all', 'reads_paired', 'reads_pp', 
                   'mean_tlen', 'mean_tlen_pp',
                   'rms_tlen', 'rms_tlen_pp',
                   'std_tlen', 'std_tlen_pp')
@@ -1035,15 +1035,15 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
 
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': n, 
-            'reads_fwd': reads_fwd, 
-            'reads_rev': reads_rev,
-            'reads_paired': reads_p,
-            'reads_paired_fwd': reads_p_fwd,
-            'reads_paired_rev': reads_p_rev,
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev,
+#            'reads_all': n, 
+#            'reads_fwd': reads_fwd, 
+#            'reads_rev': reads_rev,
+#            'reads_paired': reads_p,
+#            'reads_paired_fwd': reads_p_fwd,
+#            'reads_paired_rev': reads_p_rev,
+#            'reads_pp': reads_pp,
+#            'reads_pp_fwd': reads_pp_fwd,
+#            'reads_pp_rev': reads_pp_rev,
             'mean_tlen': mean_tlen,
             'mean_tlen_fwd': mean_tlen_fwd,
             'mean_tlen_rev': mean_tlen_rev,
@@ -1072,9 +1072,9 @@ def stat_tlen_strand(samfile, chrom=None, start=None, end=None, one_based=False)
         
 def write_tlen_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+#                  'reads_all', 'reads_fwd', 'reads_rev', 
+#                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
+#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
                   'mean_tlen', 'mean_tlen_fwd', 'mean_tlen_rev', 
                   'mean_tlen_pp', 'mean_tlen_pp_fwd', 'mean_tlen_pp_rev',
                   'rms_tlen', 'rms_tlen_fwd', 'rms_tlen_rev', 
@@ -1374,7 +1374,7 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef unsigned int reads_nodel = 0
-    cdef unsigned int reads_pp = 0
+#    cdef unsigned int reads_pp = 0
     cdef unsigned int reads_pp_nodel = 0
     cdef uint64_t baseq, baseq_squared
     cdef uint64_t baseq_squared_sum = 0
@@ -1394,8 +1394,8 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
+ #       if is_proper_pair:
+ #           reads_pp += 1
         # N.B., base quality only makes sense if the aligned read is not a deletion
         if not read.is_del:
             reads_nodel += 1
@@ -1412,8 +1412,8 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
 
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': n, 
-            'reads_pp': reads_pp,
+ #           'reads_all': n, 
+ #           'reads_pp': reads_pp,
             'rms_baseq': rms_baseq,
             'rms_baseq_pp': rms_baseq_pp}
 
@@ -1426,8 +1426,8 @@ def stat_baseq(samfile, chrom=None, start=None, end=None, one_based=False):
         
 def write_baseq(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
-                  'reads_all', 
-                  'reads_pp', 
+#                  'reads_all', 
+#                  'reads_pp', 
                   'rms_baseq', 
                   'rms_baseq_pp',
                   )
@@ -1461,11 +1461,11 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
     cdef uint64_t baseq_pp_fwd_squared_sum = 0
     cdef uint64_t baseq_pp_rev_squared_sum = 0
 
-    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_rev = 0
-    cdef unsigned int reads_pp_fwd = 0
+#    cdef unsigned int reads_rev = 0
+#    cdef unsigned int reads_fwd = 0
+#    cdef unsigned int reads_pp = 0
+#    cdef unsigned int reads_pp_rev = 0
+#    cdef unsigned int reads_pp_fwd = 0
     cdef unsigned int reads_nodel = 0
     cdef unsigned int reads_rev_nodel = 0
     cdef unsigned int reads_fwd_nodel = 0
@@ -1488,16 +1488,18 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        if is_reverse:
-            reads_rev += 1
-        else:
-            reads_fwd += 1
-        if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
+
+#        if is_reverse:
+#            reads_rev += 1
+#        else:
+#            reads_fwd += 1
+#        if is_proper_pair:
+#            reads_pp += 1
+#            if is_reverse:
+#                reads_pp_rev += 1
+#            else:
+#                reads_pp_fwd += 1
+
         # N.B., baseq only makes sense if not a deletion
         if not read.is_del:
             reads_nodel += 1
@@ -1530,12 +1532,12 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         
     return {'chr': chrom, 
             'pos': pos, 
-            'reads_all': n,
-            'reads_fwd': reads_fwd, 
-            'reads_rev': reads_rev, 
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev,
+#            'reads_all': n,
+#            'reads_fwd': reads_fwd, 
+#            'reads_rev': reads_rev, 
+#            'reads_pp': reads_pp,
+#            'reads_pp_fwd': reads_pp_fwd,
+#            'reads_pp_rev': reads_pp_rev,
             'rms_baseq': rms_baseq,
             'rms_baseq_fwd': rms_baseq_fwd,
             'rms_baseq_rev': rms_baseq_rev,
@@ -1553,8 +1555,8 @@ def stat_baseq_strand(samfile, chrom=None, start=None, end=None, one_based=False
         
 def write_baseq_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+#                  'reads_all', 'reads_fwd', 'reads_rev', 
+#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
                   'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
                   'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev', 
                   )
@@ -1579,7 +1581,7 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
     cdef bint is_proper_pair
     # counting variables
     cdef unsigned int reads_nodel = 0
-    cdef unsigned int reads_pp = 0
+#    cdef unsigned int reads_pp = 0
     cdef unsigned int reads_pp_nodel = 0
     cdef unsigned int matches = 0
     cdef unsigned int matches_pp = 0
@@ -1613,8 +1615,8 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
+#        if is_proper_pair:
+#            reads_pp += 1
         if not read.is_del:
             reads_nodel += 1
             baseq = bam1_qual(aln)[read.qpos]
@@ -1646,11 +1648,11 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
     rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
 
     return {'chr': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_pp': reads_pp,
-            'matches': matches,
-            'matches_pp': matches_pp,
-            'mismatches': mismatches,
-            'mismatches_pp': mismatches_pp,
+#            'reads_all': n, 'reads_pp': reads_pp,
+#            'matches': matches,
+#            'matches_pp': matches_pp,
+#            'mismatches': mismatches,
+#            'mismatches_pp': mismatches_pp,
             'rms_baseq': rms_baseq,
             'rms_baseq_pp': rms_baseq_pp,
             'rms_baseq_matches': rms_baseq_matches,
@@ -1668,9 +1670,9 @@ def stat_baseq_ext(samfile, fafile, chrom=None, start=None, end=None, one_based=
         
 def write_baseq_ext(*args, **kwargs):
     fieldnames = ('chr', 'pos', 'ref', 
-                  'reads_all', 'reads_pp',
-                  'matches', 'matches_pp',
-                  'mismatches', 'mismatches_pp',
+#                  'reads_all', 'reads_pp',
+#                  'matches', 'matches_pp',
+#                  'mismatches', 'mismatches_pp',
                   'rms_baseq', 'rms_baseq_pp',
                   'rms_baseq_matches', 'rms_baseq_matches_pp',
                   'rms_baseq_mismatches', 'rms_baseq_mismatches_pp',
@@ -1697,14 +1699,14 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
     cdef bint is_reverse
     
     # counting variables
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_rev = 0
+#    cdef unsigned int reads_fwd = 0
+#    cdef unsigned int reads_rev = 0
     cdef unsigned int reads_nodel = 0
     cdef unsigned int reads_fwd_nodel = 0
     cdef unsigned int reads_rev_nodel = 0
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_pp_rev = 0
+#    cdef unsigned int reads_pp = 0
+#    cdef unsigned int reads_pp_fwd = 0
+#    cdef unsigned int reads_pp_rev = 0
     cdef unsigned int reads_pp_nodel = 0
     cdef unsigned int reads_pp_fwd_nodel = 0
     cdef unsigned int reads_pp_rev_nodel = 0
@@ -1762,16 +1764,16 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
 
-        if is_reverse:
-            reads_rev += 1
-        else:
-            reads_fwd += 1
-        if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
+#        if is_reverse:
+#            reads_rev += 1
+#        else:
+#            reads_fwd += 1
+#        if is_proper_pair:
+#            reads_pp += 1
+#            if is_reverse:
+#                reads_pp_rev += 1
+#            else:
+#                reads_pp_fwd += 1
 
         if not read.is_del:
             reads_nodel += 1
@@ -1854,12 +1856,12 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
     rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
 
     return {'chr': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
-            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
-            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
-            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
-            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
-            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
+#            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
+#            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
+#            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
+#            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
+#            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
+#            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
             'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev, 
             'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
             'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev, 
@@ -1877,12 +1879,12 @@ def stat_baseq_ext_strand(samfile, fafile, chrom=None, start=None, end=None, one
         
 def write_baseq_ext_strand(*args, **kwargs):
     fieldnames = ('chr', 'pos', 'ref', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
-                  'matches', 'matches_fwd', 'matches_rev', 
-                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
-                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
-                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
+#                  'reads_all', 'reads_fwd', 'reads_rev', 
+#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
+#                  'matches', 'matches_fwd', 'matches_rev', 
+#                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
+#                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
+#                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
                   'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
                   'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev',
                   'rms_baseq_matches', 'rms_baseq_matches_fwd', 'rms_baseq_matches_rev', 
@@ -1894,7 +1896,7 @@ def write_baseq_ext_strand(*args, **kwargs):
     
     
 # TODO normed coverage
-# TODO check mapq stats and anything else has NA where it should
+# TODO check tlen & mapq stats and anything else has NA where it should
 
 
 #####################
