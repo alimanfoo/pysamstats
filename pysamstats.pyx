@@ -1896,7 +1896,6 @@ def write_baseq_ext_strand(*args, **kwargs):
     
     
 # TODO normed coverage
-# TODO check tlen & mapq stats and anything else has NA where it should
 
 
 #####################
