@@ -648,11 +648,16 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
                 incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
     return {'chr': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
-            'matches': matches.all, 'matches_fwd': matches.fwd, 'matches_rev': matches.rev, 'matches_pp': matches.pp, 'matches_pp_fwd': matches.pp_fwd, 'matches_pp_rev': matches.pp_rev,
-            'mismatches': mismatches.all, 'mismatches_fwd': mismatches.fwd, 'mismatches_rev': mismatches.rev, 'mismatches_pp': mismatches.pp, 'mismatches_pp_fwd': mismatches.pp_fwd, 'mismatches_pp_rev': mismatches.pp_rev,
-            'deletions': deletions.all, 'deletions_fwd': deletions.fwd, 'deletions_rev': deletions.rev, 'deletions_pp': deletions.pp, 'deletions_pp_fwd': deletions.pp_fwd, 'deletions_pp_rev': deletions.pp_rev,
-            'insertions': insertions.all, 'insertions_fwd': insertions.fwd, 'insertions_rev': insertions.rev, 'insertions_pp': insertions.pp, 'insertions_pp_fwd': insertions.pp_fwd, 'insertions_pp_rev': insertions.pp_rev,
+            'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 
+            'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
+            'matches': matches.all, 'matches_fwd': matches.fwd, 'matches_rev': matches.rev, 
+            'matches_pp': matches.pp, 'matches_pp_fwd': matches.pp_fwd, 'matches_pp_rev': matches.pp_rev,
+            'mismatches': mismatches.all, 'mismatches_fwd': mismatches.fwd, 'mismatches_rev': mismatches.rev, 
+            'mismatches_pp': mismatches.pp, 'mismatches_pp_fwd': mismatches.pp_fwd, 'mismatches_pp_rev': mismatches.pp_rev,
+            'deletions': deletions.all, 'deletions_fwd': deletions.fwd, 'deletions_rev': deletions.rev, 
+            'deletions_pp': deletions.pp, 'deletions_pp_fwd': deletions.pp_fwd, 'deletions_pp_rev': deletions.pp_rev,
+            'insertions': insertions.all, 'insertions_fwd': insertions.fwd, 'insertions_rev': insertions.rev, 
+            'insertions_pp': insertions.pp, 'insertions_pp_fwd': insertions.pp_fwd, 'insertions_pp_rev': insertions.pp_rev,
             'A': A.all, 'A_fwd': A.fwd, 'A_rev': A.rev, 'A_pp': A.pp, 'A_pp_fwd': A.pp_fwd, 'A_pp_rev': A.pp_rev,
             'C': C.all, 'C_fwd': C.fwd, 'C_rev': C.rev, 'C_pp': C.pp, 'C_pp_fwd': C.pp_fwd, 'C_pp_rev': C.pp_rev,
             'T': T.all, 'T_fwd': T.fwd, 'T_rev': T.rev, 'T_pp': T.pp, 'T_pp_fwd': T.pp_fwd, 'T_pp_rev': T.pp_rev,
@@ -1673,7 +1678,221 @@ def write_baseq_ext(*args, **kwargs):
     write_stats(stat_baseq_ext, fieldnames, *args, **kwargs)
     
     
-# TODO extended baseq stats by strand
+##############################################
+# EXTENDED BASE QUALITY STATISTICS BY STRAND #
+##############################################
+
+
+cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile, 
+                                            PileupProxy col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int n # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    
+    # counting variables
+    cdef unsigned int reads_fwd = 0
+    cdef unsigned int reads_rev = 0
+    cdef unsigned int reads_nodel = 0
+    cdef unsigned int reads_fwd_nodel = 0
+    cdef unsigned int reads_rev_nodel = 0
+    cdef unsigned int reads_pp = 0
+    cdef unsigned int reads_pp_fwd = 0
+    cdef unsigned int reads_pp_rev = 0
+    cdef unsigned int reads_pp_nodel = 0
+    cdef unsigned int reads_pp_fwd_nodel = 0
+    cdef unsigned int reads_pp_rev_nodel = 0
+    cdef unsigned int matches = 0
+    cdef unsigned int matches_fwd = 0
+    cdef unsigned int matches_rev = 0
+    cdef unsigned int matches_pp = 0
+    cdef unsigned int matches_pp_fwd = 0
+    cdef unsigned int matches_pp_rev = 0
+    cdef unsigned int mismatches = 0
+    cdef unsigned int mismatches_fwd = 0
+    cdef unsigned int mismatches_rev = 0
+    cdef unsigned int mismatches_pp = 0
+    cdef unsigned int mismatches_pp_fwd = 0
+    cdef unsigned int mismatches_pp_rev = 0
+
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_fwd_squared_sum = 0
+    cdef uint64_t baseq_rev_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_pp_rev_squared_sum = 0
+    cdef uint64_t baseq_matches_squared_sum = 0
+    cdef uint64_t baseq_matches_fwd_squared_sum = 0
+    cdef uint64_t baseq_matches_rev_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_rev_squared_sum = 0
+    cdef uint64_t baseq_mismatches_squared_sum = 0
+    cdef uint64_t baseq_mismatches_fwd_squared_sum = 0
+    cdef uint64_t baseq_mismatches_rev_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_rev_squared_sum = 0
+    
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+    
+    # reference base
+    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if is_proper_pair:
+            reads_pp += 1
+            if is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
+
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = bam1_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_reverse:
+                reads_rev_nodel += 1
+                baseq_rev_squared_sum += baseq_squared
+            else:
+                reads_fwd_nodel += 1
+                baseq_fwd_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+                if is_reverse:
+                    reads_pp_rev_nodel += 1
+                    baseq_pp_rev_squared_sum += baseq_squared
+                else:
+                    reads_pp_fwd_nodel += 1
+                    baseq_pp_fwd_squared_sum += baseq_squared
+            alnbase = get_seq_base(aln, read.qpos)
+            if alnbase == refbase:
+                matches += 1
+                baseq_matches_squared_sum += baseq_squared
+                if is_reverse:
+                    matches_rev += 1
+                    baseq_matches_rev_squared_sum += baseq_squared
+                else:
+                    matches_fwd += 1
+                    baseq_matches_fwd_squared_sum += baseq_squared
+                    
+                if is_proper_pair:
+                    matches_pp += 1
+                    baseq_matches_pp_squared_sum += baseq_squared
+                    if is_reverse:
+                        matches_pp_rev += 1
+                        baseq_matches_pp_rev_squared_sum += baseq_squared
+                    else:
+                        matches_pp_fwd += 1
+                        baseq_matches_pp_fwd_squared_sum += baseq_squared
+            else:
+                mismatches += 1
+                baseq_mismatches_squared_sum += baseq_squared
+                if is_reverse:
+                    mismatches_rev += 1
+                    baseq_mismatches_rev_squared_sum += baseq_squared
+                else:
+                    mismatches_fwd += 1
+                    baseq_mismatches_fwd_squared_sum += baseq_squared
+                    
+                if is_proper_pair:
+                    mismatches_pp += 1
+                    baseq_mismatches_pp_squared_sum += baseq_squared
+                    if is_reverse:
+                        mismatches_pp_rev += 1
+                        baseq_mismatches_pp_rev_squared_sum += baseq_squared
+                    else:
+                        mismatches_pp_fwd += 1
+                        baseq_mismatches_pp_fwd_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_fwd = rootmean(baseq_matches_fwd_squared_sum, matches_fwd)
+    rms_baseq_matches_rev = rootmean(baseq_matches_rev_squared_sum, matches_rev)
+    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_matches_pp_fwd = rootmean(baseq_matches_pp_fwd_squared_sum, matches_pp_fwd)
+    rms_baseq_matches_pp_rev = rootmean(baseq_matches_pp_rev_squared_sum, matches_pp_rev)
+    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_fwd = rootmean(baseq_mismatches_fwd_squared_sum, mismatches_fwd)
+    rms_baseq_mismatches_rev = rootmean(baseq_mismatches_rev_squared_sum, mismatches_rev)
+    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
+    rms_baseq_mismatches_pp_fwd = rootmean(baseq_mismatches_pp_fwd_squared_sum, mismatches_pp_fwd)
+    rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
+
+    return {'chr': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
+            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
+            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
+            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
+            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
+            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
+            'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev, 
+            'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev, 
+            'rms_baseq_matches_pp': rms_baseq_matches_pp, 'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
+            'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev, 
+            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
+            }
+
+
+def stat_baseq_ext_strand(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(start, end, one_based)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        yield construct_rec_baseq_ext_strand(samfile, fafile, col, one_based)
+        
+        
+def write_baseq_ext_strand(*args, **kwargs):
+    fieldnames = ('chr', 'pos', 'ref', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
+                  'matches', 'matches_fwd', 'matches_rev', 
+                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
+                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
+                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
+                  'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
+                  'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev',
+                  'rms_baseq_matches', 'rms_baseq_matches_fwd', 'rms_baseq_matches_rev', 
+                  'rms_baseq_matches_pp', 'rms_baseq_matches_pp_fwd', 'rms_baseq_matches_pp_rev',
+                  'rms_baseq_mismatches', 'rms_baseq_mismatches_fwd', 'rms_baseq_mismatches_rev', 
+                  'rms_baseq_mismatches_pp', 'rms_baseq_mismatches_pp_fwd', 'rms_baseq_mismatches_pp_rev',
+                  )
+    write_stats(stat_baseq_ext_strand, fieldnames, *args, **kwargs)
+    
+    
 # TODO normed coverage
 # TODO check mapq stats and anything else has NA where it should
 

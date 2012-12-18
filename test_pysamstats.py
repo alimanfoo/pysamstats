@@ -632,5 +632,93 @@ def test_stat_baseq_ext():
     _test_withrefseq(pysamstats.stat_baseq_ext, stat_baseq_ext_refimpl)
 
 
+def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        reads_pp = pp(reads)
+        reads_nodel = [read for read in reads if not read.is_del]
+        reads_nodel_fwd = fwd(reads_nodel)
+        reads_nodel_rev = rev(reads_nodel)
+        reads_nodel_pp = pp(reads_nodel)
+        reads_nodel_pp_fwd = fwd(reads_nodel_pp)
+        reads_nodel_pp_rev = rev(reads_nodel_pp)
+        reads_pp_nodel = [read for read in reads_pp if not read.is_del]
+        ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
+        matches = [read for read in reads_nodel
+                      if read.alignment.seq[read.qpos] == ref]
+        matches_fwd = fwd(matches)
+        matches_rev = rev(matches)
+        matches_pp = pp(matches)
+        matches_pp_fwd = fwd(matches_pp)
+        matches_pp_rev = rev(matches_pp)
+        mismatches = [read for read in reads_nodel
+                         if read.alignment.seq[read.qpos] != ref]
+        mismatches_fwd = fwd(mismatches)
+        mismatches_rev = rev(mismatches)
+        mismatches_pp = pp(mismatches)
+        mismatches_pp_fwd = fwd(mismatches_pp)
+        mismatches_pp_rev = rev(mismatches_pp)
+
+        rms_baseq = rms(baseq(reads_nodel))
+        rms_baseq_fwd = rms(baseq(reads_nodel_fwd))
+        rms_baseq_rev = rms(baseq(reads_nodel_rev))
+        rms_baseq_pp = rms(baseq(reads_pp_nodel))
+        rms_baseq_pp_fwd = rms(baseq(reads_nodel_pp_fwd))
+        rms_baseq_pp_rev = rms(baseq(reads_nodel_pp_rev))
+        rms_baseq_matches = rms(baseq(matches))
+        rms_baseq_matches_fwd = rms(baseq(matches_fwd))
+        rms_baseq_matches_rev = rms(baseq(matches_rev))
+        rms_baseq_matches_pp = rms(baseq(matches_pp))
+        rms_baseq_matches_pp_fwd = rms(baseq(matches_pp_fwd))
+        rms_baseq_matches_pp_rev = rms(baseq(matches_pp_rev))
+        rms_baseq_mismatches = rms(baseq(mismatches))
+        rms_baseq_mismatches_fwd = rms(baseq(mismatches_fwd))
+        rms_baseq_mismatches_rev = rms(baseq(mismatches_rev))
+        rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
+        rms_baseq_mismatches_pp_fwd = rms(baseq(mismatches_pp_fwd))
+        rms_baseq_mismatches_pp_rev = rms(baseq(mismatches_pp_rev))
+        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+               'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'matches': len(matches),
+               'matches_fwd': len(matches_fwd),
+               'matches_rev': len(matches_rev),
+               'matches_pp': len(matches_pp),
+               'matches_pp_fwd': len(matches_pp_fwd),
+               'matches_pp_rev': len(matches_pp_rev),
+               'mismatches': len(mismatches),
+               'mismatches_fwd': len(mismatches_fwd),
+               'mismatches_rev': len(mismatches_rev),
+               'mismatches_pp': len(mismatches_pp),
+               'mismatches_pp_fwd': len(mismatches_pp_fwd),
+               'mismatches_pp_rev': len(mismatches_pp_rev),
+               'rms_baseq': rms_baseq, 
+               'rms_baseq_fwd': rms_baseq_fwd, 
+               'rms_baseq_rev': rms_baseq_rev, 
+               'rms_baseq_pp': rms_baseq_pp, 
+               'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 
+               'rms_baseq_pp_rev': rms_baseq_pp_rev, 
+               'rms_baseq_matches': rms_baseq_matches, 
+               'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 
+               'rms_baseq_matches_rev': rms_baseq_matches_rev, 
+               'rms_baseq_matches_pp': rms_baseq_matches_pp, 
+               'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 
+               'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev, 
+               'rms_baseq_mismatches': rms_baseq_mismatches, 
+               'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 
+               'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev, 
+               'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 
+               'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 
+               'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev, 
+               }
+        
+
+def test_stat_baseq_ext_strand():
+    _test_withrefseq(pysamstats.stat_baseq_ext_strand, stat_baseq_ext_strand_refimpl)
+
+
 
         
