@@ -1,7 +1,8 @@
 pysamstats
 ==========
 
-A small Python utility for generating per-position statistics (coverage, etc.) from SAM/BAM files via pysam.
+A small Python utility for calculating statistics per genome position
+based on pileups from a SAM or BAM file.
 
 * Source: https://gihub.com/alimanfoo/pysamstats
 * Download: http://pypi.python.org/pypi/pysamstats (TODO)
@@ -10,7 +11,7 @@ Installation
 ------------
 
 ```
-pip install pysamstats
+$ pip install pysamstats
 ```
 
 Usage
