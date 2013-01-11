@@ -11,7 +11,7 @@ Installation
 ------------
 
 ```
-$ pip install pysamstats
+$ pip install --upgrade pysam pysamstats
 ```
 
 Usage
