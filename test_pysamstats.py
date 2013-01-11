@@ -88,7 +88,7 @@ def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=F
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = col.pileups
-        yield {'chr': chrom, 'pos': pos, 'reads_all': len(reads), 'reads_pp': len(pp(reads))}
+        yield {'chrom': chrom, 'pos': pos, 'reads_all': len(reads), 'reads_pp': len(pp(reads))}
         
 
 def test_stat_coverage():
@@ -101,7 +101,7 @@ def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None, one_
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = col.pileups
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
                'reads_pp': len(pp(reads)), 'reads_pp_fwd': len(fwd(pp(reads))), 'reads_pp_rev': len(rev(pp(reads)))}
         
@@ -130,7 +130,7 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_bas
                           ]
         reads_softclipped = [read for read in reads
                              if any((op[0] == 4) for op in read.alignment.cigar)]
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_pp': len(pp(reads)),
                'reads_mate_unmapped': len(reads_mate_unmapped),
@@ -165,7 +165,7 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, 
                           ]
         reads_softclipped = [read for read in reads
                              if any((op[0] == 4) for op in read.alignment.cigar)]
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_fwd': len(fwd(reads)),
                'reads_rev': len(rev(reads)),
@@ -239,7 +239,7 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
                 if read.alignment.seq[read.qpos] == 'N']
         N_pp = [read for read in reads_pp_nodel
                    if read.alignment.seq[read.qpos] == 'N']
-        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+        yield {'chrom': chrom, 'pos': pos, 'ref': ref,
                'reads_all': len(reads), 
                'reads_pp': len(reads_pp),
                'matches': len(matches),
@@ -307,7 +307,7 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
                 if read.alignment.seq[read.qpos] == 'N']
         N_pp = [read for read in reads_pp_nodel
                    if read.alignment.seq[read.qpos] == 'N']
-        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+        yield {'chrom': chrom, 'pos': pos, 'ref': ref,
                'reads_all': len(reads),
                'reads_pp':len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
                'matches':len(matches), 'matches_fwd': len(fwd(matches)), 'matches_rev': len(rev(matches)),
@@ -370,7 +370,7 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         reads_pp = pp(reads)
         tlen_pp = [read.alignment.tlen for read in reads_pp]
         mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
 #               'reads_all': col.n, 
 #               'reads_paired': len(reads_paired),
 #               'reads_pp': len(reads_pp),
@@ -416,7 +416,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         mean_tlen_pp_rev, rms_tlen_pp_rev, std_tlen_pp_rev = mean(tlen_pp_rev), rms(tlen_pp_rev), std(tlen_pp_rev)
 
         # yield record
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
 #               'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
 #               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
 #               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
@@ -453,7 +453,7 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         rms_mapq, max_mapq = rms(mapq_all), vmax(mapq_all)
         mapq_pp = mapq(reads_pp)
         rms_mapq_pp, max_mapq_pp = rms(mapq_pp), vmax(mapq_pp)
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_pp': len(reads_pp),
                'reads_mapq0': len(reads_mapq0),
@@ -498,7 +498,7 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         rms_mapq_pp_fwd, max_mapq_pp_fwd = rms(mapq_pp_fwd), vmax(mapq_pp_fwd)
         mapq_pp_rev = mapq(reads_pp_rev)
         rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), vmax(mapq_pp_rev)
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
                'reads_all': col.n, 
                'reads_fwd': len(reads_fwd),
                'reads_rev': len(reads_rev),
@@ -550,7 +550,7 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=Fals
         reads_pp_nodel = nodel(reads_pp)
         rms_baseq = rms(baseq(reads_nodel))
         rms_baseq_pp = rms(baseq(reads_pp_nodel))
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
 #               'reads_all': len(reads), 
 #               'reads_pp': len(reads_pp),
                'rms_baseq': rms_baseq,
@@ -584,7 +584,7 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_bas
         rms_baseq_pp = rms(baseq(reads_pp_nodel))
         rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd_nodel))
         rms_baseq_pp_rev = rms(baseq(reads_pp_rev_nodel))
-        yield {'chr': chrom, 'pos': pos, 
+        yield {'chrom': chrom, 'pos': pos, 
  #              'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
  #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
                'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
@@ -620,7 +620,7 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         rms_baseq_matches_pp = rms(baseq(matches_pp))
         rms_baseq_mismatches = rms(baseq(mismatches))
         rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
-        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+        yield {'chrom': chrom, 'pos': pos, 'ref': ref,
 #               'reads_all': len(reads), 
 #               'reads_pp': len(reads_pp), 
 #               'matches': len(matches),
@@ -688,7 +688,7 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
         rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
         rms_baseq_mismatches_pp_fwd = rms(baseq(mismatches_pp_fwd))
         rms_baseq_mismatches_pp_rev = rms(baseq(mismatches_pp_rev))
-        yield {'chr': chrom, 'pos': pos, 'ref': ref,
+        yield {'chrom': chrom, 'pos': pos, 'ref': ref,
  #              'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
  #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
  #              'matches': len(matches),
@@ -726,6 +726,119 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
 
 def test_stat_baseq_ext_strand():
     _test_withrefseq(pysamstats.stat_baseq_ext_strand, stat_baseq_ext_strand_refimpl)
+
+
+from bisect import bisect_left
+
+
+def stat_coverage_normed_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    
+    # first need to load the coverage data into an array, to calculate the median
+    it = (col.n for col in samfile.pileup(reference=chrom, start=start, end=end))
+    a = np.fromiter(it, dtype='u4')
+    dp_mean = np.mean(a)
+    dp_median = np.median(a)
+    dp_percentiles = [np.percentile(a, q) for q in range(101)]
+    
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        dp = col.n
+        dp_normed_median = dp * 1. / dp_median
+        dp_normed_mean = dp * 1. / dp_mean
+        dp_percentile = bisect_left(dp_percentiles, dp)
+        yield {'chrom': chrom, 'pos': pos, 
+               'reads_all': col.n, 
+               'dp_normed_median': dp_normed_median,
+               'dp_normed_mean': dp_normed_mean,
+               'dp_percentile': dp_percentile}
+        
+
+def test_stat_coverage_normed():
+    _test(pysamstats.stat_coverage_normed, stat_coverage_normed_refimpl)
+
+
+from collections import Counter
+
+
+def stat_coverage_gc_refimpl(samfile, fafile, 
+                             chrom=None, start=None, end=None, one_based=False,
+                             gc_window_length=300, gc_window_offset=150):
+    start, end = normalise_coords(one_based, start, end)
+    
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+        
+        if col.pos <= gc_window_offset:
+            continue # until we get a bit further into the chromosome
+        
+        ref_window_start = col.pos - gc_window_offset
+        ref_window_end = ref_window_start + gc_window_length
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end)
+        
+        if len(ref_window) == 0:
+            break # because we've hit the end of the chromosome
+        
+        base_counter = Counter(ref_window)
+        gc_count = base_counter['g'] + base_counter['c']
+        gc_percent = int(round(gc_count * 100. / gc_window_length))
+        yield {'chrom': chrom, 'pos': pos, 
+               'reads_all': len(reads), 
+               'reads_pp': len(pp(reads)),
+               'gc': gc_percent}
+        
+
+def test_stat_coverage_gc():
+    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
+
+
+def stat_coverage_normed_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
+    start, end = normalise_coords(one_based, start, end)
+    
+    # first need to load the coverage data into an array, to calculate the median
+    recs = stat_coverage_gc_refimpl(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
+    it = ((rec['reads_all'], rec['gc']) for rec in recs)
+    a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
+    dp_mean = np.mean(a.dp)
+    dp_median = np.median(a.dp)
+    dp_percentiles = [np.percentile(a.dp, q) for q in range(101)]    
+    dp_mean_bygc = dict()
+    dp_median_bygc = dict()
+    dp_percentiles_bygc = dict()
+    for gc in range(101):
+        flt = a.gc == gc
+        if np.count_nonzero(flt) > 0:
+            b = a[flt].dp
+            dp_mean_bygc[gc] = np.mean(b)
+            dp_median_bygc[gc] = np.median(b)
+            dp_percentiles_bygc[gc] = [np.percentile(b, q) for q in range(101)]
+    
+    # second pass
+    recs = stat_coverage_gc_refimpl(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
+    for rec in recs:
+        dp = rec['reads_all']
+        gc = rec['gc']
+        dp_normed_median = dp * 1. / dp_median
+        dp_normed_mean = dp * 1. / dp_mean
+        dp_percentile = bisect_left(dp_percentiles, dp)
+        dp_normed_median_bygc = dp * 1. / dp_median_bygc[gc]
+        dp_normed_mean_bygc = dp * 1. / dp_mean_bygc[gc]
+        dp_percentile_bygc = bisect_left(dp_percentiles_bygc[gc], dp)
+        rec['dp_normed_median'] = dp_normed_median
+        rec['dp_normed_mean'] = dp_normed_mean
+        rec['dp_percentile'] = dp_percentile
+        rec['dp_normed_median_gc'] = dp_normed_median_bygc
+        rec['dp_normed_mean_gc'] = dp_normed_mean_bygc
+        rec['dp_percentile_gc'] = dp_percentile_bygc
+        del rec['reads_pp']
+        yield rec
+        
+
+def test_stat_coverage_normed_gc():
+    _test_withrefseq(pysamstats.stat_coverage_normed_gc, stat_coverage_normed_gc_refimpl)
 
 
 
