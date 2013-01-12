@@ -191,6 +191,7 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
     cdef int n # total number of reads in column
     cdef bint is_reverse 
     cdef bint is_proper_pair 
+    cdef bint is_duplicate
     cdef bint mate_is_unmappped 
     cdef bint mate_is_reverse
     cdef int tlen
@@ -201,6 +202,7 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
     cdef unsigned int reads_mate_same_strand = 0
     cdef unsigned int reads_faceaway = 0
     cdef unsigned int reads_softclipped = 0
+    cdef unsigned int reads_duplicate = 0
 
     # initialise variables
     n = col.n
@@ -218,9 +220,12 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
         flag = aln.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_duplicate = <bint>(flag & BAM_FDUP)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
         tlen = aln.core.isize
+        if is_duplicate:
+            reads_duplicate += 1
         if is_proper_pair:
             reads_pp += 1
         if mate_is_unmapped:
@@ -241,7 +246,8 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
                'reads_mate_other_chr': reads_mate_other_chr,
                'reads_mate_same_strand': reads_mate_same_strand,
                'reads_faceaway': reads_faceaway,
-               'reads_softclipped': reads_softclipped}
+               'reads_softclipped': reads_softclipped,
+               'reads_duplicate': reads_duplicate}
 
 
 def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
@@ -258,7 +264,8 @@ def write_coverage_ext(*args, **kwargs):
                   'reads_mate_other_chr',
                   'reads_mate_same_strand',
                   'reads_faceaway', 
-                  'reads_softclipped')
+                  'reads_softclipped',
+                  'reads_duplicate')
     write_stats(stat_coverage_ext, fieldnames, *args, **kwargs)
     
     
@@ -277,6 +284,7 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
     cdef int n # total number of reads in column
     cdef bint is_reverse 
     cdef bint is_proper_pair 
+    cdef bint is_duplicate
     cdef bint mate_is_unmappped 
     cdef bint mate_is_reverse
     cdef int tlen
@@ -301,6 +309,9 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
     cdef unsigned int reads_softclipped = 0
     cdef unsigned int reads_softclipped_rev = 0
     cdef unsigned int reads_softclipped_fwd = 0
+    cdef unsigned int reads_duplicate = 0
+    cdef unsigned int reads_duplicate_rev = 0
+    cdef unsigned int reads_duplicate_fwd = 0
 
     # initialise variables
     n = col.n
@@ -318,6 +329,7 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
         flag = aln.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_duplicate = <bint>(flag & BAM_FDUP)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
         tlen = aln.core.isize
@@ -361,6 +373,12 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
                 reads_softclipped_rev += 1
             else:
                 reads_softclipped_fwd += 1
+        if is_duplicate:
+            reads_duplicate += 1
+            if is_reverse:
+                reads_duplicate_rev += 1
+            else:
+                reads_duplicate_fwd += 1
             
     return {'chrom': chrom, 'pos': pos, 
            'reads_all': n, 
@@ -383,7 +401,11 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
            'reads_faceaway_rev': reads_faceaway_rev,
            'reads_softclipped': reads_softclipped,
            'reads_softclipped_fwd': reads_softclipped_fwd,
-           'reads_softclipped_rev': reads_softclipped_rev}
+           'reads_softclipped_rev': reads_softclipped_rev,
+           'reads_duplicate': reads_duplicate,
+           'reads_duplicate_fwd': reads_duplicate_fwd,
+           'reads_duplicate_rev': reads_duplicate_rev,
+           }
 
 
 def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
@@ -414,7 +436,11 @@ def write_coverage_ext_strand(*args, **kwargs):
                   'reads_faceaway_rev', 
                   'reads_softclipped',
                   'reads_softclipped_fwd',
-                  'reads_softclipped_rev')
+                  'reads_softclipped_rev',
+                  'reads_duplicate',
+                  'reads_duplicate_fwd',
+                  'reads_duplicate_rev',
+                  )
     write_stats(stat_coverage_ext_strand, fieldnames, *args, **kwargs)
 
 

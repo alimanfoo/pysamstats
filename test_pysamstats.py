@@ -130,6 +130,7 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_bas
                           ]
         reads_softclipped = [read for read in reads
                              if any((op[0] == 4) for op in read.alignment.cigar)]
+        reads_duplicate = [read for read in reads if read.alignment.is_duplicate]
         yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_pp': len(pp(reads)),
@@ -137,7 +138,8 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_bas
                'reads_mate_other_chr': len(reads_mate_other_chr),
                'reads_mate_same_strand': len(reads_mate_same_strand),
                'reads_faceaway': len(reads_faceaway),
-               'reads_softclipped': len(reads_softclipped)}
+               'reads_softclipped': len(reads_softclipped),
+               'reads_duplicate': len(reads_duplicate)}
         
 
 def test_stat_coverage_ext():
@@ -165,6 +167,7 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, 
                           ]
         reads_softclipped = [read for read in reads
                              if any((op[0] == 4) for op in read.alignment.cigar)]
+        reads_duplicate = [read for read in reads if read.alignment.is_duplicate]
         yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_fwd': len(fwd(reads)),
@@ -186,7 +189,11 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, 
                'reads_faceaway_rev': len(rev(reads_faceaway)),
                'reads_softclipped': len(reads_softclipped),
                'reads_softclipped_fwd': len(fwd(reads_softclipped)),
-               'reads_softclipped_rev': len(rev(reads_softclipped))}
+               'reads_softclipped_rev': len(rev(reads_softclipped)),
+               'reads_duplicate': len(reads_duplicate),
+               'reads_duplicate_fwd': len(fwd(reads_duplicate)),
+               'reads_duplicate_rev': len(rev(reads_duplicate)),
+               }
         
 
 def test_stat_coverage_ext_strand():
