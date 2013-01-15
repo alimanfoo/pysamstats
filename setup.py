@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext
 
 setup(
     name='pysamstats',
-    version='0.3',
+    version='0.4',
     author='Alistair Miles',
     author_email='alimanfoo@googlemail.com',
     url='https://github.com/alimanfoo/pysamstats',
@@ -19,4 +19,5 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
     requires=['pysam (>=0.7)'],
+    install_requires=['pysam>=0.7'],
 )
