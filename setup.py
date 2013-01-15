@@ -19,5 +19,4 @@ setup(
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
     requires=['pysam (>=0.7)'],
-    install_requires=['pysam>=0.7'],
 )
