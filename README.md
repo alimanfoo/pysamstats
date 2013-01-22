@@ -112,15 +112,44 @@ for rec in pysamstats.stat_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end
 Field Definitions
 -----------------
 
-* chrom - Chromosome name.  
+The suffix **_fwd** means the field is restricted to reads mapped to
+the forward strand, and **_rev** means the field is restricted to
+reads mapped to the reverse strand. E.g., **reads_fwd** means the
+number of reads mapped to the forward strand.
 
-* pos - Position within chromosome. One-based by default when using
-  the command line, zero-based by default when using the python API.
+The suffix **_pp** means the field is restricted to reads flagged as
+properly paired. 
 
-* reads_all - Total number of reads aligned at the position. N.b.,
-  this is really the total, i.e., includes reads where the mate is
-  unmapped, or otherwise not properly paired.
+* **chrom** - Chromosome name.  
 
-* reads_pp - Total number of reads where the proper pair flag is set.
+* **pos** - Position within chromosome. One-based by default when
+    using the command line, zero-based by default when using the
+    python API.
+
+* **reads_all** - Number of reads aligned at the position. N.b., this
+    is really the total, i.e., includes reads where the mate is
+    unmapped or otherwise not properly paired.
+
+* **reads_pp** - Number of reads declared as properly paired by the
+    aligner.
+
+* **reads_mate_unmapped** - Number of reads where the mate is
+    unmapped.
+
+* **reads_mate_other_chr** - Number of reads where the mate is mapped
+    to another chromosome.
+
+* **reads_mate_same_strand** - Number of reads where the mate is
+    mapped to the same strand (may be indicative of an inversion).
+
+* **reads_faceaway** - Number of reads where the read and its mate are
+    mapped facing away from each other (may be indicative of a tandem
+    duplication).
+
+* **reads_softclipped** - Number of reads where there is some
+    softclipping at some point in the read's alignment (not
+    necessarily at this position).
+
+* **reads_duplicate** - Number of reads that are marked as duplicate.
 
 TODO continue field definitions.
