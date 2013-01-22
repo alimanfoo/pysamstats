@@ -15,7 +15,7 @@ $ pip install pysamstats
 ```
 
 N.B., pysamstats depends on [pysam](http://code.google.com/p/pysam/)
-and [numpy](http://www.numpy.org/). These *should* be install
+and [numpy](http://www.numpy.org/). These *should* be installed
 automatically if you run the command above, but if you have any
 problems, you might try installing pysam and numpy separately first.
 
@@ -108,3 +108,19 @@ for rec in pysamstats.stat_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end
     ...
 
 ```
+
+Field Definitions
+-----------------
+
+* chrom - Chromosome name.  
+
+* pos - Position within chromosome. One-based by default when using
+  the command line, zero-based by default when using the python API.
+
+* reads_all - Total number of reads aligned at the position. N.b.,
+  this is really the total, i.e., includes reads where the mate is
+  unmapped, or otherwise not properly paired.
+
+* reads_pp - Total number of reads where the proper pair flag is set.
+
+TODO continue field definitions.
