@@ -140,16 +140,39 @@ properly paired.
     to another chromosome.
 
 * **reads_mate_same_strand** - Number of reads where the mate is
-    mapped to the same strand (may be indicative of an inversion).
+    mapped to the same strand.
 
 * **reads_faceaway** - Number of reads where the read and its mate are
-    mapped facing away from each other (may be indicative of a tandem
-    duplication).
+    mapped facing away from each other.
 
 * **reads_softclipped** - Number of reads where there is some
     softclipping at some point in the read's alignment (not
     necessarily at this position).
 
-* **reads_duplicate** - Number of reads that are marked as duplicate.
+* **reads_duplicate** - Number of reads that are flagged as duplicate.
+
+* **dp_normed_median** - Number of reads divided by the median number
+    of reads over all positions in the specified region, or whole
+    genome if no region specified.
+
+* **dp_normed_mean** - Number of reads divided by the mean number of
+    reads over all positions in the specified region, or whole genome
+    if no region specified.
+
+* **dp_percentile** - Percentile within which the number of reads falls
+    considering all positions in the specified region, or whole genome
+    if no region specified.
+
+* **gc** - Percentage GC content in the reference at this position
+    (depends on window length and offset).
+
+* **dp_normed_median_gc** - As *dp_normed_median* but normalised by
+    positions with the same percent GC composition.
+
+* **dp_normed_mean_gc** - As *dp_normed_mean* but normalised by
+    positions with the same percent GC composition.
+
+* **dp_percentile_gc** - As *dp_percentile* but only considering
+    positions with the same percent GC composition.
 
 TODO continue field definitions.
