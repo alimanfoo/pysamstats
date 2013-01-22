@@ -11,7 +11,21 @@ Installation
 ------------
 
 ```
-$ pip install --upgrade pysam pysamstats
+$ pip install pysamstats
+```
+
+N.B., pysamstats depends on [pysam](http://code.google.com/p/pysam/)
+and [numpy](http://www.numpy.org/). These *should* be install
+automatically if you run the command above, but if you have any
+problems, you might try installing pysam and numpy separately first.
+
+Alternatively, clone the git repo and build in-place (requires
+cython):
+
+```
+$ git clone git://github.com/alimanfoo/pysamstats.git
+$ cd pysamstats
+$ python setup_dev.py build_ext --inplace 
 ```
 
 Usage

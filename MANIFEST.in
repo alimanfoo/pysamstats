@@ -1,3 +1,6 @@
+include *.md
 include *.txt
 include *.pxd
+include *.pyx
+include *.c
 recursive-include pysam *
