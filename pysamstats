@@ -5,6 +5,7 @@ from optparse import OptionParser
 import errno
 
 
+import pysam
 from pysam import Samfile, Fastafile
 import pysamstats
 
@@ -63,7 +64,9 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-"""
+Version: {version} (pysam {pysamversion})
+
+""".format(version=pysamstats.__version__, pysamversion=pysam.__version__)
 
     OptionParser.format_epilog = lambda self, formatter: self.epilog
     parser = OptionParser(usage=usage, description=description, epilog=epilog)

@@ -1,4 +1,7 @@
-# cython: profile=True
+# cython: profile=False
+
+
+__version__ = '0.4.5'
 
 
 import sys
