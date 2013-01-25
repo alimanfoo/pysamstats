@@ -175,4 +175,48 @@ properly paired.
 * **dp_percentile_gc** - As *dp_percentile* but only considering
     positions with the same percent GC composition.
 
-TODO continue field definitions.
+* **matches** - Number of reads where the aligned base matches the
+    reference.
+
+* **mismatches** - Number of reads where the aligned base does not
+    match the reference (but is not a deletion).
+
+* **deletions** - Number of reads where there is a deletion in the
+    alignment at this position.
+
+* **insertions** - Number of reads where there is an insertion in the
+    alignment at this position.
+
+* **A/C/T/G/N** - Number of reads where the aligned base is an A/C/T/G/N.
+
+* **mean_tlen** - Mean value of outer distance between reads and their
+    mates for paired reads aligned at this position. N.B., leftmost
+    reads in a pair have a positive tlen, rightmost reads have a
+    negative tlen, so if there is no strand bias, this value should be
+    0.
+
+* **rms_tlen** - Root-mean-square value of outer distance between
+    reads and their mates for paired reads aligned at this position.
+
+* **std_tlen** - Standard deviation of outer distance between reads
+    and their mates for paired reads aligned at this position.
+
+* **reads_mapq0** - Number of reads where mapping quality is zero.
+
+* **rms_mapq** - Root-mean-square mapping quality for reads aligned at
+    this position.
+
+* **max_mapq** - Maximum value of mapping quality for reads aligned at
+    this position.
+
+* **rms_baseq** - Root-mean-square value of base qualities for bases
+    aligned at this position.
+
+* **rms_baseq_matches** - Root-mean-square value of base qualities for
+    bases aligned at this position where the base matches the
+    reference.
+
+* **rms_baseq_mismatches** - Root-mean-square value of base qualities
+    for bases aligned at this position where the base does not match
+    the reference.
+
