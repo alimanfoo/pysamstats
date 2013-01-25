@@ -3,18 +3,18 @@ from distutils.extension import Extension
 
 setup(
     name='pysamstats',
-    version='0.4.4',
+    version='0.4.5',
     author='Alistair Miles',
     author_email='alimanfoo@googlemail.com',
     url='https://github.com/alimanfoo/pysamstats',
     license='MIT Licenses',
     description='A small Python utility for calculating statistics per genome position based on pileups from a SAM or BAM file.',
     scripts=['pysamstats'],
-    ext_modules = [Extension("pysamstats", ["pysamstats.c"], include_dirs=["pysam"])],
+    ext_modules = [Extension('pysamstats', ['pysamstats.c'], include_dirs=['pysam', 'samtools'])],
     classifiers=['Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python',
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
-    install_requires=['pysam>=0.7', 'numpy>=1.6'],
+    install_requires=['pysam>=0.7.2', 'numpy>=1.6'],
 )

@@ -9,7 +9,7 @@ import csv
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
-from csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual
+from pysam.csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual
 
 
 ## These are bits set in the flag.

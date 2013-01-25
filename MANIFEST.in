@@ -4,3 +4,4 @@ include *.pxd
 include *.pyx
 include *.c
 recursive-include pysam *
+recursive-include samtools *

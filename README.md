@@ -11,7 +11,7 @@ Installation
 ------------
 
 ```
-$ pip install pysamstats
+$ pip install --upgrade pysamstats
 ```
 
 N.B., pysamstats depends on [pysam](http://code.google.com/p/pysam/)
@@ -130,7 +130,7 @@ properly paired.
     is really the total, i.e., includes reads where the mate is
     unmapped or otherwise not properly paired.
 
-* **reads_pp** - Number of reads declared as properly paired by the
+* **reads_pp** - Number of reads flagged as properly paired by the
     aligner.
 
 * **reads_mate_unmapped** - Number of reads where the mate is
@@ -164,7 +164,7 @@ properly paired.
     if no region specified.
 
 * **gc** - Percentage GC content in the reference at this position
-    (depends on window length and offset).
+    (depends on window length and offset specified).
 
 * **dp_normed_median_gc** - As *dp_normed_median* but normalised by
     positions with the same percent GC composition.
