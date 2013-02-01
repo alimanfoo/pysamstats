@@ -1,20 +1,44 @@
 from distutils.core import setup
 from distutils.extension import Extension
+from ast import literal_eval
+
+
+try:
+    import pysam
+    from Cython.Distutils import build_ext # Cython should be installed via pysam
+except ImportError:
+    raise Exception('please install pysam first, e.g.: pip install --upgrade pysam pysamstats')
+
+
+def get_version(source='pysamstats.pyx'):
+    with open(source) as f:
+        for line in f:
+            if line.startswith('__version__'):
+                return literal_eval(line.partition('=')[2].lstrip())
+    raise ValueError("__version__ not found")
+
 
 setup(
     name='pysamstats',
-    version='0.4.5',
+    version=get_version(),
     author='Alistair Miles',
     author_email='alimanfoo@googlemail.com',
     url='https://github.com/alimanfoo/pysamstats',
     license='MIT Licenses',
-    description='A small Python utility for calculating statistics per genome position based on pileups from a SAM or BAM file.',
+    description='A Python utility for calculating statistics per genome position based on pileups from a SAM or BAM file.',
     scripts=['pysamstats'],
-    ext_modules = [Extension('pysamstats', ['pysamstats.c'], include_dirs=['pysam', 'samtools'])],
+    cmdclass = {'build_ext': build_ext},
+    ext_modules = [Extension('pysamstats', 
+                             ['pysamstats.pyx'], 
+                             include_dirs=pysam.get_include(),
+                             define_macros=pysam.get_defines()),
+                   ],
     classifiers=['Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python',
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
-    install_requires=['pysam>=0.7.2', 'numpy>=1.6'],
+    install_requires=['numpy>=1.6'], # don't include pysam here, no point as required *prior* to running setup.py
 )
+
+
