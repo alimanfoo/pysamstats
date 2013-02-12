@@ -26,6 +26,7 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
+MANIFEST
 spike*
 *.so
 *.html
