@@ -32,3 +32,5 @@ spike*
 *.html
 *~
 *.prof
+*.c
+MANIFEST

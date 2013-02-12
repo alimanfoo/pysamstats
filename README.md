@@ -1,8 +1,8 @@
 pysamstats
 ==========
 
-A small Python utility for calculating statistics per genome position
-based on pileups from a SAM or BAM file.
+A Python utility for calculating statistics per genome position based
+on pileups from a SAM or BAM file.
 
 * Source: https://gihub.com/alimanfoo/pysamstats
 * Download: http://pypi.python.org/pypi/pysamstats
@@ -11,13 +11,18 @@ Installation
 ------------
 
 ```
-$ pip install --upgrade pysamstats
+$ pip install --upgrade pysam pysamstats
 ```
 
 N.B., pysamstats depends on [pysam](http://code.google.com/p/pysam/)
-and [numpy](http://www.numpy.org/). These *should* be installed
-automatically if you run the command above, but if you have any
-problems, you might try installing pysam and numpy separately first.
+which needs to be installed *before* attempting to install
+pysamstats. The command above should do it.
+
+Pysamstats also depends on [numpy](http://www.numpy.org/) but this
+*should* be installed automatically if you run the command above.
+
+If you have any problems, try installing pysam and numpy separately
+first.
 
 Alternatively, clone the git repo and build in-place (requires
 cython):
@@ -25,7 +30,7 @@ cython):
 ```
 $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
-$ python setup_dev.py build_ext --inplace 
+$ python setup.py build_ext --inplace 
 ```
 
 Usage
