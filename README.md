@@ -1,8 +1,8 @@
 pysamstats
 ==========
 
-A Python utility for calculating statistics per genome position based
-on pileups from a SAM or BAM file.
+A Python utility for calculating statistics against genome positions
+based on sequence alignments from a SAM or BAM file.
 
 * Source: https://gihub.com/alimanfoo/pysamstats
 * Download: http://pypi.python.org/pypi/pysamstats
