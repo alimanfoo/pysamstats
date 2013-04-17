@@ -918,7 +918,7 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
-    reads_all = reads_pp = 0
+    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
         if aln.pos > bin_end: # end of bin
@@ -928,14 +928,36 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos, 
-                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+                   'gc': gc_percent, 
+                   'reads_all': reads_all, 
+                   'reads_pp': reads_pp,
+                   'reads_mate_unmapped': reads_mate_unmapped,
+                   'reads_mate_other_chr': reads_mate_other_chr,
+                   'reads_mate_same_strand': reads_mate_same_strand,
+                   'reads_faceaway': reads_faceaway,
+                   'reads_softclipped': reads_softclipped,
+                   'reads_duplicate': reads_duplicate}
             yield rec
-            reads_all = reads_pp = 0
+            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
         reads_all += 1
+#        print aln, aln.cigar, repr(aln.cigarstring)
         if aln.is_proper_pair:
             reads_pp += 1
+        if aln.is_duplicate:
+            reads_duplicate += 1
+        if aln.cigar is not None and any((op[0] == 4) for op in aln.cigar):
+            reads_softclipped += 1
+        if aln.mate_is_unmapped:
+            reads_mate_unmapped += 1
+        elif aln.tid != aln.rnext:
+            reads_mate_other_chr += 1
+        elif aln.is_reverse == aln.mate_is_reverse:
+            reads_mate_same_strand += 1
+        elif ((aln.is_reverse and aln.tlen > 0) # mapped to reverse strand but leftmost
+              or (not aln.is_reverse and aln.tlen < 0)): # mapped to fwd strand but rightmost
+            reads_faceaway += 1
             
         
 def test_stat_coverage_ext_binned():

@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.4.11-SNAPSHOT'
+__version__ = '0.5'
 
 
 import sys
@@ -2160,6 +2160,120 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
 def write_coverage_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
     write_stats(stat_coverage_binned, fieldnames, *args, **kwargs)
+    
+
+############################################
+# BINNED COVERAGE WITH EXTENDED PROPERTIES #
+############################################
+
+
+def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile, 
+                         chrom=None, start=None, end=None, one_based=False,
+                         window_size=300, window_offset=150, **kwargs):
+    if chrom is None:
+        it = chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in sorted(samfile.references)])
+    else:
+        it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
+    return it
+        
+        
+def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile, 
+                          chrom, start, end, one_based, 
+                          int window_size, int window_offset):
+    assert chrom is not None, 'unexpected error: chromosome is None'
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, reads_mate_same_strand, reads_faceaway, reads_softclipped, reads_duplicate
+    cdef bam1_t * b
+    cdef uint32_t flag
+    cdef bint is_reverse 
+    cdef bint is_proper_pair 
+    cdef bint is_duplicate
+    cdef bint mate_is_unmappped 
+    cdef bint mate_is_reverse
+    cdef int tlen
+    cdef IteratorRowRegion it
+    cdef Py_ssize_t i # loop index
+    cdef char* seq # sequence window
+    cdef int gc_count 
+    start, end = normalise_coords(start, end, one_based)
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+    # start iterating over reads
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            if b.core.pos > bin_end: # end of bin, yield record
+                # determine %GC
+                ref_window = fastafile.fetch(chrom, bin_start, bin_end)
+                if len(ref_window) == 0:
+                    raise StopIteration # because we've hit the end of the chromosome
+                seq = ref_window
+                gc_count = 0
+                for i in range(len(ref_window)):
+                    if seq[i] == 'g' or seq[i] == 'c':
+                        gc_count += 1
+                gc_percent = int(round(gc_count * 100. / len(ref_window)))
+                # yield record for bin
+                pos = bin_start + window_offset
+                if one_based:
+                    pos += 1
+                rec = {'chrom': chrom, 'pos': pos, 
+                       'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
+                       'reads_mate_unmapped': reads_mate_unmapped,
+                       'reads_mate_other_chr': reads_mate_other_chr,
+                       'reads_mate_same_strand': reads_mate_same_strand,
+                       'reads_faceaway': reads_faceaway,
+                       'reads_softclipped': reads_softclipped,
+                       'reads_duplicate': reads_duplicate}
+                yield rec
+                # start new bin
+                bin_start = bin_end
+                bin_end = bin_start + window_size
+                reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+            # increment counters
+            reads_all += 1
+            flag = b.core.flag
+            is_reverse = <bint>(flag & BAM_FREVERSE)
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            is_duplicate = <bint>(flag & BAM_FDUP)
+            mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+            mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+            tlen = b.core.isize
+            if is_duplicate:
+                reads_duplicate += 1
+            if is_proper_pair:
+                reads_pp += 1
+            if mate_is_unmapped:
+                reads_mate_unmapped += 1
+            elif b.core.tid != b.core.mtid:
+                reads_mate_other_chr += 1
+            elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+                reads_mate_same_strand += 1
+            elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+                reads_faceaway += 1
+            if is_softclipped(b):
+                reads_softclipped += 1
+        else:
+            raise StopIteration
+        
+    
+def write_coverage_ext_binned(*args, **kwargs):
+    fieldnames = ('chrom', 'pos', 'gc', 
+                  'reads_all', 
+                  'reads_pp', 
+                  'reads_mate_unmapped', 
+                  'reads_mate_other_chr',
+                  'reads_mate_same_strand',
+                  'reads_faceaway', 
+                  'reads_softclipped',
+                  'reads_duplicate')
+    write_stats(stat_coverage_ext_binned, fieldnames, *args, **kwargs)
     
 
 #####################

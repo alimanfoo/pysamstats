@@ -35,7 +35,8 @@ stats_types_requiring_fasta = ('variation',
                                'baseq_ext_strand', 
                                'coverage_gc',
                                'coverage_normed_gc',
-                               'coverage_binned')
+                               'coverage_binned',
+                               'coverage_ext_binned')
 
 fun = sys.argv[1]
 if len(sys.argv) > 2:
