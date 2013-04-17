@@ -46,6 +46,9 @@ def _test(impl, refimpl):
                 raise
 
 
+from itertools import izip_longest
+
+
 def _test_withrefseq(impl, refimpl):
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
@@ -53,7 +56,9 @@ def _test_withrefseq(impl, refimpl):
               'one_based': False}
     expected = refimpl(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
     actual = impl(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
-    for e, a in zip(expected, actual):
+    for e, a in izip_longest(expected, actual, fillvalue=None):
+        assert e is not None, ('expected value is None', e, a)
+        assert a is not None, ('actual value is None', e, a)
         for k, v in e.items():
             try:
                 eq_(v, a[k])
@@ -771,7 +776,7 @@ from collections import Counter
 
 def stat_coverage_gc_refimpl(samfile, fafile, 
                              chrom=None, start=None, end=None, one_based=False,
-                             gc_window_length=300, gc_window_offset=150):
+                             window_size=300, window_offset=150):
     start, end = normalise_coords(one_based, start, end)
     
     for col in samfile.pileup(reference=chrom, start=start, end=end):
@@ -779,11 +784,11 @@ def stat_coverage_gc_refimpl(samfile, fafile,
         pos = col.pos + 1 if one_based else col.pos
         reads = col.pileups
         
-        if col.pos <= gc_window_offset:
+        if col.pos <= window_offset:
             continue # until we get a bit further into the chromosome
         
-        ref_window_start = col.pos - gc_window_offset
-        ref_window_end = ref_window_start + gc_window_length
+        ref_window_start = col.pos - window_offset
+        ref_window_end = ref_window_start + window_size
         ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end)
         
         if len(ref_window) == 0:
@@ -791,7 +796,7 @@ def stat_coverage_gc_refimpl(samfile, fafile,
         
         base_counter = Counter(ref_window)
         gc_count = base_counter['g'] + base_counter['c']
-        gc_percent = int(round(gc_count * 100. / gc_window_length))
+        gc_percent = int(round(gc_count * 100. / window_size))
         yield {'chrom': chrom, 'pos': pos, 
                'reads_all': len(reads), 
                'reads_pp': len(pp(reads)),
@@ -846,6 +851,95 @@ def stat_coverage_normed_gc_refimpl(samfile, fafile, chrom=None, start=None, end
 
 def test_stat_coverage_normed_gc():
     _test_withrefseq(pysamstats.stat_coverage_normed_gc, stat_coverage_normed_gc_refimpl)
+
+
+from itertools import chain
+
+
+def stat_coverage_binned_refimpl(samfile, fastafile, 
+                                 chrom=None, start=None, end=None, one_based=False,
+                                 window_size=300, window_offset=150):
+    if chrom is None:
+        it = chain(*[_iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in samfile.references])
+    else:
+        it = _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)   
+    return it   
+        
+        
+def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    if start is None:
+        start = 0
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = 0
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        if aln.pos > bin_end: # end of bin
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end))
+            gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 
+                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+            yield rec
+            reads_all = reads_pp = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+        reads_all += 1
+        if aln.is_proper_pair:
+            reads_pp += 1
+            
+        
+def test_stat_coverage_binned():
+    _test_withrefseq(pysamstats.stat_coverage_binned, stat_coverage_binned_refimpl)
+
+
+def stat_coverage_ext_binned_refimpl(samfile, fastafile, 
+                                 chrom=None, start=None, end=None, one_based=False,
+                                 window_size=300, window_offset=150):
+    if chrom is None:
+        it = chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in samfile.references])
+    else:
+        it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)   
+    return it   
+        
+        
+def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    if start is None:
+        start = 0
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = 0
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        if aln.pos > bin_end: # end of bin
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end))
+            gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 
+                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+            yield rec
+            reads_all = reads_pp = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+        reads_all += 1
+        if aln.is_proper_pair:
+            reads_pp += 1
+            
+        
+def test_stat_coverage_ext_binned():
+    _test_withrefseq(pysamstats.stat_coverage_ext_binned, stat_coverage_ext_binned_refimpl)
 
 
 

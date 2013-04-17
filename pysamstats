@@ -28,10 +28,19 @@ if __name__ == '__main__':
                    'baseq',
                    'baseq_strand',
                    'baseq_ext',
-                   'baseq_ext_strand')
-    stats_types_requiring_fasta = ('variation', 'variation_strand', 'baseq_ext', 'baseq_ext_strand', 'coverage_gc', 'coverage_normed_gc')
+                   'baseq_ext_strand',
+                   'coverage_binned',
+                   'coverage_ext_binned')
+    stats_types_requiring_fasta = ('variation', 
+                                   'variation_strand', 
+                                   'baseq_ext', 
+                                   'baseq_ext_strand', 
+                                   'coverage_gc', 
+                                   'coverage_normed_gc', 
+                                   'coverage_binned',
+                                   'coverage_ext_binned')
     usage = 'usage: %prog [options] FILE'
-    description = "Calculate statistics per genome position based on pileups from a SAM or BAM file and print them to stdout."
+    description = "Calculate statistics against genome positions based on sequence alignments from a SAM or BAM file and print them to stdout."
     epilog = """
 Supported statistics types:
 
@@ -58,6 +67,8 @@ Supported statistics types:
     * baseq_ext           - extended base quality statistics, including qualities
                             of bases matching and mismatching reference
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+    * coverage_binned     - as coverage but binned
+    * coverage_ext_binned - as coverage_ext but binned
     
 Examples:
 
@@ -76,10 +87,10 @@ Version: {version} (pysam {pysamversion})
     parser.add_option('-e', '--end', dest='end', type='int', help='end position (1-based)', default=None)
     parser.add_option('-z', '--zero-based', dest='zero_based', help='use zero-based coordinates (default is false, i.e., use one-based coords)', action='store_true')
     parser.add_option('-f', '--fasta', dest='fasta', help='reference sequence file, only required for some statistics', default=None)
-    parser.add_option('--gc-window-length', dest='gc_window_length', type=int, help='size of window to use for %GC calculations [300]', default=300, metavar='N')
-    parser.add_option('--gc-window-offset', dest='gc_window_offset', type=int, help='window offset to use for deciding which genome position to report %GC calculations against [150]', default=150, metavar='N')
     parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
     parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
+    parser.add_option('--window-size', dest='window_size', type='int', help='size of window for binned statistics [300]', metavar='N', default=300)
+    parser.add_option('--window-offset', dest='window_offset', type=int, help='window offset to use for deciding which genome position to report binned statistics against [150]', default=150, metavar='N')
     options, args = parser.parse_args()
     
     if len(args) != 1:
@@ -104,8 +115,8 @@ Version: {version} (pysam {pysamversion})
                   chrom=options.chromosome, start=options.start, end=options.end, 
                   one_based=one_based, 
                   progress=options.progress,
-                  gc_window_length=options.gc_window_length,
-                  gc_window_offset=options.gc_window_offset)
+                  window_size=options.window_size,
+                  window_offset=options.window_offset)
             
         elif options.type in stats_types:
             
@@ -115,7 +126,9 @@ Version: {version} (pysam {pysamversion})
               write_header=write_header, 
               chrom=options.chromosome, start=options.start, end=options.end, 
               one_based=one_based, 
-              progress=options.progress)
+              progress=options.progress,
+              window_size=options.window_size,
+              window_offset=options.window_offset)
                 
         else:
             parser.error('unsupported statistics type: "%s"\nTry one of %s or "pysamstats --help" for more information.' % (options.type, stats_types))

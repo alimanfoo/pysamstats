@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.4.9'
+__version__ = '0.4.11-SNAPSHOT'
 
 
 import sys
@@ -12,7 +12,7 @@ import csv
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
-from pysam.csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual
+from pysam.csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual, IteratorRowRegion
 
 
 ## These are bits set in the flag.
@@ -72,7 +72,7 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
     cdef int n # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
-    cdef unsigned int reads_pp = 0
+    cdef int reads_pp = 0
 
     # initialise variables
     n = col.n
@@ -124,11 +124,11 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
     cdef uint32_t flag
     cdef bint is_reverse 
     cdef bint is_proper_pair 
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_pp_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_rev = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_pp_rev = 0
     
     # initialise variables
     n = col.n
@@ -199,13 +199,13 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
     cdef bint mate_is_reverse
     cdef int tlen
     # counting variables 
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_mate_unmapped = 0
-    cdef unsigned int reads_mate_other_chr = 0
-    cdef unsigned int reads_mate_same_strand = 0
-    cdef unsigned int reads_faceaway = 0
-    cdef unsigned int reads_softclipped = 0
-    cdef unsigned int reads_duplicate = 0
+    cdef int reads_pp = 0
+    cdef int reads_mate_unmapped = 0
+    cdef int reads_mate_other_chr = 0
+    cdef int reads_mate_same_strand = 0
+    cdef int reads_faceaway = 0
+    cdef int reads_softclipped = 0
+    cdef int reads_duplicate = 0
 
     # initialise variables
     n = col.n
@@ -292,29 +292,29 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
     cdef bint mate_is_reverse
     cdef int tlen
     # counting variables 
-    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_rev = 0
-    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_mate_unmapped = 0
-    cdef unsigned int reads_mate_unmapped_rev = 0
-    cdef unsigned int reads_mate_unmapped_fwd = 0
-    cdef unsigned int reads_mate_other_chr = 0
-    cdef unsigned int reads_mate_other_chr_rev = 0
-    cdef unsigned int reads_mate_other_chr_fwd = 0
-    cdef unsigned int reads_mate_same_strand = 0
-    cdef unsigned int reads_mate_same_strand_rev = 0
-    cdef unsigned int reads_mate_same_strand_fwd = 0
-    cdef unsigned int reads_faceaway = 0
-    cdef unsigned int reads_faceaway_rev = 0
-    cdef unsigned int reads_faceaway_fwd = 0
-    cdef unsigned int reads_softclipped = 0
-    cdef unsigned int reads_softclipped_rev = 0
-    cdef unsigned int reads_softclipped_fwd = 0
-    cdef unsigned int reads_duplicate = 0
-    cdef unsigned int reads_duplicate_rev = 0
-    cdef unsigned int reads_duplicate_fwd = 0
+    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_mate_unmapped = 0
+    cdef int reads_mate_unmapped_rev = 0
+    cdef int reads_mate_unmapped_fwd = 0
+    cdef int reads_mate_other_chr = 0
+    cdef int reads_mate_other_chr_rev = 0
+    cdef int reads_mate_other_chr_fwd = 0
+    cdef int reads_mate_same_strand = 0
+    cdef int reads_mate_same_strand_rev = 0
+    cdef int reads_mate_same_strand_fwd = 0
+    cdef int reads_faceaway = 0
+    cdef int reads_faceaway_rev = 0
+    cdef int reads_faceaway_fwd = 0
+    cdef int reads_softclipped = 0
+    cdef int reads_softclipped_rev = 0
+    cdef int reads_softclipped_fwd = 0
+    cdef int reads_duplicate = 0
+    cdef int reads_duplicate_rev = 0
+    cdef int reads_duplicate_fwd = 0
 
     # initialise variables
     n = col.n
@@ -464,25 +464,25 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
     cdef uint32_t flag
     cdef bint is_proper_pair
     # counting variables
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int matches = 0
-    cdef unsigned int matches_pp = 0
-    cdef unsigned int mismatches = 0
-    cdef unsigned int mismatches_pp = 0
-    cdef unsigned int deletions = 0
-    cdef unsigned int deletions_pp = 0
-    cdef unsigned int insertions = 0
-    cdef unsigned int insertions_pp = 0
-    cdef unsigned int A = 0
-    cdef unsigned int A_pp = 0
-    cdef unsigned int C = 0
-    cdef unsigned int C_pp = 0
-    cdef unsigned int T = 0
-    cdef unsigned int T_pp = 0
-    cdef unsigned int G = 0
-    cdef unsigned int G_pp = 0
-    cdef unsigned int N = 0
-    cdef unsigned int N_pp = 0
+    cdef int reads_pp = 0
+    cdef int matches = 0
+    cdef int matches_pp = 0
+    cdef int mismatches = 0
+    cdef int mismatches_pp = 0
+    cdef int deletions = 0
+    cdef int deletions_pp = 0
+    cdef int insertions = 0
+    cdef int insertions_pp = 0
+    cdef int A = 0
+    cdef int A_pp = 0
+    cdef int C = 0
+    cdef int C_pp = 0
+    cdef int T = 0
+    cdef int T_pp = 0
+    cdef int G = 0
+    cdef int G_pp = 0
+    cdef int N = 0
+    cdef int N_pp = 0
     
     # initialise variables
     n = col.n
@@ -587,7 +587,7 @@ def write_variation(*args, **kwargs):
 
 
 cdef struct CountPpStrand:
-    unsigned int all, pp, fwd, rev, pp_fwd, pp_rev
+    int all, pp, fwd, rev, pp_fwd, pp_rev
 
 
 cdef inline init_pp_strand(CountPpStrand* c):
@@ -734,8 +734,8 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     cdef bint is_proper_pair
     cdef bint mate_is_unmappped 
     cdef bint mate_other_chr
-    cdef unsigned int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
-    cdef unsigned int reads_pp = 0 # reads "properly paired", as defined by aligner
+    cdef int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
+    cdef int reads_pp = 0 # reads "properly paired", as defined by aligner
     cdef int64_t tlen
     cdef int64_t tlen_squared
     cdef int64_t tlen_p_sum = 0
@@ -871,14 +871,14 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     cdef bint mate_other_chr
     
     # counting variables
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
-    cdef unsigned int reads_p_fwd = 0
-    cdef unsigned int reads_p_rev = 0
-    cdef unsigned int reads_pp = 0 # reads "properly paired", as defined by aligner
-    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_pp_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_rev = 0
+    cdef int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
+    cdef int reads_p_fwd = 0
+    cdef int reads_p_rev = 0
+    cdef int reads_pp = 0 # reads "properly paired", as defined by aligner
+    cdef int reads_pp_fwd = 0
+    cdef int reads_pp_rev = 0
     
     cdef int64_t tlen
     cdef int64_t tlen_squared
@@ -1134,9 +1134,9 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
     cdef uint64_t mapq_squared_sum = 0
     cdef uint64_t mapq_pp_squared_sum = 0
     cdef bint is_proper_pair
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_mapq0 = 0
-    cdef unsigned int reads_mapq0_pp = 0
+    cdef int reads_pp = 0
+    cdef int reads_mapq0 = 0
+    cdef int reads_mapq0_pp = 0
 
     # initialise variables
     n = col.n
@@ -1236,17 +1236,17 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
     cdef uint64_t mapq_pp_fwd_squared_sum = 0
     cdef uint64_t mapq_pp_rev_squared_sum = 0
 
-    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_fwd = 0
-    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_rev = 0
-    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_mapq0 = 0
-    cdef unsigned int reads_mapq0_fwd = 0
-    cdef unsigned int reads_mapq0_rev = 0
-    cdef unsigned int reads_mapq0_pp = 0
-    cdef unsigned int reads_mapq0_pp_fwd = 0
-    cdef unsigned int reads_mapq0_pp_rev = 0
+    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_mapq0 = 0
+    cdef int reads_mapq0_fwd = 0
+    cdef int reads_mapq0_rev = 0
+    cdef int reads_mapq0_pp = 0
+    cdef int reads_mapq0_pp_fwd = 0
+    cdef int reads_mapq0_pp_rev = 0
 
     # initialise variables
     n = col.n
@@ -1402,9 +1402,9 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
     cdef int n # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
-    cdef unsigned int reads_nodel = 0
-#    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_nodel = 0
+    cdef int reads_nodel = 0
+#    cdef int reads_pp = 0
+    cdef int reads_pp_nodel = 0
     cdef uint64_t baseq, baseq_squared
     cdef uint64_t baseq_squared_sum = 0
     cdef uint64_t baseq_pp_squared_sum = 0
@@ -1490,17 +1490,17 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
     cdef uint64_t baseq_pp_fwd_squared_sum = 0
     cdef uint64_t baseq_pp_rev_squared_sum = 0
 
-#    cdef unsigned int reads_rev = 0
-#    cdef unsigned int reads_fwd = 0
-#    cdef unsigned int reads_pp = 0
-#    cdef unsigned int reads_pp_rev = 0
-#    cdef unsigned int reads_pp_fwd = 0
-    cdef unsigned int reads_nodel = 0
-    cdef unsigned int reads_rev_nodel = 0
-    cdef unsigned int reads_fwd_nodel = 0
-    cdef unsigned int reads_pp_nodel = 0
-    cdef unsigned int reads_pp_rev_nodel = 0
-    cdef unsigned int reads_pp_fwd_nodel = 0
+#    cdef int reads_rev = 0
+#    cdef int reads_fwd = 0
+#    cdef int reads_pp = 0
+#    cdef int reads_pp_rev = 0
+#    cdef int reads_pp_fwd = 0
+    cdef int reads_nodel = 0
+    cdef int reads_rev_nodel = 0
+    cdef int reads_fwd_nodel = 0
+    cdef int reads_pp_nodel = 0
+    cdef int reads_pp_rev_nodel = 0
+    cdef int reads_pp_fwd_nodel = 0
 
     # initialise variables
     n = col.n
@@ -1609,13 +1609,13 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
     cdef uint32_t flag
     cdef bint is_proper_pair
     # counting variables
-    cdef unsigned int reads_nodel = 0
-#    cdef unsigned int reads_pp = 0
-    cdef unsigned int reads_pp_nodel = 0
-    cdef unsigned int matches = 0
-    cdef unsigned int matches_pp = 0
-    cdef unsigned int mismatches = 0
-    cdef unsigned int mismatches_pp = 0
+    cdef int reads_nodel = 0
+#    cdef int reads_pp = 0
+    cdef int reads_pp_nodel = 0
+    cdef int matches = 0
+    cdef int matches_pp = 0
+    cdef int mismatches = 0
+    cdef int mismatches_pp = 0
 
     cdef uint64_t baseq
     cdef uint64_t baseq_squared
@@ -1729,29 +1729,29 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
     cdef bint is_reverse
     
     # counting variables
-#    cdef unsigned int reads_fwd = 0
-#    cdef unsigned int reads_rev = 0
-    cdef unsigned int reads_nodel = 0
-    cdef unsigned int reads_fwd_nodel = 0
-    cdef unsigned int reads_rev_nodel = 0
-#    cdef unsigned int reads_pp = 0
-#    cdef unsigned int reads_pp_fwd = 0
-#    cdef unsigned int reads_pp_rev = 0
-    cdef unsigned int reads_pp_nodel = 0
-    cdef unsigned int reads_pp_fwd_nodel = 0
-    cdef unsigned int reads_pp_rev_nodel = 0
-    cdef unsigned int matches = 0
-    cdef unsigned int matches_fwd = 0
-    cdef unsigned int matches_rev = 0
-    cdef unsigned int matches_pp = 0
-    cdef unsigned int matches_pp_fwd = 0
-    cdef unsigned int matches_pp_rev = 0
-    cdef unsigned int mismatches = 0
-    cdef unsigned int mismatches_fwd = 0
-    cdef unsigned int mismatches_rev = 0
-    cdef unsigned int mismatches_pp = 0
-    cdef unsigned int mismatches_pp_fwd = 0
-    cdef unsigned int mismatches_pp_rev = 0
+#    cdef int reads_fwd = 0
+#    cdef int reads_rev = 0
+    cdef int reads_nodel = 0
+    cdef int reads_fwd_nodel = 0
+    cdef int reads_rev_nodel = 0
+#    cdef int reads_pp = 0
+#    cdef int reads_pp_fwd = 0
+#    cdef int reads_pp_rev = 0
+    cdef int reads_pp_nodel = 0
+    cdef int reads_pp_fwd_nodel = 0
+    cdef int reads_pp_rev_nodel = 0
+    cdef int matches = 0
+    cdef int matches_fwd = 0
+    cdef int matches_rev = 0
+    cdef int matches_pp = 0
+    cdef int matches_pp_fwd = 0
+    cdef int matches_pp_rev = 0
+    cdef int mismatches = 0
+    cdef int mismatches_fwd = 0
+    cdef int mismatches_rev = 0
+    cdef int mismatches_pp = 0
+    cdef int mismatches_pp_fwd = 0
+    cdef int mismatches_pp_rev = 0
 
     cdef uint64_t baseq
     cdef uint64_t baseq_squared
@@ -1977,7 +1977,7 @@ from collections import Counter
 
 def stat_coverage_gc(Samfile samfile, Fastafile fafile, 
                      chrom=None, start=None, end=None, one_based=False,
-                     gc_window_length=300, gc_window_offset=150, **kwargs):
+                     window_size=300, window_offset=150, **kwargs):
     cdef Py_ssize_t i # loop index
     cdef char* seq # sequence window
     cdef int gc_count 
@@ -1987,11 +1987,11 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         
         chrom = samfile.getrname(col.tid)
         
-        if col.pos <= gc_window_offset:
+        if col.pos <= window_offset:
             continue # until we get a bit further into the chromosome
         
-        ref_window_start = col.pos - gc_window_offset
-        ref_window_end = ref_window_start + gc_window_length
+        ref_window_start = col.pos - window_offset
+        ref_window_end = ref_window_start + window_size
         ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end)
         
         if len(ref_window) == 0:
@@ -1999,12 +1999,12 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         
         seq = ref_window
         gc_count = 0
-        for i in range(gc_window_length):
+        for i in range(window_size):
             b = seq[i]
             if b == 'g' or b == 'c':
                 gc_count += 1
                 
-        gc_percent = int(round(gc_count * 100. / gc_window_length))
+        gc_percent = int(round(gc_count * 100. / window_size))
 
         rec = construct_rec_coverage(samfile, col, one_based)
         rec['gc'] = gc_percent
@@ -2021,11 +2021,15 @@ def write_coverage_gc(*args, **kwargs):
 ####################################
 
 
-def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, 
+                            chrom=None, start=None, end=None, one_based=False, 
+                            window_size=300, window_offset=150, **kwargs):
     start, end = normalise_coords(start, end, one_based)
     
     # first need to load the coverage data into an array, to calculate the median
-    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
+    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
+                            one_based=one_based, window_size=window_size,
+                            window_offset=window_offset)
     it = ((rec['reads_all'], rec['gc']) for rec in recs)
     a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
     dp_mean = np.mean(a.dp)
@@ -2043,7 +2047,9 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, chrom=None, start
             dp_percentiles_bygc[gc] = [np.percentile(b, q) for q in range(101)]
     
     # second pass
-    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
+    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
+                            one_based=one_based, window_size=window_size,
+                            window_offset=window_offset)
     for rec in recs:
         dp = rec['reads_all']
         gc = rec['gc']
@@ -2074,7 +2080,88 @@ def write_coverage_normed_gc(*args, **kwargs):
                   'dp_percentile_gc')
     write_stats(stat_coverage_normed_gc, fieldnames, *args, **kwargs)
     
+
+###################
+# BINNED COVERAGE #
+###################
+
+
+from itertools import chain
+
+
+def stat_coverage_binned(Samfile samfile, Fastafile fastafile, 
+                         chrom=None, start=None, end=None, one_based=False,
+                         window_size=300, window_offset=150, **kwargs):
+    if chrom is None:
+        it = chain(*[_iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in sorted(samfile.references)])
+    else:
+        it = _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
+    return it
         
+        
+def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, 
+                          chrom, start, end, one_based, 
+                          int window_size, int window_offset):
+    assert chrom is not None, 'unexpected error: chromosome is None'
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    cdef int reads_all, reads_pp
+    cdef bam1_t * b
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef IteratorRowRegion it
+    cdef Py_ssize_t i # loop index
+    cdef char* seq # sequence window
+    cdef int gc_count 
+    start, end = normalise_coords(start, end, one_based)
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = 0
+    # start iterating over reads
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            if b.core.pos > bin_end: # end of bin, yield record
+                # determine %GC
+                ref_window = fastafile.fetch(chrom, bin_start, bin_end)
+                if len(ref_window) == 0:
+                    raise StopIteration # because we've hit the end of the chromosome
+                seq = ref_window
+                gc_count = 0
+                for i in range(len(ref_window)):
+                    if seq[i] == 'g' or seq[i] == 'c':
+                        gc_count += 1
+                gc_percent = int(round(gc_count * 100. / len(ref_window)))
+                # yield record for bin
+                pos = bin_start + window_offset
+                if one_based:
+                    pos += 1
+                rec = {'chrom': chrom, 'pos': pos, 
+                       'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+                yield rec
+                # start new bin
+                bin_start = bin_end
+                bin_end = bin_start + window_size
+                reads_all = reads_pp = 0
+            # increment counters
+            reads_all += 1
+            flag = b.core.flag
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                reads_pp += 1
+        else:
+            raise StopIteration
+        
+    
+def write_coverage_binned(*args, **kwargs):
+    fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
+    write_stats(stat_coverage_binned, fieldnames, *args, **kwargs)
+    
+
 #####################
 # UTILITY FUNCTIONS #
 #####################  
@@ -2152,10 +2239,31 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
-cdef inline object rootmean(uint64_t sqsum, unsigned int count):
+cdef inline object rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum * 1. / count)))
     else:
         return 'NA'
+    
+    
+# SANDBOX
+
+
+def count_reads(Samfile samfile, chrom=None, start=None, end=None):
+    cdef IteratorRowRegion it
+    cdef int n = 0
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            n += 1
+        else:
+            break
+    return n
+    
+    
+    
+    
     
     
