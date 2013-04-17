@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.7-SNAPSHOT'
+__version__ = '0.6.1'
 
 
 import sys
@@ -2204,12 +2204,14 @@ from collections import Counter
 
 def stat_coverage_gc(Samfile samfile, Fastafile fafile, 
                      chrom=None, start=None, end=None, one_based=False,
-                     window_size=300, window_offset=150, **kwargs):
+                     window_size=300, window_offset=None, **kwargs):
     cdef Py_ssize_t i # loop index
     cdef char* seq # sequence window
     cdef int gc_count 
-    
     start, end = normalise_coords(start, end, one_based)
+    if window_offset is None:
+        window_offset = window_size / 2
+        
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         
         chrom = samfile.getrname(col.tid)
@@ -2260,8 +2262,10 @@ def load_coverage_gc(*args, **kwargs):
 
 def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, 
                             chrom=None, start=None, end=None, one_based=False, 
-                            window_size=300, window_offset=150, **kwargs):
+                            window_size=300, window_offset=None, **kwargs):
     start, end = normalise_coords(start, end, one_based)
+    if window_offset is None:
+        window_offset = window_size / 2
     
     # first need to load the coverage data into an array, to calculate the median
     recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
@@ -2343,7 +2347,9 @@ from itertools import chain
 
 def stat_coverage_binned(Samfile samfile, Fastafile fastafile, 
                          chrom=None, start=None, end=None, one_based=False,
-                         window_size=300, window_offset=150, **kwargs):
+                         window_size=300, window_offset=None, **kwargs):
+    if window_offset is None:
+        window_offset = window_size / 2
     if chrom is None:
         it = chain(*[_iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
                      for chrom in sorted(samfile.references)])
@@ -2431,7 +2437,9 @@ def load_coverage_binned(*args, **kwargs):
 
 def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile, 
                          chrom=None, start=None, end=None, one_based=False,
-                         window_size=300, window_offset=150, **kwargs):
+                         window_size=300, window_offset=None, **kwargs):
+    if window_offset is None:
+        window_offset = window_size / 2
     if chrom is None:
         it = chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
                      for chrom in sorted(samfile.references)])
