@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.5'
+__version__ = '0.6'
 
 
 import sys
@@ -104,8 +104,19 @@ def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=F
         
         
 def write_coverage(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'reads_all', 'reads_pp')
-    write_stats(stat_coverage, fieldnames, *args, **kwargs)
+    try:
+        fields = kwargs['fields']
+    except:
+        fields = ('chrom', 'pos', 'reads_all', 'reads_pp')
+    write_stats(stat_coverage, fields, *args, **kwargs)
+    
+    
+def load_coverage(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'),
+                     ('reads_pp', 'i4')]
+    return load_stats(stat_coverage, default_dtype, *args, **kwargs)
     
     
 ################################
@@ -177,6 +188,19 @@ def write_coverage_strand(*args, **kwargs):
                   'reads_all', 'reads_fwd', 'reads_rev', 
                   'reads_pp', 'reads_pp_fwd', 'reads_pp_rev')
     write_stats(stat_coverage_strand, fieldnames, *args, **kwargs)
+
+
+def load_coverage_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'),
+                     ('reads_fwd', 'i4'),
+                     ('reads_rev', 'i4'),
+                     ('reads_pp', 'i4'),
+                     ('reads_pp_fwd', 'i4'),
+                     ('reads_pp_rev', 'i4'),
+                     ]
+    return load_stats(stat_coverage_strand, default_dtype, *args, **kwargs)
     
     
 ################################
@@ -270,6 +294,21 @@ def write_coverage_ext(*args, **kwargs):
                   'reads_softclipped',
                   'reads_duplicate')
     write_stats(stat_coverage_ext, fieldnames, *args, **kwargs)
+
+
+def load_coverage_ext(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), 
+                     ('reads_pp', 'i4'), 
+                     ('reads_mate_unmapped', 'i4'), 
+                     ('reads_mate_other_chr', 'i4'),
+                     ('reads_mate_same_strand', 'i4'),
+                     ('reads_faceaway', 'i4'), 
+                     ('reads_softclipped', 'i4'),
+                     ('reads_duplicate', 'i4')
+                     ]
+    return load_stats(stat_coverage_ext, default_dtype, *args, **kwargs)
     
     
 ##########################################
@@ -447,6 +486,37 @@ def write_coverage_ext_strand(*args, **kwargs):
     write_stats(stat_coverage_ext_strand, fieldnames, *args, **kwargs)
 
 
+def load_coverage_ext_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'),
+                     ('reads_fwd', 'i4'),
+                     ('reads_rev', 'i4'),
+                     ('reads_pp', 'i4'),
+                     ('reads_pp_fwd', 'i4'),
+                     ('reads_pp_rev', 'i4'),
+                     ('reads_mate_unmapped', 'i4'), 
+                     ('reads_mate_unmapped_fwd', 'i4'), 
+                     ('reads_mate_unmapped_rev', 'i4'), 
+                     ('reads_mate_other_chr', 'i4'),
+                     ('reads_mate_other_chr_fwd', 'i4'),
+                     ('reads_mate_other_chr_rev', 'i4'),
+                     ('reads_mate_same_strand', 'i4'),
+                     ('reads_mate_same_strand_fwd', 'i4'),
+                     ('reads_mate_same_strand_rev', 'i4'),
+                     ('reads_faceaway', 'i4'), 
+                     ('reads_faceaway_fwd', 'i4'), 
+                     ('reads_faceaway_rev', 'i4'), 
+                     ('reads_softclipped', 'i4'),
+                     ('reads_softclipped_fwd', 'i4'),
+                     ('reads_softclipped_rev', 'i4'),
+                     ('reads_duplicate', 'i4'),
+                     ('reads_duplicate_fwd', 'i4'),
+                     ('reads_duplicate_rev', 'i4'),
+                    ]
+    return load_stats(stat_coverage_ext_strand, default_dtype, *args, **kwargs)
+    
+    
 ########################
 # VARIATION STATISTICS #
 ########################
@@ -580,6 +650,34 @@ def write_variation(*args, **kwargs):
                   'A', 'A_pp', 'C', 'C_pp', 'T', 'T_pp', 'G', 'G_pp', 'N', 'N_pp')
     write_stats(stat_variation, fieldnames, *args, **kwargs)
     
+    
+def load_variation(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('ref', 'a1'), 
+                     ('reads_all', 'i4'), 
+                     ('reads_pp', 'i4'),
+                     ('matches', 'i4'), 
+                     ('matches_pp', 'i4'),
+                     ('mismatches', 'i4'), 
+                     ('mismatches_pp', 'i4'),
+                     ('deletions', 'i4'), 
+                     ('deletions_pp', 'i4'),
+                     ('insertions', 'i4'), 
+                     ('insertions_pp', 'i4'),
+                     ('A', 'i4'), 
+                     ('A_pp', 'i4'), 
+                     ('C', 'i4'), 
+                     ('C_pp', 'i4'), 
+                     ('T', 'i4'), 
+                     ('T_pp', 'i4'), 
+                     ('G', 'i4'), 
+                     ('G_pp', 'i4'), 
+                     ('N', 'i4'), 
+                     ('N_pp', 'i4')
+                    ]
+    return load_stats(stat_variation, default_dtype, *args, **kwargs)
+
     
 #################################
 # STRANDED VARIATION STATISTICS #
@@ -716,6 +814,29 @@ def write_variation_strand(*args, **kwargs):
     write_stats(stat_variation_strand, fieldnames, *args, **kwargs)
     
     
+def load_variation_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('ref', 'a1'), 
+                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
+                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'),
+                     ('matches', 'i4'), ('matches_fwd', 'i4'), ('matches_rev', 'i4'), 
+                     ('matches_pp', 'i4'), ('matches_pp_fwd', 'i4'), ('matches_pp_rev', 'i4'),
+                     ('mismatches', 'i4'), ('mismatches_fwd', 'i4'), ('mismatches_rev', 'i4'), 
+                     ('mismatches_pp', 'i4'), ('mismatches_pp_fwd', 'i4'), ('mismatches_pp_rev', 'i4'),
+                     ('deletions', 'i4'), ('deletions_fwd', 'i4'), ('deletions_rev', 'i4'), 
+                     ('deletions_pp', 'i4'), ('deletions_pp_fwd', 'i4'), ('deletions_pp_rev', 'i4'),
+                     ('insertions', 'i4'), ('insertions_fwd', 'i4'), ('insertions_rev', 'i4'), 
+                     ('insertions_pp', 'i4'), ('insertions_pp_fwd', 'i4'), ('insertions_pp_rev', 'i4'),
+                     ('A', 'i4'), ('A_fwd', 'i4'), ('A_rev', 'i4'), ('A_pp', 'i4'), ('A_pp_fwd', 'i4'), ('A_pp_rev', 'i4'),
+                     ('C', 'i4'), ('C_fwd', 'i4'), ('C_rev', 'i4'), ('C_pp', 'i4'), ('C_pp_fwd', 'i4'), ('C_pp_rev', 'i4'),
+                     ('T', 'i4'), ('T_fwd', 'i4'), ('T_rev', 'i4'), ('T_pp', 'i4'), ('T_pp_fwd', 'i4'), ('T_pp_rev', 'i4'),
+                     ('G', 'i4'), ('G_fwd', 'i4'), ('G_rev', 'i4'), ('G_pp', 'i4'), ('G_pp_fwd', 'i4'), ('G_pp_rev', 'i4'),
+                     ('N', 'i4'), ('N_fwd', 'i4'), ('N_rev', 'i4'), ('N_pp', 'i4'), ('N_pp_fwd', 'i4'), ('N_pp_rev', 'i4')
+                    ]
+    return load_stats(stat_variation_strand, default_dtype, *args, **kwargs)
+    
+
 ##########################
 # INSERT SIZE STATISTICS #
 ##########################
@@ -849,6 +970,16 @@ def write_tlen(*args, **kwargs):
                   'rms_tlen', 'rms_tlen_pp',
                   'std_tlen', 'std_tlen_pp')
     write_stats(stat_tlen, fieldnames, *args, **kwargs)
+    
+
+def load_tlen(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('mean_tlen', 'f4'), ('mean_tlen_pp', 'f4'),
+                     ('rms_tlen', 'f4'), ('rms_tlen_pp', 'f4'),
+                     ('std_tlen', 'f4'), ('std_tlen_pp', 'f4')
+                    ]
+    return load_stats(stat_tlen, default_dtype, *args, **kwargs)
     
     
 ####################################
@@ -1111,7 +1242,20 @@ def write_tlen_strand(*args, **kwargs):
                   'std_tlen', 'std_tlen_fwd', 'std_tlen_rev', 
                   'std_tlen_pp', 'std_tlen_pp_fwd', 'std_tlen_pp_rev')
     write_stats(stat_tlen_strand, fieldnames, *args, **kwargs)
-    
+
+
+def load_tlen_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('mean_tlen', 'f4'), ('mean_tlen_fwd', 'f4'), ('mean_tlen_rev', 'f4'), 
+                     ('mean_tlen_pp', 'f4'), ('mean_tlen_pp_fwd', 'f4'), ('mean_tlen_pp_rev', 'f4'),
+                     ('rms_tlen', 'f4'), ('rms_tlen_fwd', 'f4'), ('rms_tlen_rev', 'f4'), 
+                     ('rms_tlen_pp', 'f4'), ('rms_tlen_pp_fwd', 'f4'), ('rms_tlen_pp_rev', 'f4'),
+                     ('std_tlen', 'f4'), ('std_tlen_fwd', 'f4'), ('std_tlen_rev', 'f4'), 
+                     ('std_tlen_pp', 'f4'), ('std_tlen_pp_fwd', 'f4'), ('std_tlen_pp_rev', 'f4')
+                    ]
+    return load_stats(stat_tlen_strand, default_dtype, *args, **kwargs)
+        
     
 ##############################
 # MAPPING QUALITY STATISTICS #
@@ -1202,6 +1346,17 @@ def write_mapq(*args, **kwargs):
                   'max_mapq', 'max_mapq_pp')
     write_stats(stat_mapq, fieldnames, *args, **kwargs)
     
+    
+def load_mapq(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), ('reads_pp', 'i4'),
+                     ('reads_mapq0', 'i4'), ('reads_mapq0_pp', 'i4'),
+                     ('rms_mapq', 'f4'), ('rms_mapq_pp', 'f4'),
+                     ('max_mapq', 'i4'), ('max_mapq_pp', 'i4')
+                    ]
+    return load_stats(stat_mapq, default_dtype, *args, **kwargs)
+        
     
 ########################################
 # MAPPING QUALITY STATISTICS BY STRAND #
@@ -1387,6 +1542,21 @@ def write_mapq_strand(*args, **kwargs):
     write_stats(stat_mapq_strand, fieldnames, *args, **kwargs)
     
     
+def load_mapq_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
+                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
+                     ('reads_mapq0', 'i4'), ('reads_mapq0_fwd', 'i4'), ('reads_mapq0_rev', 'i4'), 
+                     ('reads_mapq0_pp', 'i4'), ('reads_mapq0_pp_fwd', 'i4'), ('reads_mapq0_pp_rev', 'i4'), 
+                     ('rms_mapq', 'f4'), ('rms_mapq_fwd', 'f4'), ('rms_mapq_rev', 'f4'), 
+                     ('rms_mapq_pp', 'f4'), ('rms_mapq_pp_fwd', 'f4'), ('rms_mapq_pp_rev', 'f4'), 
+                     ('max_mapq', 'i4'), ('max_mapq_fwd', 'i4'), ('max_mapq_rev', 'i4'), 
+                     ('max_mapq_pp', 'i4'), ('max_mapq_pp_fwd', 'i4'), ('max_mapq_pp_rev', 'i4'), 
+                    ]
+    return load_stats(stat_mapq_strand, default_dtype, *args, **kwargs)
+        
+    
 ###########################
 # BASE QUALITY STATISTICS #
 ###########################
@@ -1462,6 +1632,15 @@ def write_baseq(*args, **kwargs):
                   )
     write_stats(stat_baseq, fieldnames, *args, **kwargs)
     
+    
+def load_baseq(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('rms_baseq', 'f4'), 
+                     ('rms_baseq_pp', 'f4'),
+                    ]
+    return load_stats(stat_baseq, default_dtype, *args, **kwargs)
+        
     
 #####################################
 # BASE QUALITY STATISTICS BY STRAND #
@@ -1592,6 +1771,15 @@ def write_baseq_strand(*args, **kwargs):
     write_stats(stat_baseq_strand, fieldnames, *args, **kwargs)
     
     
+def load_baseq_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('rms_baseq', 'f4'), ('rms_baseq_fwd', 'f4'), ('rms_baseq_rev', 'f4'), 
+                     ('rms_baseq_pp', 'f4'), ('rms_baseq_pp_fwd', 'f4'), ('rms_baseq_pp_rev', 'f4'), 
+                    ]
+    return load_stats(stat_baseq_strand, default_dtype, *args, **kwargs)
+        
+    
 ####################################
 # EXTENDED BASE QUALITY STATISTICS #
 ####################################
@@ -1699,7 +1887,8 @@ def stat_baseq_ext(Samfile samfile, Fastafile fafile,
         
         
 def write_baseq_ext(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'ref', 
+    fieldnames = ('chrom', 'pos', 
+                  'ref', 
 #                  'reads_all', 'reads_pp',
 #                  'matches', 'matches_pp',
 #                  'mismatches', 'mismatches_pp',
@@ -1709,6 +1898,17 @@ def write_baseq_ext(*args, **kwargs):
                   )
     write_stats(stat_baseq_ext, fieldnames, *args, **kwargs)
     
+    
+def load_baseq_ext(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('ref', 'a1'), 
+                     ('rms_baseq', 'f4'), ('rms_baseq_pp', 'f4'),
+                     ('rms_baseq_matches', 'f4'), ('rms_baseq_matches_pp', 'f4'),
+                     ('rms_baseq_mismatches', 'f4'), ('rms_baseq_mismatches_pp', 'f4'),
+                    ]
+    return load_stats(stat_baseq_ext, default_dtype, *args, **kwargs)
+        
     
 ##############################################
 # EXTENDED BASE QUALITY STATISTICS BY STRAND #
@@ -1926,6 +2126,20 @@ def write_baseq_ext_strand(*args, **kwargs):
     write_stats(stat_baseq_ext_strand, fieldnames, *args, **kwargs)
     
     
+def load_baseq_ext_strand(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('ref', 'a1'), 
+                     ('rms_baseq', 'f4'), ('rms_baseq_fwd', 'f4'), ('rms_baseq_rev', 'f4'), 
+                     ('rms_baseq_pp', 'f4'), ('rms_baseq_pp_fwd', 'f4'), ('rms_baseq_pp_rev', 'f4'),
+                     ('rms_baseq_matches', 'f4'), ('rms_baseq_matches_fwd', 'f4'), ('rms_baseq_matches_rev', 'f4'), 
+                     ('rms_baseq_matches_pp', 'f4'), ('rms_baseq_matches_pp_fwd', 'f4'), ('rms_baseq_matches_pp_rev', 'f4'),
+                     ('rms_baseq_mismatches', 'f4'), ('rms_baseq_mismatches_fwd', 'f4'), ('rms_baseq_mismatches_rev', 'f4'), 
+                     ('rms_baseq_mismatches_pp', 'f4'), ('rms_baseq_mismatches_pp_fwd', 'f4'), ('rms_baseq_mismatches_pp_rev', 'f4'),
+                    ]
+    return load_stats(stat_baseq_ext_strand, default_dtype, *args, **kwargs)
+        
+    
 ##############################
 # NORMED COVERAGE STATISTICS #
 ##############################
@@ -1960,12 +2174,25 @@ def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_
         
         
 def write_coverage_normed(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'reads_all', 
+    fieldnames = ('chrom', 'pos', 
+                  'reads_all', 
                   'dp_normed_median', 
                   'dp_normed_mean',
-                  'dp_percentile')
+                  'dp_percentile'
+                  )
     write_stats(stat_coverage_normed, fieldnames, *args, **kwargs)
     
+    
+def load_coverage_normed(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), 
+                     ('dp_normed_median', 'f4'), 
+                     ('dp_normed_mean', 'f4'),
+                     ('dp_percentile', 'u1')
+                    ]
+    return load_stats(stat_coverage_normed, default_dtype, *args, **kwargs)
+        
     
 #################################################
 # BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
@@ -2016,6 +2243,16 @@ def write_coverage_gc(*args, **kwargs):
     write_stats(stat_coverage_gc, fieldnames, *args, **kwargs)
     
 
+def load_coverage_gc(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('gc', 'u1'),
+                     ('reads_all', 'i4'), 
+                     ('reads_pp', 'i4'), 
+                    ]
+    return load_stats(stat_coverage_gc, default_dtype, *args, **kwargs)
+        
+    
 ####################################
 # COVERAGE STATISTICS NORMED BY GC #
 ####################################
@@ -2081,6 +2318,21 @@ def write_coverage_normed_gc(*args, **kwargs):
     write_stats(stat_coverage_normed_gc, fieldnames, *args, **kwargs)
     
 
+def load_coverage_normed_gc(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('gc', 'u1'),
+                      ('reads_all', 'i4'), #('reads_pp', 'i4'),
+                      ('dp_normed_median', 'f4'), 
+                      ('dp_normed_mean', 'f4'),
+                      ('dp_percentile', 'u1'),
+                      ('dp_normed_median_gc', 'f4'),
+                      ('dp_normed_mean_gc', 'f4'),
+                      ('dp_percentile_gc', 'u1')
+                    ]
+    return load_stats(stat_coverage_normed_gc, default_dtype, *args, **kwargs)
+        
+    
 ###################
 # BINNED COVERAGE #
 ###################
@@ -2162,6 +2414,16 @@ def write_coverage_binned(*args, **kwargs):
     write_stats(stat_coverage_binned, fieldnames, *args, **kwargs)
     
 
+def load_coverage_binned(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('gc', 'u1'),
+                     ('reads_all', 'i4'), 
+                     ('reads_pp', 'i4'),
+                    ]
+    return load_stats(stat_coverage_binned, default_dtype, *args, **kwargs)
+        
+    
 ############################################
 # BINNED COVERAGE WITH EXTENDED PROPERTIES #
 ############################################
@@ -2276,6 +2538,22 @@ def write_coverage_ext_binned(*args, **kwargs):
     write_stats(stat_coverage_ext_binned, fieldnames, *args, **kwargs)
     
 
+def load_coverage_ext_binned(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('gc', 'u1'),
+                     ('reads_all', 'i4'), 
+                     ('reads_pp', 'i4'),
+                     ('reads_mate_unmapped', 'i4'), 
+                     ('reads_mate_other_chr', 'i4'),
+                     ('reads_mate_same_strand', 'i4'),
+                     ('reads_faceaway', 'i4'), 
+                     ('reads_softclipped', 'i4'),
+                     ('reads_duplicate', 'i4')
+                    ]
+    return load_stats(stat_coverage_ext_binned, default_dtype, *args, **kwargs)
+        
+    
 #####################
 # UTILITY FUNCTIONS #
 #####################  
@@ -2326,6 +2604,37 @@ def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
         print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' % (counter, elapsed_all, counter/elapsed_all)
     
     
+from operator import itemgetter
+
+
+def flatten(recs, fields):
+    getter = itemgetter(*fields)
+    rows = (getter(rec) for rec in recs)
+    return rows
+
+
+def load_stats(statfun, default_dtype, *args, **kwargs):
+    try:
+        fields = kwargs['fields']
+        del kwargs['fields']
+    except:
+        fields = [t[0] for t in default_dtype]
+    try:
+        dtype_overrides = kwargs['dtype'] # expect dict
+        del kwargs['dtype']
+        dtype = dict(default_dtype)
+        for k in dtype_overrides:
+            dtype[k] = dtype_overrides[k]
+    except:
+        dtype = dict(default_dtype)
+    # trim dtype to selected fields
+    dtype = [(f, dtype[f]) for f in fields]
+    recs = statfun(*args, **kwargs)
+    rows = flatten(recs, fields)
+    a = np.fromiter(rows, dtype=dtype)
+    return a.view(np.recarray)
+    
+                
 cdef inline bint is_softclipped(bam1_t * aln):
     cigar_p = bam1_cigar(aln);
     for k in range(aln.core.n_cigar):

@@ -42,8 +42,8 @@ From the command line:
 $ pysamstats --help
 Usage: pysamstats [options] FILE
 
-Calculate statistics per genome position based on pileups from a SAM or BAM
-file and print them to stdout.
+Calculate statistics against genome positions based on sequence alignments
+from a SAM or BAM file and print them to stdout.
 
 Options:
   -h, --help            show this help message and exit
@@ -52,7 +52,7 @@ Options:
                         coverage_normed, coverage_gc, coverage_normed_gc,
                         variation, variation_strand, tlen, tlen_strand, mapq,
                         mapq_strand, baseq, baseq_strand, baseq_ext,
-                        baseq_ext_strand
+                        baseq_ext_strand, coverage_binned, coverage_ext_binned
   -c CHROMOSOME, --chromosome=CHROMOSOME
                         chromosome name
   -s START, --start=START
@@ -63,11 +63,11 @@ Options:
   -f FASTA, --fasta=FASTA
                         reference sequence file, only required for some
                         statistics
-  --gc-window-length=N  size of window to use for %GC calculations [300]
-  --gc-window-offset=N  window offset to use for deciding which genome
-                        position to report %GC calculations against [150]
   -o, --omit-header     omit header row from output
   -p N, --progress=N    report progress every N rows
+  --window-size=N       size of window for binned statistics [300]
+  --window-offset=N     window offset to use for deciding which genome
+                        position to report binned statistics against [150]
 
 Supported statistics types:
 
@@ -94,11 +94,15 @@ Supported statistics types:
     * baseq_ext           - extended base quality statistics, including qualities
                             of bases matching and mismatching reference
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+    * coverage_binned     - as coverage but binned
+    * coverage_ext_binned - as coverage_ext but binned
     
 Examples:
 
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
+
+Version: 0.6 (pysam 0.7.4)
 ```
 
 From Python:
@@ -112,6 +116,19 @@ for rec in pysamstats.stat_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end
     print rec['chrom'], rec['pos'], rec['reads_all'], rec['reads_pp']
     ...
 
+```
+
+For convenience, functions are provided for loading data directly into numpy arrays, e.g.:
+
+```python
+import pysam
+import pysamstats
+import matplotlib.pyplot as plt
+
+mybam = pysam.Samfile('/path/to/your/bamfile.bam')
+a = pysamstats.load_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end=20000)
+plt.plot(a.pos, a.reads_all)
+plt.show()
 ```
 
 Field Definitions
