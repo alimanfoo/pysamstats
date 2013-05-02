@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.7-SNAPSHOT'
+__version__ = '0.6.3'
 
 
 import sys
@@ -2385,7 +2385,7 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
         if it.retval > 0:
             if b.core.pos > bin_end: # end of bin, yield record
                 # determine %GC
-                ref_window = fastafile.fetch(chrom, bin_start, bin_end)
+                ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
                 if len(ref_window) == 0:
                     raise StopIteration # because we've hit the end of the chromosome
                 seq = ref_window
@@ -2480,7 +2480,7 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
         if it.retval > 0:
             if b.core.pos > bin_end: # end of bin, yield record
                 # determine %GC
-                ref_window = fastafile.fetch(chrom, bin_start, bin_end)
+                ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
                 if len(ref_window) == 0:
                     raise StopIteration # because we've hit the end of the chromosome
                 seq = ref_window

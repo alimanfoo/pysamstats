@@ -883,7 +883,7 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
         if aln.pos > bin_end: # end of bin
-            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end))
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
             gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
             pos = bin_start + window_offset
             if one_based:
@@ -901,6 +901,10 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
         
 def test_stat_coverage_binned():
     _test_withrefseq(pysamstats.stat_coverage_binned, stat_coverage_binned_refimpl)
+
+
+def test_stat_coverage_binned_uppercase_fasta():
+    _test_withrefseq(pysamstats.stat_coverage_binned, stat_coverage_binned_refimpl, fasta_fn='fixture/ref.upper.fa')
 
 
 def stat_coverage_ext_binned_refimpl(samfile, fastafile, 
@@ -926,7 +930,7 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
         if aln.pos > bin_end: # end of bin
-            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end))
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
             gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
             pos = bin_start + window_offset
             if one_based:
@@ -966,6 +970,10 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
         
 def test_stat_coverage_ext_binned():
     _test_withrefseq(pysamstats.stat_coverage_ext_binned, stat_coverage_ext_binned_refimpl)
+
+
+def test_stat_coverage_ext_binned_uppercase_fasta():
+    _test_withrefseq(pysamstats.stat_coverage_ext_binned, stat_coverage_ext_binned_refimpl, fasta_fn='fixture/ref.upper.fa')
 
 
 
