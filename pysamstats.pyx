@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.7-SNAPSHOT'
+__version__ = '0.6.1'
 
 
 import sys
@@ -2221,7 +2221,7 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         
         ref_window_start = col.pos - window_offset
         ref_window_end = ref_window_start + window_size
-        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end)
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
         
         if len(ref_window) == 0:
             break # because we've hit the end of the chromosome

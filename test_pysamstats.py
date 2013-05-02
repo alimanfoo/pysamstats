@@ -49,13 +49,13 @@ def _test(impl, refimpl):
 from itertools import izip_longest
 
 
-def _test_withrefseq(impl, refimpl):
+def _test_withrefseq(impl, refimpl, bam_fn='fixture/test.bam', fasta_fn='fixture/ref.fa'):
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
               'end': 10000,
               'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     for e, a in izip_longest(expected, actual, fillvalue=None):
         assert e is not None, ('expected value is None', e, a)
         assert a is not None, ('actual value is None', e, a)
@@ -789,7 +789,7 @@ def stat_coverage_gc_refimpl(samfile, fafile,
         
         ref_window_start = col.pos - window_offset
         ref_window_end = ref_window_start + window_size
-        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end)
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
         
         if len(ref_window) == 0:
             break # because we've hit the end of the chromosome
@@ -805,6 +805,10 @@ def stat_coverage_gc_refimpl(samfile, fafile,
 
 def test_stat_coverage_gc():
     _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
+
+
+def test_stat_coverage_gc_uppercase_fasta():
+    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl, fasta_fn='fixture/ref.upper.fa')
 
 
 def stat_coverage_normed_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
