@@ -1352,7 +1352,7 @@ def load_mapq(*args, **kwargs):
                      ('pos', 'i4'),
                      ('reads_all', 'i4'), ('reads_pp', 'i4'),
                      ('reads_mapq0', 'i4'), ('reads_mapq0_pp', 'i4'),
-                     ('rms_mapq', 'f4'), ('rms_mapq_pp', 'f4'),
+                     ('rms_mapq', 'i4'), ('rms_mapq_pp', 'i4'),
                      ('max_mapq', 'i4'), ('max_mapq_pp', 'i4')
                     ]
     return load_stats(stat_mapq, default_dtype, *args, **kwargs)
@@ -1549,8 +1549,8 @@ def load_mapq_strand(*args, **kwargs):
                      ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
                      ('reads_mapq0', 'i4'), ('reads_mapq0_fwd', 'i4'), ('reads_mapq0_rev', 'i4'), 
                      ('reads_mapq0_pp', 'i4'), ('reads_mapq0_pp_fwd', 'i4'), ('reads_mapq0_pp_rev', 'i4'), 
-                     ('rms_mapq', 'f4'), ('rms_mapq_fwd', 'f4'), ('rms_mapq_rev', 'f4'), 
-                     ('rms_mapq_pp', 'f4'), ('rms_mapq_pp_fwd', 'f4'), ('rms_mapq_pp_rev', 'f4'), 
+                     ('rms_mapq', 'i4'), ('rms_mapq_fwd', 'i4'), ('rms_mapq_rev', 'i4'), 
+                     ('rms_mapq_pp', 'i4'), ('rms_mapq_pp_fwd', 'i4'), ('rms_mapq_pp_rev', 'i4'), 
                      ('max_mapq', 'i4'), ('max_mapq_fwd', 'i4'), ('max_mapq_rev', 'i4'), 
                      ('max_mapq_pp', 'i4'), ('max_mapq_pp_fwd', 'i4'), ('max_mapq_pp_rev', 'i4'), 
                     ]
@@ -2337,12 +2337,12 @@ def load_coverage_normed_gc(*args, **kwargs):
     return load_stats(stat_coverage_normed_gc, default_dtype, *args, **kwargs)
         
     
+from itertools import chain
+
+
 ###################
 # BINNED COVERAGE #
 ###################
-
-
-from itertools import chain
 
 
 def stat_coverage_binned(Samfile samfile, Fastafile fastafile, 
@@ -2560,6 +2560,91 @@ def load_coverage_ext_binned(*args, **kwargs):
                      ('reads_duplicate', 'i4')
                     ]
     return load_stats(stat_coverage_ext_binned, default_dtype, *args, **kwargs)
+        
+    
+###############
+# BINNED MAPQ #
+###############
+
+
+def stat_mapq_binned(Samfile samfile, 
+                     chrom=None, start=None, end=None, one_based=False,
+                     window_size=300, window_offset=None, **kwargs):
+    if window_offset is None:
+        window_offset = window_size / 2
+    if chrom is None:
+        it = chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in sorted(samfile.references)])
+    else:
+        it = _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+    return it
+        
+        
+def _iter_mapq_binned(Samfile samfile,  
+                          chrom, start, end, one_based, 
+                          int window_size, int window_offset):
+    assert chrom is not None, 'unexpected error: chromosome is None'
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    cdef int reads_all, reads_pp
+    cdef bam1_t * b
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef IteratorRowRegion it
+    cdef Py_ssize_t i # loop index
+    cdef char* seq # sequence window
+    cdef uint64_t mapq
+    cdef uint64_t mapq_squared
+    cdef uint64_t mapq_squared_sum = 0
+    start, end = normalise_coords(start, end, one_based)
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+    reads_all = reads_mapq0 = mapq_squared_sum = 0
+    # start iterating over reads
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            if b.core.pos > bin_end: # end of bin, yield record
+                # yield record for bin
+                pos = bin_start + window_offset
+                if one_based:
+                    pos += 1
+                rec = {'chrom': chrom, 'pos': pos, 
+                       'reads_all': reads_all, 
+                       'reads_mapq0': reads_mapq0,
+                       'rms_mapq': int(round(sqrt(mapq_squared_sum * 1. / reads_all)))}
+                yield rec
+                # start new bin
+                bin_start = bin_end
+                bin_end = bin_start + window_size
+                reads_all = reads_mapq0 = mapq_squared_sum = 0
+            # increment counters
+            reads_all += 1
+            mapq = b.core.qual
+            mapq_squared = mapq**2
+            mapq_squared_sum += mapq_squared
+            if mapq == 0:
+                reads_mapq0 += 1
+        else:
+            raise StopIteration
+        
+    
+def write_mapq_binned(*args, **kwargs):
+    fieldnames = ('chrom', 'pos', 'reads_all', 'reads_mapq0', 'rms_mapq')
+    write_stats(stat_mapq_binned, fieldnames, *args, **kwargs)
+    
+
+def load_mapq_binned(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), 
+                     ('reads_mapq0', 'i4'),
+                     ('rms_mapq', 'i4'),
+                    ]
+    return load_stats(stat_mapq_binned, default_dtype, *args, **kwargs)
         
     
 #####################

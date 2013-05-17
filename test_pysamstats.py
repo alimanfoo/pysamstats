@@ -976,5 +976,49 @@ def test_stat_coverage_ext_binned_uppercase_fasta():
     _test_withrefseq(pysamstats.stat_coverage_ext_binned, stat_coverage_ext_binned_refimpl, fasta_fn='fixture/ref.upper.fa')
 
 
+def stat_mapq_binned_refimpl(samfile,  
+                             chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150):
+    if chrom is None:
+        it = chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in samfile.references])
+    else:
+        it = _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset)   
+    return it   
+        
+        
+def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    if start is None:
+        start = 0
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    reads_all = reads_mapq0 = mapq_square_sum = 0
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        if aln.pos > bin_end: # end of bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 
+                   'reads_all': reads_all, 
+                   'reads_mapq0': reads_mapq0,
+                   'rms_mapq': int(round(sqrt(mapq_square_sum * 1. / reads_all)))}
+            yield rec
+            reads_all = reads_mapq0 = mapq_square_sum = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+        reads_all += 1
+        mapq_square_sum += aln.mapq**2
+        if aln.mapq == 0:
+            reads_mapq0 += 1
+            
+        
+def test_stat_mapq_binned():
+    _test(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
+
+
 
         
