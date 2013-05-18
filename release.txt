@@ -1,16 +1,12 @@
 nosetests
-# remove -SNAPSHOT from pysamstats.pyx
 sed -i -e 's/-SNAPSHOT//' pysamstats.pyx
 version=`grep __version__ pysamstats.pyx | sed -e "s/__version__[ ]=[ ]'\(.*\)'/\1/"`
 echo $version
-# git commit and push
 git commit -a -m v$version
 git push
-# git tag and push
 git tag -a v$version -m v$version
 git push --tags
-# update pypi
-python setup.py sdist upload
+python setup.py register sdist upload
 # increment version and add -SNAPSHOT 
 emacs pysamstats.pyx
 # git commit and push
