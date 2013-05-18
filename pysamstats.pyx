@@ -54,6 +54,8 @@ DEF BAM_CPAD       = 6
 DEF BAM_CEQUAL     = 7
 DEF BAM_CDIFF      = 8
 
+cdef char* CODE2CIGAR= "MIDNSHP=X"
+
 cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 
@@ -2585,13 +2587,11 @@ def _iter_mapq_binned(Samfile samfile,
                           int window_size, int window_offset):
     assert chrom is not None, 'unexpected error: chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    cdef int reads_all, reads_pp
+    cdef int reads_all, reads_mapq0
     cdef bam1_t * b
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef IteratorRowRegion it
-    cdef Py_ssize_t i # loop index
-    cdef char* seq # sequence window
     cdef uint64_t mapq
     cdef uint64_t mapq_squared
     cdef uint64_t mapq_squared_sum = 0
@@ -2645,6 +2645,115 @@ def load_mapq_binned(*args, **kwargs):
                      ('rms_mapq', 'i4'),
                     ]
     return load_stats(stat_mapq_binned, default_dtype, *args, **kwargs)
+        
+    
+################
+# BINNED CIGAR #
+################
+
+
+def stat_cigar_binned(Samfile samfile, 
+                      chrom=None, start=None, end=None, one_based=False,
+                      window_size=300, window_offset=None, **kwargs):
+    if window_offset is None:
+        window_offset = window_size / 2
+    if chrom is None:
+        it = chain(*[_iter_cigar_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in sorted(samfile.references)])
+    else:
+        it = _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+    return it
+        
+        
+def _iter_cigar_binned(Samfile samfile,  
+                       chrom, start, end, one_based, 
+                       int window_size, int window_offset):
+    assert chrom is not None, 'unexpected error: chromosome is None'
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    cdef bam1_t * b
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef IteratorRowRegion it
+    cdef Py_ssize_t i # loop index
+    cdef int reads_all, k, op, l
+    cdef int M, I, D, N, S, H, P, EQ, X
+    reads_all = M = I = D = N = S = H = P = EQ = X = 0
+    start, end = normalise_coords(start, end, one_based)
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+    c = Counter()
+    # start iterating over reads
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            if b.core.pos > bin_end: # end of bin, yield record
+                # yield record for bin
+                pos = bin_start + window_offset
+                if one_based:
+                    pos += 1
+                rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
+                       'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
+                       'bases_all': M + I + S + EQ + X}
+                yield rec
+                # start new bin
+                bin_start = bin_end
+                bin_end = bin_start + window_size
+                reads_all = M = I = D = N = S = H = P = EQ = X = 0
+            # increment counters
+            cigar_p = bam1_cigar(b)
+            cigar = list()
+            for k in range(b.core.n_cigar):
+                op = cigar_p[k] & BAM_CIGAR_MASK
+                l = cigar_p[k] >> BAM_CIGAR_SHIFT
+                cigar.append((op, l))
+                if op == BAM_CMATCH:
+                    M += l
+                elif op == BAM_CINS:
+                    I += l
+                elif op == BAM_CDEL:
+                    D += l
+                elif op == BAM_CREF_SKIP:
+                    N += l
+                elif op == BAM_CSOFT_CLIP:
+                    S += l
+                elif op == BAM_CHARD_CLIP:
+                    H += l
+                elif op == BAM_CPAD:
+                    P += l
+                elif op == BAM_CEQUAL:
+                    EQ += l
+                elif op == BAM_CDIFF:
+                    X += l
+            reads_all += 1
+        else:
+            raise StopIteration
+        
+    
+def write_cigar_binned(*args, **kwargs):
+    fieldnames = ('chrom', 'pos', 'reads_all', 'bases_all', 'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X')
+    write_stats(stat_cigar_binned, fieldnames, *args, **kwargs)
+    
+
+def load_cigar_binned(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'), 
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'), 
+                     ('bases_all', 'i4'), 
+                     ('M', 'i4'), 
+                     ('I', 'i4'), 
+                     ('D', 'i4'), 
+                     ('N', 'i4'), 
+                     ('S', 'i4'), 
+                     ('H', 'i4'), 
+                     ('P', 'i4'), 
+                     ('=', 'i4'), 
+                     ('X', 'i4')
+                    ]
+    return load_stats(stat_cigar_binned, default_dtype, *args, **kwargs)
         
     
 #####################
@@ -2729,12 +2838,25 @@ def load_stats(statfun, default_dtype, *args, **kwargs):
     
                 
 cdef inline bint is_softclipped(bam1_t * aln):
+    cdef int k
     cigar_p = bam1_cigar(aln);
     for k in range(aln.core.n_cigar):
         op = cigar_p[k] & BAM_CIGAR_MASK
         if op == BAM_CSOFT_CLIP:
             return 1
     return 0
+
+
+#cdef inline object cigar_counter(bam1_t * aln):
+#    # TODO optimise here?
+#    cdef int k
+#    cigar = []
+#    cigar_p = bam1_cigar(aln);
+#    for k from 0 <= k < aln.core.n_cigar:
+#        op = cigar_p[k] & BAM_CIGAR_MASK
+#        l = cigar_p[k] >> BAM_CIGAR_SHIFT
+#        cigar.append((op, l))
+#    return Counter(dict(cigar))    
 
 
 cdef inline object get_seq_base(bam1_t *src, uint32_t k):

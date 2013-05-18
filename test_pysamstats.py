@@ -1020,5 +1020,55 @@ def test_stat_mapq_binned():
     _test(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
 
 
+def stat_cigar_binned_refimpl(samfile,  
+                             chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150):
+    if chrom is None:
+        it = chain(*[_iter_cigar_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+                     for chrom in samfile.references])
+    else:
+        it = _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset)   
+    return it   
+        
+        
+CIGAR = 'MIDNSHP=X'
+        
+        
+def _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    if start is None:
+        start = 0
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    c = Counter()
+    reads_all = 0
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        if aln.pos > bin_end: # end of bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
+            for i in range(len(CIGAR)):
+                rec[CIGAR[i]] = c[i]
+            rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
+            yield rec
+            c = Counter()
+            reads_all = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+#        print aln.cigar
+        reads_all += 1
+        if aln.cigar is not None:
+            for op, l in aln.cigar:
+                c[op] += l
+            
+        
+def test_stat_cigar_binned():
+    _test(pysamstats.stat_cigar_binned, stat_cigar_binned_refimpl)
+
+
 
         

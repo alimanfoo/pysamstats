@@ -30,7 +30,9 @@ if __name__ == '__main__':
                    'baseq_ext',
                    'baseq_ext_strand',
                    'coverage_binned',
-                   'coverage_ext_binned')
+                   'coverage_ext_binned',
+                   'mapq_binned',
+                   'cigar_binned')
     stats_types_requiring_fasta = ('variation', 
                                    'variation_strand', 
                                    'baseq_ext', 
@@ -69,6 +71,8 @@ Supported statistics types:
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
     * coverage_binned     - as coverage but binned
     * coverage_ext_binned - as coverage_ext but binned
+    * mapq_binned         - similar to mapq but binned
+    * cigar_binned        - aggregated counts from all cigar strings
     
 Examples:
 
