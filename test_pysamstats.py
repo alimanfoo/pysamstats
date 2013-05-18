@@ -1020,21 +1020,21 @@ def test_stat_mapq_binned():
     _test(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
 
 
-def stat_cigar_binned_refimpl(samfile,  
+def stat_alignment_binned_refimpl(samfile,  
                              chrom=None, start=None, end=None, one_based=False,
                              window_size=300, window_offset=150):
     if chrom is None:
-        it = chain(*[_iter_cigar_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+        it = chain(*[_iter_alignment_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
                      for chrom in samfile.references])
     else:
-        it = _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset)   
+        it = _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset)   
     return it   
         
         
 CIGAR = 'MIDNSHP=X'
         
         
-def _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
+def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     if start is None:
@@ -1053,6 +1053,7 @@ def _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, windo
             rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
             for i in range(len(CIGAR)):
                 rec[CIGAR[i]] = c[i]
+#            rec['NM'] = c['NM']
             rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
             yield rec
             c = Counter()
@@ -1064,10 +1065,14 @@ def _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, windo
         if aln.cigar is not None:
             for op, l in aln.cigar:
                 c[op] += l
+        # add edit distance
+        tags = dict(aln.tags)
+#        if 'NM' in tags:
+#            c['NM'] += tags['NM']
             
         
-def test_stat_cigar_binned():
-    _test(pysamstats.stat_cigar_binned, stat_cigar_binned_refimpl)
+def test_stat_alignment_binned():
+    _test(pysamstats.stat_alignment_binned, stat_alignment_binned_refimpl)
 
 
 

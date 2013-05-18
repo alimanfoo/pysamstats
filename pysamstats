@@ -32,7 +32,7 @@ if __name__ == '__main__':
                    'coverage_binned',
                    'coverage_ext_binned',
                    'mapq_binned',
-                   'cigar_binned')
+                   'alignment_binned')
     stats_types_requiring_fasta = ('variation', 
                                    'variation_strand', 
                                    'baseq_ext', 
@@ -72,7 +72,7 @@ Supported statistics types:
     * coverage_binned     - as coverage but binned
     * coverage_ext_binned - as coverage_ext but binned
     * mapq_binned         - similar to mapq but binned
-    * cigar_binned        - aggregated counts from all cigar strings
+    * alignment_binned    - aggregated counts from cigar strings
     
 Examples:
 

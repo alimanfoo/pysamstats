@@ -2652,20 +2652,20 @@ def load_mapq_binned(*args, **kwargs):
 ################
 
 
-def stat_cigar_binned(Samfile samfile, 
+def stat_alignment_binned(Samfile samfile, 
                       chrom=None, start=None, end=None, one_based=False,
                       window_size=300, window_offset=None, **kwargs):
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_cigar_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
+        it = chain(*[_iter_alignment_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
                      for chrom in sorted(samfile.references)])
     else:
-        it = _iter_cigar_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+        it = _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
     return it
         
         
-def _iter_cigar_binned(Samfile samfile,  
+def _iter_alignment_binned(Samfile samfile,  
                        chrom, start, end, one_based, 
                        int window_size, int window_offset):
     assert chrom is not None, 'unexpected error: chromosome is None'
@@ -2733,12 +2733,12 @@ def _iter_cigar_binned(Samfile samfile,
             raise StopIteration
         
     
-def write_cigar_binned(*args, **kwargs):
+def write_alignment_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'reads_all', 'bases_all', 'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X')
-    write_stats(stat_cigar_binned, fieldnames, *args, **kwargs)
+    write_stats(stat_alignment_binned, fieldnames, *args, **kwargs)
     
 
-def load_cigar_binned(*args, **kwargs):
+def load_alignment_binned(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
                      ('reads_all', 'i4'), 
@@ -2753,7 +2753,7 @@ def load_cigar_binned(*args, **kwargs):
                      ('=', 'i4'), 
                      ('X', 'i4')
                     ]
-    return load_stats(stat_cigar_binned, default_dtype, *args, **kwargs)
+    return load_stats(stat_alignment_binned, default_dtype, *args, **kwargs)
         
     
 #####################
