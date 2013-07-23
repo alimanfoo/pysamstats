@@ -9,6 +9,5 @@ git tag -a v$version -m v$version
 git push --tags
 python setup.py register sdist upload
 # increment version and add -SNAPSHOT 
-emacs pysamstats.pyx
 # git commit and push
 git commit -a -m 'increment version'; git push
