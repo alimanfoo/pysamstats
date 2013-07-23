@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.8'
+__version__ = '0.8.1'
 
 
 import sys
@@ -2899,7 +2899,6 @@ def count_reads(Samfile samfile, chrom=None, start=None, end=None):
         else:
             break
     return n
-    
     
     
     

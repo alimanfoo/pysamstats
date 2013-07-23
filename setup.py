@@ -7,7 +7,7 @@ try:
     import pysam
     from Cython.Distutils import build_ext # Cython should be installed via pysam
 except ImportError:
-    raise Exception('please install pysam first, e.g.: pip install --upgrade pysam pysamstats')
+    raise Exception('please install pysam first, e.g.: pip install --upgrade pysam')
 
 
 try:
@@ -31,20 +31,19 @@ setup(
     author_email='alimanfoo@googlemail.com',
     url='https://github.com/alimanfoo/pysamstats',
     license='MIT Licenses',
-    description='A Python utility for calculating statistics per genome position based on pileups from a SAM or BAM file.',
+    description='A Python utility for calculating statistics against genome position based on sequence alignments from a SAM or BAM file.',
     scripts=['pysamstats'],
-    cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension('pysamstats', 
-                             ['pysamstats.pyx'], 
-                             include_dirs=[np.get_include(), pysam.get_include()],
-                             define_macros=pysam.get_defines()),
-                   ],
+    cmdclass={'build_ext': build_ext},
+    ext_modules=[Extension('pysamstats',
+                           sources=['pysamstats.pyx'],
+                           include_dirs=[np.get_include()] + pysam.get_include(),
+                           define_macros=pysam.get_defines()),
+                 ],
     classifiers=['Intended Audience :: Developers',
                  'License :: OSI Approved :: MIT License',
                  'Programming Language :: Python',
                  'Topic :: Software Development :: Libraries :: Python Modules'
                  ],
-    install_requires=['numpy>=1.6'], # don't include pysam here, no point as required *prior* to running setup.py
 )
 
 

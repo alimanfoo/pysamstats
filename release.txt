@@ -1,7 +1,8 @@
-nosetests
 sed -i -e 's/-SNAPSHOT//' pysamstats.pyx
 version=`grep __version__ pysamstats.pyx | sed -e "s/__version__[ ]=[ ]'\(.*\)'/\1/"`
 echo $version
+python setup.py build_ext --inplace
+nosetests
 git commit -a -m v$version
 git push
 git tag -a v$version -m v$version

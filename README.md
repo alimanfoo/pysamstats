@@ -10,22 +10,20 @@ based on sequence alignments from a SAM or BAM file.
 Installation
 ------------
 
+Building pysamstats depends on [numpy](http://www.numpy.org/), please install
+that first. Then try:
+
 ```
 $ pip install --upgrade pysam pysamstats
 ```
 
-N.B., pysamstats depends on [pysam](http://code.google.com/p/pysam/)
-which needs to be installed *before* attempting to install
-pysamstats. The command above should do it.
+N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
+which needs to be installed before attempting to install pysamstats. The
+command above should do it, but if you have any problems, try installing
+pysam separately first. If you have problems installing pysam, email the
+[pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-Pysamstats also depends on [numpy](http://www.numpy.org/) but this
-*should* be installed automatically if you run the command above.
-
-If you have any problems, try installing pysam and numpy separately
-first.
-
-Alternatively, clone the git repo and build in-place (requires
-cython):
+Alternatively, clone the git repo and build in-place:
 
 ```
 $ git clone git://github.com/alimanfoo/pysamstats.git
@@ -96,6 +94,8 @@ Supported statistics types:
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
     * coverage_binned     - as coverage but binned
     * coverage_ext_binned - as coverage_ext but binned
+    * mapq_binned         - similar to mapq but binned
+    * alignment_binned    - aggregated counts from cigar strings
     
 Examples:
 
