@@ -50,7 +50,8 @@ Options:
                         coverage_normed, coverage_gc, coverage_normed_gc,
                         variation, variation_strand, tlen, tlen_strand, mapq,
                         mapq_strand, baseq, baseq_strand, baseq_ext,
-                        baseq_ext_strand, coverage_binned, coverage_ext_binned
+                        baseq_ext_strand, coverage_binned,
+                        coverage_ext_binned, mapq_binned, alignment_binned
   -c CHROMOSOME, --chromosome=CHROMOSOME
                         chromosome name
   -s START, --start=START
@@ -69,18 +70,18 @@ Options:
 
 Supported statistics types:
 
-    * coverage            - number of reads aligned to each genome position 
+    * coverage            - number of reads aligned to each genome position
                             (total and properly paired)
     * coverage_strand     - as coverage but with forward/reverse strand counts
-    * coverage_ext        - various additional coverage metrics, including 
-                            coverage for reads not properly paired (mate 
+    * coverage_ext        - various additional coverage metrics, including
+                            coverage for reads not properly paired (mate
                             unmapped, mate on other chromosome, ...)
-    * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts 
+    * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts
     * coverage_normed     - depth of coverage normalised by median or mean
     * coverage_gc         - as coverage but also includes a column for %GC
     * coverage_normed_gc  - as coverage_normed but also includes columns for normalisation
-                            by %GC      
-    * variation           - numbers of matches, mismatches, deletions, 
+                            by %GC
+    * variation           - numbers of matches, mismatches, deletions,
                             insertions, etc.
     * variation_strand    - as variation but with forward/reverse strand counts
     * tlen                - insert size statistics
@@ -96,13 +97,13 @@ Supported statistics types:
     * coverage_ext_binned - as coverage_ext but binned
     * mapq_binned         - similar to mapq but binned
     * alignment_binned    - aggregated counts from cigar strings
-    
+
 Examples:
 
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.6 (pysam 0.7.4)
+Version: 0.8.1 (pysam 0.7.4)
 ```
 
 From Python:
@@ -112,6 +113,8 @@ import pysam
 import pysamstats
 
 mybam = pysam.Samfile('/path/to/your/bamfile.bam')
+
+# iterate over statistics, one record at a time
 for rec in pysamstats.stat_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end=20000):
     print rec['chrom'], rec['pos'], rec['reads_all'], rec['reads_pp']
     ...
