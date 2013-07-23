@@ -10,6 +10,12 @@ except ImportError:
     raise Exception('please install pysam first, e.g.: pip install --upgrade pysam pysamstats')
 
 
+try:
+    import numpy as np
+except ImportError:
+    raise Exception('please install numpy first')
+
+
 def get_version(source='pysamstats.pyx'):
     with open(source) as f:
         for line in f:
@@ -30,7 +36,7 @@ setup(
     cmdclass = {'build_ext': build_ext},
     ext_modules = [Extension('pysamstats', 
                              ['pysamstats.pyx'], 
-                             include_dirs=pysam.get_include(),
+                             include_dirs=[np.get_include(), pysam.get_include()],
                              define_macros=pysam.get_defines()),
                    ],
     classifiers=['Intended Audience :: Developers',
