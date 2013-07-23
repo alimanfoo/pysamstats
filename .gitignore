@@ -34,3 +34,5 @@ spike*
 *.prof
 *.c
 MANIFEST
+
+.idea
