@@ -933,18 +933,18 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = int(round(sqrt(tlen_p_squared_sum * 1. / reads_p)))
+        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
-        rms_tlen = std_tlen = mean_tlen = 'NA'
+        rms_tlen = std_tlen = mean_tlen = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum * 1. / reads_pp)))
+        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
-        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
 
     return {'chrom': chrom, 
             'pos': pos, 
@@ -977,9 +977,9 @@ def write_tlen(*args, **kwargs):
 def load_tlen(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
-                     ('mean_tlen', 'f4'), ('mean_tlen_pp', 'f4'),
-                     ('rms_tlen', 'f4'), ('rms_tlen_pp', 'f4'),
-                     ('std_tlen', 'f4'), ('std_tlen_pp', 'f4')
+                     ('mean_tlen', 'i4'), ('mean_tlen_pp', 'i4'),
+                     ('rms_tlen', 'i4'), ('rms_tlen_pp', 'i4'),
+                     ('std_tlen', 'i4'), ('std_tlen_pp', 'i4')
                     ]
     return load_stats(stat_tlen, default_dtype, *args, **kwargs)
     
@@ -1154,46 +1154,46 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = int(round(sqrt(tlen_p_squared_sum * 1. / reads_p)))
+        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
-        rms_tlen = std_tlen = mean_tlen = 'NA'
+        rms_tlen = std_tlen = mean_tlen = 0
     if reads_p_rev > 0:
         mean_tlen_rev = int(round(tlen_p_rev_mean))
-        rms_tlen_rev = int(round(sqrt(tlen_p_rev_squared_sum * 1. / reads_p_rev)))
+        rms_tlen_rev = rootmean(tlen_p_rev_squared_sum, reads_p_rev)
         variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
-        rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 'NA'
+        rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
     if reads_p_fwd > 0:
         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-        rms_tlen_fwd = int(round(sqrt(tlen_p_fwd_squared_sum * 1. / reads_p_fwd)))
+        rms_tlen_fwd = rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
-        rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 'NA'
+        rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = int(round(sqrt(tlen_pp_squared_sum * 1. / reads_pp)))
+        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
-        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 'NA'
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
     if reads_pp_rev > 0:
         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-        rms_tlen_pp_rev = int(round(sqrt(tlen_pp_rev_squared_sum * 1. / reads_pp_rev)))
+        rms_tlen_pp_rev = rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
-        rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 'NA'
+        rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
     if reads_pp_fwd > 0:
         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-        rms_tlen_pp_fwd = int(round(sqrt(tlen_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
+        rms_tlen_pp_fwd = rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
-        rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 'NA'
+        rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
 
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1249,12 +1249,12 @@ def write_tlen_strand(*args, **kwargs):
 def load_tlen_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
-                     ('mean_tlen', 'f4'), ('mean_tlen_fwd', 'f4'), ('mean_tlen_rev', 'f4'), 
-                     ('mean_tlen_pp', 'f4'), ('mean_tlen_pp_fwd', 'f4'), ('mean_tlen_pp_rev', 'f4'),
-                     ('rms_tlen', 'f4'), ('rms_tlen_fwd', 'f4'), ('rms_tlen_rev', 'f4'), 
-                     ('rms_tlen_pp', 'f4'), ('rms_tlen_pp_fwd', 'f4'), ('rms_tlen_pp_rev', 'f4'),
-                     ('std_tlen', 'f4'), ('std_tlen_fwd', 'f4'), ('std_tlen_rev', 'f4'), 
-                     ('std_tlen_pp', 'f4'), ('std_tlen_pp_fwd', 'f4'), ('std_tlen_pp_rev', 'f4')
+                     ('mean_tlen', 'i4'), ('mean_tlen_fwd', 'i4'), ('mean_tlen_rev', 'i4'),
+                     ('mean_tlen_pp', 'i4'), ('mean_tlen_pp_fwd', 'i4'), ('mean_tlen_pp_rev', 'i4'),
+                     ('rms_tlen', 'i4'), ('rms_tlen_fwd', 'i4'), ('rms_tlen_rev', 'i4'),
+                     ('rms_tlen_pp', 'i4'), ('rms_tlen_pp_fwd', 'i4'), ('rms_tlen_pp_rev', 'i4'),
+                     ('std_tlen', 'i4'), ('std_tlen_fwd', 'i4'), ('std_tlen_rev', 'i4'),
+                     ('std_tlen_pp', 'i4'), ('std_tlen_pp_fwd', 'i4'), ('std_tlen_pp_rev', 'i4')
                     ]
     return load_stats(stat_tlen_strand, default_dtype, *args, **kwargs)
         
@@ -1314,13 +1314,13 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
                 reads_mapq0_pp += 1
 
     # construct output variables
-    rms_mapq = int(round(sqrt(mapq_squared_sum * 1. / n)))
+    rms_mapq = rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_pp > 0:
-        rms_mapq_pp = int(round(sqrt(mapq_pp_squared_sum * 1. / reads_pp)))
+        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
-        rms_mapq_pp = max_mapq_pp = 'NA'
+        rms_mapq_pp = max_mapq_pp = 0
         
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1467,33 +1467,33 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
                     reads_mapq0_pp_fwd += 1
 
     # construct output variables
-    rms_mapq = int(round(sqrt(mapq_squared_sum * 1. / n)))
+    rms_mapq = rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_rev > 0:
-        rms_mapq_rev = int(round(sqrt(mapq_rev_squared_sum * 1. / reads_rev)))
+        rms_mapq_rev = rootmean(mapq_rev_squared_sum, reads_rev)
         max_mapq_rev = mapq_rev_max
     else:
-        rms_mapq_rev = max_mapq_rev = 'NA'
+        rms_mapq_rev = max_mapq_rev = 0
     if reads_fwd > 0:
-        rms_mapq_fwd = int(round(sqrt(mapq_fwd_squared_sum * 1. / reads_fwd)))
+        rms_mapq_fwd = rootmean(mapq_fwd_squared_sum, reads_fwd)
         max_mapq_fwd = mapq_fwd_max
     else:
-        rms_mapq_fwd = max_mapq_fwd = 'NA'
+        rms_mapq_fwd = max_mapq_fwd = 0
     if reads_pp > 0:
-        rms_mapq_pp = int(round(sqrt(mapq_pp_squared_sum * 1. / reads_pp)))
+        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
-        rms_mapq_pp = max_mapq_pp = 'NA'
+        rms_mapq_pp = max_mapq_pp = 0
     if reads_pp_fwd > 0:
-        rms_mapq_pp_fwd = int(round(sqrt(mapq_pp_fwd_squared_sum * 1. / reads_pp_fwd)))
+        rms_mapq_pp_fwd = rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
         max_mapq_pp_fwd = mapq_pp_fwd_max
     else:
-        rms_mapq_pp_fwd = max_mapq_pp_fwd = 'NA'
+        rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
     if reads_pp_rev > 0:
-        rms_mapq_pp_rev = int(round(sqrt(mapq_pp_rev_squared_sum * 1. / reads_pp_rev)))
+        rms_mapq_pp_rev = rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
         max_mapq_pp_rev = mapq_pp_rev_max
     else:
-        rms_mapq_pp_rev = max_mapq_pp_rev = 'NA'
+        rms_mapq_pp_rev = max_mapq_pp_rev = 0
         
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1551,8 +1551,8 @@ def load_mapq_strand(*args, **kwargs):
                      ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
                      ('reads_mapq0', 'i4'), ('reads_mapq0_fwd', 'i4'), ('reads_mapq0_rev', 'i4'), 
                      ('reads_mapq0_pp', 'i4'), ('reads_mapq0_pp_fwd', 'i4'), ('reads_mapq0_pp_rev', 'i4'), 
-                     ('rms_mapq', 'i4'), ('rms_mapq_fwd', 'i4'), ('rms_mapq_rev', 'i4'), 
-                     ('rms_mapq_pp', 'i4'), ('rms_mapq_pp_fwd', 'i4'), ('rms_mapq_pp_rev', 'i4'), 
+                     ('rms_mapq', 'i4'), ('rms_mapq_fwd', 'i4'), ('rms_mapq_rev', 'i4'),
+                     ('rms_mapq_pp', 'i4'), ('rms_mapq_pp_fwd', 'i4'), ('rms_mapq_pp_rev', 'i4'),
                      ('max_mapq', 'i4'), ('max_mapq_fwd', 'i4'), ('max_mapq_rev', 'i4'), 
                      ('max_mapq_pp', 'i4'), ('max_mapq_pp_fwd', 'i4'), ('max_mapq_pp_rev', 'i4'), 
                     ]
@@ -1638,8 +1638,8 @@ def write_baseq(*args, **kwargs):
 def load_baseq(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
-                     ('rms_baseq', 'f4'), 
-                     ('rms_baseq_pp', 'f4'),
+                     ('rms_baseq', 'i4'),
+                     ('rms_baseq_pp', 'i4'),
                     ]
     return load_stats(stat_baseq, default_dtype, *args, **kwargs)
         
@@ -1776,8 +1776,8 @@ def write_baseq_strand(*args, **kwargs):
 def load_baseq_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
-                     ('rms_baseq', 'f4'), ('rms_baseq_fwd', 'f4'), ('rms_baseq_rev', 'f4'), 
-                     ('rms_baseq_pp', 'f4'), ('rms_baseq_pp_fwd', 'f4'), ('rms_baseq_pp_rev', 'f4'), 
+                     ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
+                     ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
                     ]
     return load_stats(stat_baseq_strand, default_dtype, *args, **kwargs)
         
@@ -1905,9 +1905,9 @@ def load_baseq_ext(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
                      ('ref', 'a1'), 
-                     ('rms_baseq', 'f4'), ('rms_baseq_pp', 'f4'),
-                     ('rms_baseq_matches', 'f4'), ('rms_baseq_matches_pp', 'f4'),
-                     ('rms_baseq_mismatches', 'f4'), ('rms_baseq_mismatches_pp', 'f4'),
+                     ('rms_baseq', 'i4'), ('rms_baseq_pp', 'i4'),
+                     ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_pp', 'i4'),
+                     ('rms_baseq_mismatches', 'i4'), ('rms_baseq_mismatches_pp', 'i4'),
                     ]
     return load_stats(stat_baseq_ext, default_dtype, *args, **kwargs)
         
@@ -2132,12 +2132,12 @@ def load_baseq_ext_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
                      ('ref', 'a1'), 
-                     ('rms_baseq', 'f4'), ('rms_baseq_fwd', 'f4'), ('rms_baseq_rev', 'f4'), 
-                     ('rms_baseq_pp', 'f4'), ('rms_baseq_pp_fwd', 'f4'), ('rms_baseq_pp_rev', 'f4'),
-                     ('rms_baseq_matches', 'f4'), ('rms_baseq_matches_fwd', 'f4'), ('rms_baseq_matches_rev', 'f4'), 
-                     ('rms_baseq_matches_pp', 'f4'), ('rms_baseq_matches_pp_fwd', 'f4'), ('rms_baseq_matches_pp_rev', 'f4'),
-                     ('rms_baseq_mismatches', 'f4'), ('rms_baseq_mismatches_fwd', 'f4'), ('rms_baseq_mismatches_rev', 'f4'), 
-                     ('rms_baseq_mismatches_pp', 'f4'), ('rms_baseq_mismatches_pp_fwd', 'f4'), ('rms_baseq_mismatches_pp_rev', 'f4'),
+                     ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
+                     ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
+                     ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_fwd', 'i4'), ('rms_baseq_matches_rev', 'i4'),
+                     ('rms_baseq_matches_pp', 'i4'), ('rms_baseq_matches_pp_fwd', 'i4'), ('rms_baseq_matches_pp_rev', 'i4'),
+                     ('rms_baseq_mismatches', 'i4'), ('rms_baseq_mismatches_fwd', 'i4'), ('rms_baseq_mismatches_rev', 'i4'),
+                     ('rms_baseq_mismatches_pp', 'i4'), ('rms_baseq_mismatches_pp_fwd', 'i4'), ('rms_baseq_mismatches_pp_rev', 'i4'),
                     ]
     return load_stats(stat_baseq_ext_strand, default_dtype, *args, **kwargs)
         
@@ -2590,7 +2590,6 @@ def _iter_mapq_binned(Samfile samfile,
     cdef int reads_all, reads_mapq0
     cdef bam1_t * b
     cdef uint32_t flag
-    cdef bint is_proper_pair
     cdef IteratorRowRegion it
     cdef uint64_t mapq
     cdef uint64_t mapq_squared
@@ -2615,7 +2614,7 @@ def _iter_mapq_binned(Samfile samfile,
                 rec = {'chrom': chrom, 'pos': pos, 
                        'reads_all': reads_all, 
                        'reads_mapq0': reads_mapq0,
-                       'rms_mapq': int(round(sqrt(mapq_squared_sum * 1. / reads_all)))}
+                       'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
                 yield rec
                 # start new bin
                 bin_start = bin_end
@@ -2756,6 +2755,102 @@ def load_alignment_binned(*args, **kwargs):
     return load_stats(stat_alignment_binned, default_dtype, *args, **kwargs)
         
     
+###############
+# BINNED TLEN #
+###############
+
+
+def stat_tlen_binned(Samfile samfile,
+                     chrom=None, start=None, end=None, one_based=False,
+                     window_size=300, window_offset=None, **kwargs):
+    if window_offset is None:
+        window_offset = window_size / 2
+    if chrom is None:
+        it = chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
+                     for chrom in sorted(samfile.references)])
+    else:
+        it = _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+    return it
+
+
+def _iter_tlen_binned(Samfile samfile,
+                          chrom, start, end, one_based,
+                          int window_size, int window_offset):
+    assert chrom is not None, 'unexpected error: chromosome is None'
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    cdef int reads_all = 0
+    cdef int reads_pp = 0
+    cdef bam1_t * b
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef IteratorRowRegion it
+    cdef int64_t tlen
+    cdef int64_t tlen_squared
+    cdef int64_t tlen_sum = 0
+    cdef int64_t tlen_pp_sum = 0
+    cdef int64_t tlen_squared_sum = 0
+    cdef int64_t tlen_pp_squared_sum = 0
+    start, end = normalise_coords(start, end, one_based)
+    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+    # start iterating over reads
+    while True:
+        it.cnext()
+        if it.retval > 0:
+            if b.core.pos > bin_end: # end of bin, yield record
+                # yield record for bin
+                pos = bin_start + window_offset
+                if one_based:
+                    pos += 1
+                rec = {'chrom': chrom, 'pos': pos,
+                       'reads_all': reads_all, 'reads_pp': reads_pp,
+                       'mean_tlen': int(round(tlen_sum * 1. / reads_all)),
+                       'mean_tlen_pp': int(round(tlen_pp_sum *1. / reads_pp)),
+                       'rms_tlen': rootmean(tlen_squared_sum, reads_all),
+                       'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+                yield rec
+                # start new bin
+                bin_start = bin_end
+                bin_end = bin_start + window_size
+                tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
+            # increment counters
+            reads_all += 1
+            tlen = b.core.isize
+            tlen_sum += tlen
+            tlen_squared = tlen**2
+            tlen_squared_sum += tlen_squared
+            flag = b.core.flag
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                reads_pp += 1
+                tlen_pp_sum += tlen
+                tlen_pp_squared_sum += tlen_squared
+        else:
+            raise StopIteration
+
+
+def write_tlen_binned(*args, **kwargs):
+    fieldnames = ('chrom', 'pos', 'reads_all', 'reads_pp', 'mean_tlen', 'mean_tlen_pp', 'rms_tlen', 'rms_tlen_pp')
+    write_stats(stat_tlen_binned, fieldnames, *args, **kwargs)
+
+
+def load_tlen_binned(*args, **kwargs):
+    default_dtype = [('chrom', 'a12'),
+                     ('pos', 'i4'),
+                     ('reads_all', 'i4'),
+                     ('reads_pp', 'i4'),
+                     ('mean_tlen', 'i4'),
+                     ('mean_tlen_pp', 'i4'),
+                     ('rms_tlen', 'i4'),
+                     ('rms_tlen_pp', 'i4'),
+                    ]
+    return load_stats(stat_tlen_binned, default_dtype, *args, **kwargs)
+
+
 #####################
 # UTILITY FUNCTIONS #
 #####################  
@@ -2881,7 +2976,7 @@ cdef inline object rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum * 1. / count)))
     else:
-        return 'NA'
+        return 0
     
     
 # SANDBOX

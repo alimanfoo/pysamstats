@@ -20,7 +20,7 @@ import pysamstats
 def _test(impl, refimpl):
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
-              'end': 10000,
+              'end': 1000,
               'one_based': False}
     expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
     actual = impl(Samfile('fixture/test.bam'), **kwargs)
@@ -52,7 +52,7 @@ from itertools import izip_longest
 def _test_withrefseq(impl, refimpl, bam_fn='fixture/test.bam', fasta_fn='fixture/ref.fa'):
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
-              'end': 10000,
+              'end': 1000,
               'one_based': False}
     expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
@@ -345,28 +345,28 @@ def rms(a):
     if a:
         return int(round(sqrt(np.mean(np.power(a, 2)))))
     else:
-        return 'NA'
+        return 0
 
 
 def mean(a):
     if a:
         return int(round(np.mean(a)))
     else:
-        return 'NA'
+        return 0
 
 
 def std(a):
     if a:
         return int(round(np.std(a)))
     else:
-        return 'NA'
+        return 0
     
     
 def vmax(a):
     if a:
         return max(a)
     else:
-        return 'NA'
+        return 0
     
     
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
@@ -1073,6 +1073,60 @@ def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, w
         
 def test_stat_alignment_binned():
     _test(pysamstats.stat_alignment_binned, stat_alignment_binned_refimpl)
+
+
+def stat_tlen_binned_refimpl(samfile,
+                             chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150):
+    if chrom is None:
+        it = chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
+                     for chrom in samfile.references])
+    else:
+        it = _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+    return it
+
+
+def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    if start is None:
+        start = 0
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = 0
+    tlens = []
+    tlens_pp = []
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        if aln.pos > bin_end: # end of bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all,
+                   'reads_pp': reads_pp,
+                   'mean_tlen': mean(tlens),
+                   'rms_tlen': rms(tlens),
+                   'mean_tlen_pp': mean(tlens_pp),
+                   'rms_tlen_pp': rms(tlens_pp),
+                   }
+            yield rec
+            reads_all = reads_pp = 0
+            tlens = []
+            tlens_pp = []
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+        reads_all += 1
+        tlens.append(aln.tlen)
+        if aln.is_proper_pair:
+            reads_pp += 1
+            tlens_pp.append(aln.tlen)
+
+
+def test_stat_tlen_binned():
+    _test(pysamstats.stat_tlen_binned, stat_tlen_binned_refimpl)
+
 
 
 
