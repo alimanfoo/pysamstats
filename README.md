@@ -51,7 +51,8 @@ Options:
                         variation, variation_strand, tlen, tlen_strand, mapq,
                         mapq_strand, baseq, baseq_strand, baseq_ext,
                         baseq_ext_strand, coverage_binned,
-                        coverage_ext_binned, mapq_binned, alignment_binned
+                        coverage_ext_binned, mapq_binned, alignment_binned,
+                        tlen_binned
   -c CHROMOSOME, --chromosome=CHROMOSOME
                         chromosome name
   -s START, --start=START
@@ -97,13 +98,14 @@ Supported statistics types:
     * coverage_ext_binned - as coverage_ext but binned
     * mapq_binned         - similar to mapq but binned
     * alignment_binned    - aggregated counts from cigar strings
+    * tlen_binned         - as tlen but binned
 
 Examples:
 
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.8.3 (pysam 0.7.4)
+Version: 0.9 (pysam 0.7.4)
 ```
 
 From Python:
