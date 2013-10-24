@@ -2808,8 +2808,8 @@ def _iter_tlen_binned(Samfile samfile,
                     pos += 1
                 rec = {'chrom': chrom, 'pos': pos,
                        'reads_all': reads_all, 'reads_pp': reads_pp,
-                       'mean_tlen': int(round(tlen_sum * 1. / reads_all)),
-                       'mean_tlen_pp': int(round(tlen_pp_sum *1. / reads_pp)),
+                       'mean_tlen': _mean(tlen_sum, reads_all),
+                       'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
                        'rms_tlen': rootmean(tlen_squared_sum, reads_all),
                        'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
                 yield rec
@@ -2972,13 +2972,20 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
-cdef inline object rootmean(uint64_t sqsum, int count):
+cdef inline int rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum * 1. / count)))
     else:
         return 0
     
     
+cdef inline int _mean(int64_t sum, int count):
+    if count > 0:
+        return int(round(sum * 1. / count))
+    else:
+        return 0
+
+
 # SANDBOX
 
 
