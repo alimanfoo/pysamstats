@@ -1298,5 +1298,12 @@ def _mean(sum, count):
         return 0
 
 
-
-
+def test_truncate():
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 2000,
+              'end': 2100,
+              'one_based': False,
+              'truncate': True}
+    a = pysamstats.load_coverage(Samfile('fixture/test.bam'), **kwargs)
+    eq_(2000, a['pos'][0])
+    eq_(2099, a['pos'][-1])

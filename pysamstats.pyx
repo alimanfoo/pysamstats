@@ -100,9 +100,9 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
             'reads_pp': reads_pp}
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_coverage(samfile, col, one_based)
         
         
@@ -180,9 +180,9 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
             'reads_pp_rev': reads_pp_rev}
 
 
-def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(chrom, start, end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_coverage_strand(samfile, col, one_based)
         
         
@@ -280,9 +280,9 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
                'reads_duplicate': reads_duplicate}
 
 
-def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(chrom, start, end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_coverage_ext(samfile, col, one_based)
         
         
@@ -453,9 +453,9 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
            }
 
 
-def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(chrom, start, end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_coverage_ext_strand(samfile, col, one_based)
         
         
@@ -637,9 +637,9 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
             'N': N, 'N_pp': N_pp}
 
 
-def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_variation(samfile, fafile, col, one_based)
         
         
@@ -796,9 +796,9 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
 
 
 def stat_variation_strand(Samfile samfile, Fastafile fafile, 
-                          chrom=None, start=None, end=None, one_based=False, **kwargs):
+                          chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_variation_strand(samfile, fafile, col, one_based)
         
         
@@ -960,9 +960,9 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
             'std_tlen_pp': std_tlen_pp}
 
 
-def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_tlen(samfile, col, one_based)
         
         
@@ -1227,9 +1227,9 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'std_tlen_pp_rev': std_tlen_pp_rev}
 
 
-def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_tlen_strand(samfile, col, one_based)
         
         
@@ -1335,9 +1335,9 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
             'max_mapq_pp': max_mapq_pp}
 
 
-def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_mapq(samfile, col, one_based)
         
         
@@ -1525,9 +1525,9 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
             }
 
 
-def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_mapq_strand(samfile, col, one_based)
         
         
@@ -1620,9 +1620,9 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
             'rms_baseq_pp': rms_baseq_pp}
 
 
-def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_baseq(samfile, col, one_based)
         
         
@@ -1758,9 +1758,9 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
             }
 
 
-def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_baseq_strand(samfile, col, one_based)
         
         
@@ -1883,9 +1883,9 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
 
 
 def stat_baseq_ext(Samfile samfile, Fastafile fafile, 
-                   chrom=None, start=None, end=None, one_based=False, **kwargs):
+                   chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_baseq_ext(samfile, fafile, col, one_based)
         
         
@@ -2105,9 +2105,9 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
 
 
 def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, 
-                          chrom=None, start=None, end=None, one_based=False, **kwargs):
+                          chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         yield construct_rec_baseq_ext_strand(samfile, fafile, col, one_based)
         
         
@@ -2151,18 +2151,18 @@ def load_baseq_ext_strand(*args, **kwargs):
 from bisect import bisect_left
 
 
-def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_based=False, **kwargs):
+def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     start, end = normalise_coords(start, end, one_based)
     
     # first need to load the coverage data into an array, to calculate the median
-    it = (col.n for col in samfile.pileup(reference=chrom, start=start, end=end))
+    it = (col.n for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate))
     a = np.fromiter(it, dtype='u4')
     dp_mean = np.mean(a)
     dp_median = np.median(a)
     dp_percentiles = [np.percentile(a, q) for q in range(101)]
     
     # then iterate again to generate stats
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         dp = col.n
@@ -2206,7 +2206,7 @@ from collections import Counter
 
 
 def stat_coverage_gc(Samfile samfile, Fastafile fafile, 
-                     chrom=None, start=None, end=None, one_based=False,
+                     chrom=None, start=None, end=None, one_based=False, truncate=False,
                      window_size=300, window_offset=None, **kwargs):
     cdef Py_ssize_t i # loop index
     cdef char* seq # sequence window
@@ -2215,7 +2215,7 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
     if window_offset is None:
         window_offset = window_size / 2
         
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
         
         chrom = samfile.getrname(col.tid)
         
@@ -2264,7 +2264,7 @@ def load_coverage_gc(*args, **kwargs):
 
 
 def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, 
-                            chrom=None, start=None, end=None, one_based=False, 
+                            chrom=None, start=None, end=None, one_based=False, truncate=False,
                             window_size=300, window_offset=None, **kwargs):
     start, end = normalise_coords(start, end, one_based)
     if window_offset is None:
@@ -2272,7 +2272,7 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile,
     
     # first need to load the coverage data into an array, to calculate the median
     recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, window_size=window_size,
+                            one_based=one_based, truncate=truncate, window_size=window_size,
                             window_offset=window_offset)
     it = ((rec['reads_all'], rec['gc']) for rec in recs)
     a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
@@ -2292,7 +2292,7 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile,
     
     # second pass
     recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, window_size=window_size,
+                            one_based=one_based, truncate=truncate, window_size=window_size,
                             window_offset=window_offset)
     for rec in recs:
         dp = rec['reads_all']
