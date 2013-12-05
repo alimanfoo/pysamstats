@@ -100,7 +100,7 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
             'reads_pp': reads_pp}
 
 
-cdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
+cpdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
             'pos': pos,
@@ -108,7 +108,7 @@ cdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
             'reads_pp': 0}
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
     cdef PileupProxy col
     cdef int curpos
     start, end = normalise_coords(start, end, one_based)
@@ -120,18 +120,24 @@ def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=F
         for col in it:
             curchr = samfile.getrname(col.tid)
             while curpos < col.pos:
-                yield construct_rec_coverage_pad(curchr, curpos, one_based)
+                yield fpad(curchr, curpos, one_based)
                 curpos += 1
-            yield construct_rec_coverage(samfile, col, one_based)
+            yield frec(samfile, col, one_based)
             curpos = col.pos + 1
         if chrom is not None and end is not None:
             while curpos < end:
-                yield construct_rec_coverage_pad(chrom, curpos, one_based)
+                yield fpad(chrom, curpos, one_based)
                 curpos += 1
 
     else:
         for col in it:
-            yield construct_rec_coverage(samfile, col, one_based)
+            yield frec(samfile, col, one_based)
+
+
+def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_coverage, construct_rec_coverage_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
 
 
 def write_coverage(*args, **kwargs):
@@ -208,13 +214,7 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
             'reads_pp_rev': reads_pp_rev}
 
 
-# def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-#     start, end = normalise_coords(start, end, one_based)
-#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-#         yield construct_rec_coverage_strand(samfile, col, one_based)
-        
-
-cdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False):
+cpdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
             'pos': pos,
@@ -227,30 +227,9 @@ cdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False):
 
 
 def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
-    cdef PileupProxy col
-    cdef int curpos
-    start, end = normalise_coords(start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
-
-    if pad:
-        curpos = start
-        curchr = chrom
-        for col in it:
-            curchr = samfile.getrname(col.tid)
-            while curpos < col.pos:
-                yield construct_rec_coverage_strand_pad(curchr, curpos, one_based)
-                curpos += 1
-            yield construct_rec_coverage_strand(samfile, col, one_based)
-            curpos = col.pos + 1
-        if chrom is not None and end is not None:
-            while curpos < end:
-                yield construct_rec_coverage_strand_pad(chrom, curpos, one_based)
-                curpos += 1
-
-    else:
-        for col in it:
-            yield construct_rec_coverage(samfile, col, one_based)
-
+    return stat_pileup(construct_rec_coverage_strand, construct_rec_coverage_strand_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
 
 
 def write_coverage_strand(*args, **kwargs):
@@ -347,12 +326,31 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint o
                'reads_duplicate': reads_duplicate}
 
 
-def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_coverage_ext(samfile, col, one_based)
+# def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_coverage_ext(samfile, col, one_based)
         
         
+cpdef object construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos,
+            'reads_all': 0,
+            'reads_pp': 0,
+            'reads_mate_unmapped': 0,
+            'reads_mate_other_chr': 0,
+            'reads_mate_same_strand': 0,
+            'reads_faceaway': 0,
+            'reads_softclipped': 0,
+            'reads_duplicate': 0}
+
+
+def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_coverage_ext, construct_rec_coverage_ext_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_coverage_ext(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'reads_all', 
@@ -520,12 +518,48 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
            }
 
 
-def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_coverage_ext_strand(samfile, col, one_based)
+# def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_coverage_ext_strand(samfile, col, one_based)
         
         
+cpdef object construct_rec_coverage_ext_strand_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos,
+           'reads_all': 0,
+           'reads_fwd': 0,
+           'reads_rev': 0,
+           'reads_pp': 0,
+           'reads_pp_fwd': 0,
+           'reads_pp_rev': 0,
+           'reads_mate_unmapped': 0,
+           'reads_mate_unmapped_fwd': 0,
+           'reads_mate_unmapped_rev': 0,
+           'reads_mate_other_chr': 0,
+           'reads_mate_other_chr_fwd': 0,
+           'reads_mate_other_chr_rev': 0,
+           'reads_mate_same_strand': 0,
+           'reads_mate_same_strand_fwd': 0,
+           'reads_mate_same_strand_rev': 0,
+           'reads_faceaway': 0,
+           'reads_faceaway_fwd': 0,
+           'reads_faceaway_rev': 0,
+           'reads_softclipped': 0,
+           'reads_softclipped_fwd': 0,
+           'reads_softclipped_rev': 0,
+           'reads_duplicate': 0,
+           'reads_duplicate_fwd': 0,
+           'reads_duplicate_rev': 0,
+           }
+
+
+def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_coverage_ext_strand, construct_rec_coverage_ext_strand_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_coverage_ext_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'reads_all', 
@@ -704,12 +738,68 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
             'N': N, 'N_pp': N_pp}
 
 
-def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+# def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_variation(samfile, fafile, col, one_based)
+        
+        
+def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
+                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                        **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_variation(samfile, fafile, col, one_based)
-        
-        
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+
+    if pad:
+        curpos = start
+        curchr = chrom
+        for col in it:
+            curchr = samfile.getrname(col.tid)
+            while curpos < col.pos:
+                yield fpad(fafile, curchr, curpos, one_based)
+                curpos += 1
+            yield frec(samfile, fafile, col, one_based)
+            curpos = col.pos + 1
+        if chrom is not None and end is not None:
+            while curpos < end:
+                yield fpad(fafile, chrom, curpos, one_based)
+                curpos += 1
+
+    else:
+        for col in it:
+            yield frec(samfile, fafile, col, one_based)
+
+
+cpdef object construct_rec_variation_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_pp': 0,
+            'matches': 0,
+            'matches_pp': 0,
+            'mismatches': 0,
+            'mismatches_pp': 0,
+            'deletions': 0,
+            'deletions_pp': 0,
+            'insertions': 0,
+            'insertions_pp': 0,
+            'A': 0, 'A_pp': 0,
+            'C': 0, 'C_pp': 0,
+            'T': 0, 'T_pp': 0,
+            'G': 0, 'G_pp': 0,
+            'N': 0, 'N_pp': 0}
+
+
+def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                   one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup_withref(construct_rec_variation, construct_rec_variation_pad,
+                               samfile, fafile,
+                               chrom=chrom, start=start, end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, **kwargs)
+
+
 def write_variation(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'ref', 
                   'reads_all', 'reads_pp',
@@ -862,13 +952,43 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
             }
 
 
-def stat_variation_strand(Samfile samfile, Fastafile fafile, 
-                          chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_variation_strand(samfile, fafile, col, one_based)
+# def stat_variation_strand(Samfile samfile, Fastafile fafile, 
+#                           chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_variation_strand(samfile, fafile, col, one_based)
         
         
+cpdef object construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
+            'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
+            'matches': 0, 'matches_fwd': 0, 'matches_rev': 0, 
+            'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
+            'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0, 
+            'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
+            'deletions': 0, 'deletions_fwd': 0, 'deletions_rev': 0, 
+            'deletions_pp': 0, 'deletions_pp_fwd': 0, 'deletions_pp_rev': 0,
+            'insertions': 0, 'insertions_fwd': 0, 'insertions_rev': 0, 
+            'insertions_pp': 0, 'insertions_pp_fwd': 0, 'insertions_pp_rev': 0,
+            'A': 0, 'A_fwd': 0, 'A_rev': 0, 'A_pp': 0, 'A_pp_fwd': 0, 'A_pp_rev': 0,
+            'C': 0, 'C_fwd': 0, 'C_rev': 0, 'C_pp': 0, 'C_pp_fwd': 0, 'C_pp_rev': 0,
+            'T': 0, 'T_fwd': 0, 'T_rev': 0, 'T_pp': 0, 'T_pp_fwd': 0, 'T_pp_rev': 0,
+            'G': 0, 'G_fwd': 0, 'G_rev': 0, 'G_pp': 0, 'G_pp_fwd': 0, 'G_pp_rev': 0,
+            'N': 0, 'N_fwd': 0, 'N_rev': 0, 'N_pp': 0, 'N_pp_fwd': 0, 'N_pp_rev': 0,
+            }
+
+
+def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                          one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup_withref(construct_rec_variation_strand, construct_rec_variation_strand_pad,
+                               samfile, fafile,
+                               chrom=chrom, start=start, end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, **kwargs)
+
+
 def write_variation_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'ref', 
                 'reads_all', 'reads_fwd', 'reads_rev', 'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
@@ -1016,9 +1136,9 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
 
     return {'chrom': chrom, 
             'pos': pos, 
-#            'reads_all': n, 
-#            'reads_paired': reads_p,
-#            'reads_pp': reads_pp,
+            'reads_all': n, 
+            'reads_paired': reads_p,
+            'reads_pp': reads_pp,
             'mean_tlen': mean_tlen,
             'mean_tlen_pp': mean_tlen_pp,
             'rms_tlen': rms_tlen,
@@ -1027,15 +1147,37 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
             'std_tlen_pp': std_tlen_pp}
 
 
-def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_tlen(samfile, col, one_based)
+# def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_tlen(samfile, col, one_based)
         
         
+cpdef object construct_rec_tlen_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0, 
+            'reads_paired': 0,
+            'reads_pp': 0,
+            'mean_tlen': 0,
+            'mean_tlen_pp': 0,
+            'rms_tlen': 0,
+            'rms_tlen_pp': 0,
+            'std_tlen': 0,
+            'std_tlen_pp': 0,
+            }
+
+
+def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_tlen, construct_rec_tlen_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_tlen(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
- #                 'reads_all', 'reads_paired', 'reads_pp', 
+                  'reads_all', 'reads_paired', 'reads_pp', 
                   'mean_tlen', 'mean_tlen_pp',
                   'rms_tlen', 'rms_tlen_pp',
                   'std_tlen', 'std_tlen_pp')
@@ -1045,6 +1187,7 @@ def write_tlen(*args, **kwargs):
 def load_tlen(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
+                     ('reads_all', 'i4'), ('reads_paired', 'i4'), ('reads_pp', 'i4'),
                      ('mean_tlen', 'i4'), ('mean_tlen_pp', 'i4'),
                      ('rms_tlen', 'i4'), ('rms_tlen_pp', 'i4'),
                      ('std_tlen', 'i4'), ('std_tlen_pp', 'i4')
@@ -1265,15 +1408,15 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
 
     return {'chrom': chrom, 
             'pos': pos, 
-#            'reads_all': n, 
-#            'reads_fwd': reads_fwd, 
-#            'reads_rev': reads_rev,
-#            'reads_paired': reads_p,
-#            'reads_paired_fwd': reads_p_fwd,
-#            'reads_paired_rev': reads_p_rev,
-#            'reads_pp': reads_pp,
-#            'reads_pp_fwd': reads_pp_fwd,
-#            'reads_pp_rev': reads_pp_rev,
+            'reads_all': n, 
+            'reads_fwd': reads_fwd, 
+            'reads_rev': reads_rev,
+            'reads_paired': reads_p,
+            'reads_paired_fwd': reads_p_fwd,
+            'reads_paired_rev': reads_p_rev,
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
             'mean_tlen': mean_tlen,
             'mean_tlen_fwd': mean_tlen_fwd,
             'mean_tlen_rev': mean_tlen_rev,
@@ -1294,17 +1437,57 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'std_tlen_pp_rev': std_tlen_pp_rev}
 
 
-def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_tlen_strand(samfile, col, one_based)
+# def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_tlen_strand(samfile, col, one_based)
         
         
+cpdef object construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0, 
+            'reads_fwd': 0, 
+            'reads_rev': 0,
+            'reads_paired': 0,
+            'reads_paired_fwd': 0,
+            'reads_paired_rev': 0,
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'mean_tlen': 0,
+            'mean_tlen_fwd': 0,
+            'mean_tlen_rev': 0,
+            'mean_tlen_pp': 0,
+            'mean_tlen_pp_fwd': 0,
+            'mean_tlen_pp_rev': 0,
+            'rms_tlen': 0,
+            'rms_tlen_fwd': 0,
+            'rms_tlen_rev': 0,
+            'rms_tlen_pp': 0,
+            'rms_tlen_pp_fwd': 0,
+            'rms_tlen_pp_rev': 0,
+            'std_tlen': 0,
+            'std_tlen_fwd': 0,
+            'std_tlen_rev': 0,
+            'std_tlen_pp': 0,
+            'std_tlen_pp_fwd': 0,
+            'std_tlen_pp_rev': 0,
+            }
+
+
+def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_tlen_strand, construct_rec_tlen_strand_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_tlen_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
-#                  'reads_all', 'reads_fwd', 'reads_rev', 
-#                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
-#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
                   'mean_tlen', 'mean_tlen_fwd', 'mean_tlen_rev', 
                   'mean_tlen_pp', 'mean_tlen_pp_fwd', 'mean_tlen_pp_rev',
                   'rms_tlen', 'rms_tlen_fwd', 'rms_tlen_rev', 
@@ -1317,6 +1500,9 @@ def write_tlen_strand(*args, **kwargs):
 def load_tlen_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
+                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
+                     ('reads_paired', 'i4'), ('reads_paired_fwd', 'i4'), ('reads_paired_rev', 'i4'), 
+                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
                      ('mean_tlen', 'i4'), ('mean_tlen_fwd', 'i4'), ('mean_tlen_rev', 'i4'),
                      ('mean_tlen_pp', 'i4'), ('mean_tlen_pp_fwd', 'i4'), ('mean_tlen_pp_rev', 'i4'),
                      ('rms_tlen', 'i4'), ('rms_tlen_fwd', 'i4'), ('rms_tlen_rev', 'i4'),
@@ -1402,12 +1588,33 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
             'max_mapq_pp': max_mapq_pp}
 
 
-def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_mapq(samfile, col, one_based)
+# def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_mapq(samfile, col, one_based)
         
         
+cpdef object construct_rec_mapq_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0, 
+            'reads_pp': 0,
+            'reads_mapq0': 0,
+            'reads_mapq0_pp': 0,
+            'rms_mapq': 0,
+            'rms_mapq_pp': 0,
+            'max_mapq': 0,
+            'max_mapq_pp': 0,
+            }
+
+
+def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_mapq, construct_rec_mapq_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_mapq(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'reads_all', 'reads_pp',
@@ -1592,12 +1799,49 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
             }
 
 
-def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_mapq_strand(samfile, col, one_based)
+# def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_mapq_strand(samfile, col, one_based)
         
         
+cpdef object construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0,
+            'reads_fwd': 0, 
+            'reads_rev': 0, 
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'reads_mapq0': 0,
+            'reads_mapq0_fwd': 0, 
+            'reads_mapq0_rev': 0, 
+            'reads_mapq0_pp': 0,
+            'reads_mapq0_pp_fwd': 0,
+            'reads_mapq0_pp_rev': 0,
+            'rms_mapq': 0,
+            'rms_mapq_fwd': 0,
+            'rms_mapq_rev': 0,
+            'rms_mapq_pp': 0,
+            'rms_mapq_pp_fwd': 0,
+            'rms_mapq_pp_rev': 0,
+            'max_mapq': 0,
+            'max_mapq_fwd': 0,
+            'max_mapq_rev': 0,
+            'max_mapq_pp': 0,
+            'max_mapq_pp_fwd': 0,
+            'max_mapq_pp_rev': 0,
+            }
+
+
+def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_mapq_strand, construct_rec_mapq_strand_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_mapq_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'reads_all', 'reads_fwd', 'reads_rev', 
@@ -1643,7 +1887,7 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef int reads_nodel = 0
-#    cdef int reads_pp = 0
+    cdef int reads_pp = 0
     cdef int reads_pp_nodel = 0
     cdef uint64_t baseq, baseq_squared
     cdef uint64_t baseq_squared_sum = 0
@@ -1663,8 +1907,8 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
- #       if is_proper_pair:
- #           reads_pp += 1
+        if is_proper_pair:
+            reads_pp += 1
         # N.B., base quality only makes sense if the aligned read is not a deletion
         if not read.is_del:
             reads_nodel += 1
@@ -1681,22 +1925,39 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
 
     return {'chrom': chrom, 
             'pos': pos, 
- #           'reads_all': n, 
- #           'reads_pp': reads_pp,
+            'reads_all': n, 
+            'reads_pp': reads_pp,
             'rms_baseq': rms_baseq,
             'rms_baseq_pp': rms_baseq_pp}
 
 
-def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_baseq(samfile, col, one_based)
+# def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_baseq(samfile, col, one_based)
         
         
+cpdef object construct_rec_baseq_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0, 
+            'reads_pp': 0,
+            'rms_baseq': 0,
+            'rms_baseq_pp': 0,
+            }
+
+
+def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_baseq, construct_rec_baseq_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_baseq(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
-#                  'reads_all', 
-#                  'reads_pp', 
+                  'reads_all', 
+                  'reads_pp', 
                   'rms_baseq', 
                   'rms_baseq_pp',
                   )
@@ -1706,6 +1967,8 @@ def write_baseq(*args, **kwargs):
 def load_baseq(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
+                     ('reads_all', 'i4'),
+                     ('reads_pp', 'i4'),
                      ('rms_baseq', 'i4'),
                      ('rms_baseq_pp', 'i4'),
                     ]
@@ -1739,11 +2002,11 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
     cdef uint64_t baseq_pp_fwd_squared_sum = 0
     cdef uint64_t baseq_pp_rev_squared_sum = 0
 
-#    cdef int reads_rev = 0
-#    cdef int reads_fwd = 0
-#    cdef int reads_pp = 0
-#    cdef int reads_pp_rev = 0
-#    cdef int reads_pp_fwd = 0
+    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_fwd = 0
     cdef int reads_nodel = 0
     cdef int reads_rev_nodel = 0
     cdef int reads_fwd_nodel = 0
@@ -1767,16 +2030,16 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
 
-#        if is_reverse:
-#            reads_rev += 1
-#        else:
-#            reads_fwd += 1
-#        if is_proper_pair:
-#            reads_pp += 1
-#            if is_reverse:
-#                reads_pp_rev += 1
-#            else:
-#                reads_pp_fwd += 1
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if is_proper_pair:
+            reads_pp += 1
+            if is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
 
         # N.B., baseq only makes sense if not a deletion
         if not read.is_del:
@@ -1810,12 +2073,12 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         
     return {'chrom': chrom, 
             'pos': pos, 
-#            'reads_all': n,
-#            'reads_fwd': reads_fwd, 
-#            'reads_rev': reads_rev, 
-#            'reads_pp': reads_pp,
-#            'reads_pp_fwd': reads_pp_fwd,
-#            'reads_pp_rev': reads_pp_rev,
+            'reads_all': n,
+            'reads_fwd': reads_fwd, 
+            'reads_rev': reads_rev, 
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
             'rms_baseq': rms_baseq,
             'rms_baseq_fwd': rms_baseq_fwd,
             'rms_baseq_rev': rms_baseq_rev,
@@ -1825,16 +2088,41 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
             }
 
 
-def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_baseq_strand(samfile, col, one_based)
+# def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_baseq_strand(samfile, col, one_based)
         
         
+cpdef object construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 
+            'pos': pos, 
+            'reads_all': 0,
+            'reads_fwd': 0, 
+            'reads_rev': 0, 
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'rms_baseq': 0,
+            'rms_baseq_fwd': 0,
+            'rms_baseq_rev': 0,
+            'rms_baseq_pp': 0,
+            'rms_baseq_pp_fwd': 0,
+            'rms_baseq_pp_rev': 0,
+            }
+
+
+def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup(construct_rec_baseq_strand, construct_rec_baseq_strand_pad, samfile,
+                       chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+
 def write_baseq_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
-#                  'reads_all', 'reads_fwd', 'reads_rev', 
-#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
                   'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
                   'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev', 
                   )
@@ -1844,6 +2132,8 @@ def write_baseq_strand(*args, **kwargs):
 def load_baseq_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
+                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
+                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
                      ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
                      ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
                     ]
@@ -1868,7 +2158,7 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
     cdef bint is_proper_pair
     # counting variables
     cdef int reads_nodel = 0
-#    cdef int reads_pp = 0
+    cdef int reads_pp = 0
     cdef int reads_pp_nodel = 0
     cdef int matches = 0
     cdef int matches_pp = 0
@@ -1902,8 +2192,8 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
         aln = read.b
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#        if is_proper_pair:
-#            reads_pp += 1
+        if is_proper_pair:
+            reads_pp += 1
         if not read.is_del:
             reads_nodel += 1
             baseq = bam1_qual(aln)[read.qpos]
@@ -1935,11 +2225,11 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
     rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#            'reads_all': n, 'reads_pp': reads_pp,
-#            'matches': matches,
-#            'matches_pp': matches_pp,
-#            'mismatches': mismatches,
-#            'mismatches_pp': mismatches_pp,
+            'reads_all': n, 'reads_pp': reads_pp,
+            'matches': matches,
+            'matches_pp': matches_pp,
+            'mismatches': mismatches,
+            'mismatches_pp': mismatches_pp,
             'rms_baseq': rms_baseq,
             'rms_baseq_pp': rms_baseq_pp,
             'rms_baseq_matches': rms_baseq_matches,
@@ -1949,19 +2239,45 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
             }
 
 
-def stat_baseq_ext(Samfile samfile, Fastafile fafile, 
-                   chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_baseq_ext(samfile, fafile, col, one_based)
+# def stat_baseq_ext(Samfile samfile, Fastafile fafile, 
+#                    chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_baseq_ext(samfile, fafile, col, one_based)
         
         
+cpdef object construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_pp': 0,
+            'matches': 0,
+            'matches_pp': 0,
+            'mismatches': 0,
+            'mismatches_pp': 0,
+            'rms_baseq': 0,
+            'rms_baseq_pp': 0,
+            'rms_baseq_matches': 0,
+            'rms_baseq_matches_pp': 0,
+            'rms_baseq_mismatches': 0,
+            'rms_baseq_mismatches_pp': 0,
+            }
+
+
+def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                   one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup_withref(construct_rec_baseq_ext, construct_rec_baseq_ext_pad,
+                               samfile, fafile,
+                               chrom=chrom, start=start, end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, **kwargs)
+
+
 def write_baseq_ext(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'ref', 
-#                  'reads_all', 'reads_pp',
-#                  'matches', 'matches_pp',
-#                  'mismatches', 'mismatches_pp',
+                  'reads_all', 'reads_pp',
+                  'matches', 'matches_pp',
+                  'mismatches', 'mismatches_pp',
                   'rms_baseq', 'rms_baseq_pp',
                   'rms_baseq_matches', 'rms_baseq_matches_pp',
                   'rms_baseq_mismatches', 'rms_baseq_mismatches_pp',
@@ -1973,6 +2289,9 @@ def load_baseq_ext(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
                      ('ref', 'a1'), 
+                     ('reads_all', 'i4'), ('reads_pp', 'i4'),
+                     ('matches', 'i4'), ('matches_pp', 'i4'),
+                     ('mismatches', 'i4'), ('mismatches_pp', 'i4'),
                      ('rms_baseq', 'i4'), ('rms_baseq_pp', 'i4'),
                      ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_pp', 'i4'),
                      ('rms_baseq_mismatches', 'i4'), ('rms_baseq_mismatches_pp', 'i4'),
@@ -1999,14 +2318,14 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
     cdef bint is_reverse
     
     # counting variables
-#    cdef int reads_fwd = 0
-#    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_rev = 0
     cdef int reads_nodel = 0
     cdef int reads_fwd_nodel = 0
     cdef int reads_rev_nodel = 0
-#    cdef int reads_pp = 0
-#    cdef int reads_pp_fwd = 0
-#    cdef int reads_pp_rev = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_pp_rev = 0
     cdef int reads_pp_nodel = 0
     cdef int reads_pp_fwd_nodel = 0
     cdef int reads_pp_rev_nodel = 0
@@ -2064,16 +2383,16 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
 
-#        if is_reverse:
-#            reads_rev += 1
-#        else:
-#            reads_fwd += 1
-#        if is_proper_pair:
-#            reads_pp += 1
-#            if is_reverse:
-#                reads_pp_rev += 1
-#            else:
-#                reads_pp_fwd += 1
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if is_proper_pair:
+            reads_pp += 1
+            if is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
 
         if not read.is_del:
             reads_nodel += 1
@@ -2156,12 +2475,12 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
     rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
-#            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
-#            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
-#            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
-#            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
-#            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
+            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
+            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
+            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
+            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
+            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
+            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
             'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev, 
             'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
             'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev, 
@@ -2171,21 +2490,48 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
             }
 
 
-def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, 
-                          chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_baseq_ext_strand(samfile, fafile, col, one_based)
+# def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, 
+#                           chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_baseq_ext_strand(samfile, fafile, col, one_based)
         
         
+cpdef object construct_rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
+            'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
+            'matches': 0, 'matches_fwd': 0, 'matches_rev': 0, 
+            'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
+            'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0, 
+            'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
+            'rms_baseq': 0, 'rms_baseq_fwd': 0, 'rms_baseq_rev': 0, 
+            'rms_baseq_pp': 0, 'rms_baseq_pp_fwd': 0, 'rms_baseq_pp_rev': 0,
+            'rms_baseq_matches': 0, 'rms_baseq_matches_fwd': 0, 'rms_baseq_matches_rev': 0, 
+            'rms_baseq_matches_pp': 0, 'rms_baseq_matches_pp_fwd': 0, 'rms_baseq_matches_pp_rev': 0,
+            'rms_baseq_mismatches': 0, 'rms_baseq_mismatches_fwd': 0, 'rms_baseq_mismatches_rev': 0, 
+            'rms_baseq_mismatches_pp': 0, 'rms_baseq_mismatches_pp_fwd': 0, 'rms_baseq_mismatches_pp_rev': 0,
+            }
+
+
+def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                   one_based=False, truncate=False, pad=False, **kwargs):
+    return stat_pileup_withref(construct_rec_baseq_ext_strand, construct_rec_baseq_ext_strand_pad,
+                               samfile, fafile,
+                               chrom=chrom, start=start, end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, **kwargs)
+
+
 def write_baseq_ext_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'ref', 
-#                  'reads_all', 'reads_fwd', 'reads_rev', 
-#                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
-#                  'matches', 'matches_fwd', 'matches_rev', 
-#                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
-#                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
-#                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
+                  'reads_all', 'reads_fwd', 'reads_rev', 
+                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
+                  'matches', 'matches_fwd', 'matches_rev', 
+                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
+                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
+                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
                   'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
                   'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev',
                   'rms_baseq_matches', 'rms_baseq_matches_fwd', 'rms_baseq_matches_rev', 
@@ -2200,6 +2546,12 @@ def load_baseq_ext_strand(*args, **kwargs):
     default_dtype = [('chrom', 'a12'), 
                      ('pos', 'i4'),
                      ('ref', 'a1'), 
+                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'),
+                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'),
+                     ('matches', 'i4'), ('matches_fwd', 'i4'), ('matches_rev', 'i4'),
+                     ('matches_pp', 'i4'), ('matches_pp_fwd', 'i4'), ('matches_pp_rev', 'i4'),
+                     ('mismatches', 'i4'), ('mismatches_fwd', 'i4'), ('mismatches_rev', 'i4'),
+                     ('mismatches_pp', 'i4'), ('mismatches_pp_fwd', 'i4'), ('mismatches_pp_rev', 'i4'),
                      ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
                      ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
                      ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_fwd', 'i4'), ('rms_baseq_matches_rev', 'i4'),
@@ -2218,7 +2570,17 @@ def load_baseq_ext_strand(*args, **kwargs):
 from bisect import bisect_left
 
 
-def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def construct_rec_coverage_normed_pad(chrom, pos, one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos,
+            'reads_all': 0,
+            'dp_normed_median': 0,
+            'dp_normed_mean': 0,
+            'dp_percentile': 0}
+
+
+def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                         **kwargs):
     start, end = normalise_coords(start, end, one_based)
     
     # first need to load the coverage data into an array, to calculate the median
@@ -2227,20 +2589,37 @@ def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_
     dp_mean = np.mean(a)
     dp_median = np.median(a)
     dp_percentiles = [np.percentile(a, q) for q in range(101)]
-    
-    # then iterate again to generate stats
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+
+    def construct_rec_coverage_normed(Samfile samfile, PileupProxy col, bint one_based=False):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         dp = col.n
         dp_normed_median = dp * 1. / dp_median
         dp_normed_mean = dp * 1. / dp_mean
         dp_percentile = bisect_left(dp_percentiles, dp)
-        yield {'chrom': chrom, 'pos': pos, 
-               'reads_all': col.n, 
-               'dp_normed_median': dp_normed_median,
-               'dp_normed_mean': dp_normed_mean,
-               'dp_percentile': dp_percentile}
+        return {'chrom': chrom, 'pos': pos,
+                'reads_all': col.n,
+                'dp_normed_median': dp_normed_median,
+                'dp_normed_mean': dp_normed_mean,
+                'dp_percentile': dp_percentile}
+
+    # then iterate again to generate stats
+    return stat_pileup(construct_rec_coverage_normed, construct_rec_coverage_normed_pad,
+                       samfile, chrom=chrom, start=start, end=end, one_based=one_based,
+                       truncate=truncate, pad=pad, **kwargs)
+
+    # for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+    #     chrom = samfile.getrname(col.tid)
+    #     pos = col.pos + 1 if one_based else col.pos
+    #     dp = col.n
+    #     dp_normed_median = dp * 1. / dp_median
+    #     dp_normed_mean = dp * 1. / dp_mean
+    #     dp_percentile = bisect_left(dp_percentiles, dp)
+    #     yield {'chrom': chrom, 'pos': pos,
+    #            'reads_all': col.n,
+    #            'dp_normed_median': dp_normed_median,
+    #            'dp_normed_mean': dp_normed_mean,
+    #            'dp_percentile': dp_percentile}
         
         
 def write_coverage_normed(*args, **kwargs):
@@ -2272,8 +2651,8 @@ def load_coverage_normed(*args, **kwargs):
 from collections import Counter
 
 
-def stat_coverage_gc(Samfile samfile, Fastafile fafile, 
-                     chrom=None, start=None, end=None, one_based=False, truncate=False,
+def stat_coverage_gc(Samfile samfile, Fastafile fafile,
+                     chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
                      window_size=300, window_offset=None, **kwargs):
     cdef Py_ssize_t i # loop index
     cdef char* seq # sequence window
@@ -2282,32 +2661,60 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
     if window_offset is None:
         window_offset = window_size / 2
         
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        
+    def construct_rec_coverage_gc(Samfile samfile, Fastafile fafile, PileupProxy col, bint one_based):
         chrom = samfile.getrname(col.tid)
-        
-        if col.pos <= window_offset:
-            continue # until we get a bit further into the chromosome
-        
+
         ref_window_start = col.pos - window_offset
         ref_window_end = ref_window_start + window_size
+        if ref_window_start < 0:
+            ref_window_start = 0
         ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
-        
         if len(ref_window) == 0:
-            break # because we've hit the end of the chromosome
-        
-        seq = ref_window
-        gc_count = 0
-        for i in range(window_size):
-            b = seq[i]
-            if b == 'g' or b == 'c':
-                gc_count += 1
-                
-        gc_percent = int(round(gc_count * 100. / window_size))
+            gc_percent = -1
+        else:
+            gc_percent = gc_content(ref_window)
 
         rec = construct_rec_coverage(samfile, col, one_based)
         rec['gc'] = gc_percent
-        yield rec
+        return rec
+
+    def construct_rec_coverage_gc_pad(Fastafile fafile, chrom, pos, bint one_based):
+        ref_window_start = pos - window_offset
+        ref_window_end = ref_window_start + window_size
+        if ref_window_start < 0:
+            ref_window_start = 0
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
+        if len(ref_window) == 0:
+            gc_percent = -1
+        else:
+            gc_percent = gc_content(ref_window)
+        rec = construct_rec_coverage_pad(chrom, pos, one_based)
+        rec['gc'] = gc_percent
+        return rec
+
+    return stat_pileup_withref(construct_rec_coverage_gc, construct_rec_coverage_gc_pad,
+                               samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, **kwargs)
+
+    # for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+    #
+    #     chrom = samfile.getrname(col.tid)
+    #
+    #     if col.pos <= window_offset:
+    #         continue # until we get a bit further into the chromosome
+    #
+    #     ref_window_start = col.pos - window_offset
+    #     ref_window_end = ref_window_start + window_size
+    #     ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
+    #
+    #     if len(ref_window) == 0:
+    #         break # because we've hit the end of the chromosome
+    #
+    #     gc_percent = gc_content(ref_window)
+    #
+    #     rec = construct_rec_coverage(samfile, col, one_based)
+    #     rec['gc'] = gc_percent
+    #     yield rec
         
         
 def write_coverage_gc(*args, **kwargs):
@@ -2331,7 +2738,7 @@ def load_coverage_gc(*args, **kwargs):
 
 
 def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, 
-                            chrom=None, start=None, end=None, one_based=False, truncate=False,
+                            chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
                             window_size=300, window_offset=None, **kwargs):
     start, end = normalise_coords(start, end, one_based)
     if window_offset is None:
@@ -2339,8 +2746,8 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile,
     
     # first need to load the coverage data into an array, to calculate the median
     recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, truncate=truncate, window_size=window_size,
-                            window_offset=window_offset)
+                            one_based=one_based, truncate=truncate, pad=pad,
+                            window_size=window_size, window_offset=window_offset)
     it = ((rec['reads_all'], rec['gc']) for rec in recs)
     a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
     dp_mean = np.mean(a.dp)
@@ -2359,8 +2766,8 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile,
     
     # second pass
     recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, truncate=truncate, window_size=window_size,
-                            window_offset=window_offset)
+                            one_based=one_based, truncate=truncate, pad=pad,
+                            window_size=window_size, window_offset=window_offset)
     for rec in recs:
         dp = rec['reads_all']
         gc = rec['gc']

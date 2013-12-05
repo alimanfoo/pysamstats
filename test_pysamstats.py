@@ -8,8 +8,6 @@ an example dataset.
 """
 
 
-# TODO simplify reference implementations by building lists and using len()
-
 from pysam import Samfile, Fastafile
 from nose.tools import eq_, assert_almost_equal
 import numpy as np
@@ -378,9 +376,9 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         tlen_pp = [read.alignment.tlen for read in reads_pp]
         mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         yield {'chrom': chrom, 'pos': pos, 
-#               'reads_all': col.n, 
-#               'reads_paired': len(reads_paired),
-#               'reads_pp': len(reads_pp),
+               'reads_all': col.n,
+               'reads_paired': len(reads_paired),
+               'reads_pp': len(reads_pp),
                'mean_tlen': mean_tlen,
                'mean_tlen_pp': mean_tlen_pp,
                'rms_tlen': rms_tlen,
@@ -424,9 +422,9 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 
         # yield record
         yield {'chrom': chrom, 'pos': pos, 
-#               'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
-#               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
-#               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'reads_all': col.n, 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+               'reads_paired': len(reads_paired), 'reads_paired_fwd': len(fwd(reads_paired)), 'reads_paired_rev': len(rev(reads_paired)),
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
                'mean_tlen': mean_tlen, 'mean_tlen_fwd': mean_tlen_fwd, 'mean_tlen_rev': mean_tlen_rev,
                'mean_tlen_pp': mean_tlen_pp, 'mean_tlen_pp_fwd': mean_tlen_pp_fwd, 'mean_tlen_pp_rev': mean_tlen_pp_rev,
                'rms_tlen': rms_tlen, 'rms_tlen_fwd': rms_tlen_fwd, 'rms_tlen_rev': rms_tlen_rev,
@@ -558,8 +556,8 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=Fals
         rms_baseq = rms(baseq(reads_nodel))
         rms_baseq_pp = rms(baseq(reads_pp_nodel))
         yield {'chrom': chrom, 'pos': pos, 
-#               'reads_all': len(reads), 
-#               'reads_pp': len(reads_pp),
+               'reads_all': len(reads),
+               'reads_pp': len(reads_pp),
                'rms_baseq': rms_baseq,
                'rms_baseq_pp': rms_baseq_pp}
         
@@ -592,8 +590,8 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_bas
         rms_baseq_pp_fwd = rms(baseq(reads_pp_fwd_nodel))
         rms_baseq_pp_rev = rms(baseq(reads_pp_rev_nodel))
         yield {'chrom': chrom, 'pos': pos, 
- #              'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev), 
- #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev), 
+               'reads_all': len(reads), 'reads_fwd': len(reads_fwd), 'reads_rev': len(reads_rev),
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(reads_pp_fwd), 'reads_pp_rev': len(reads_pp_rev),
                'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
                'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
                }
@@ -628,12 +626,12 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         rms_baseq_mismatches = rms(baseq(mismatches))
         rms_baseq_mismatches_pp = rms(baseq(mismatches_pp))
         yield {'chrom': chrom, 'pos': pos, 'ref': ref,
-#               'reads_all': len(reads), 
-#               'reads_pp': len(reads_pp), 
-#               'matches': len(matches),
-#               'matches_pp': len(matches_pp),
-#               'mismatches': len(mismatches),
-#               'mismatches_pp': len(mismatches_pp),
+               'reads_all': len(reads),
+               'reads_pp': len(reads_pp),
+               'matches': len(matches),
+               'matches_pp': len(matches_pp),
+               'mismatches': len(mismatches),
+               'mismatches_pp': len(mismatches_pp),
                'rms_baseq': rms_baseq, 
                'rms_baseq_pp': rms_baseq_pp, 
                'rms_baseq_matches': rms_baseq_matches, 
@@ -696,20 +694,20 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
         rms_baseq_mismatches_pp_fwd = rms(baseq(mismatches_pp_fwd))
         rms_baseq_mismatches_pp_rev = rms(baseq(mismatches_pp_rev))
         yield {'chrom': chrom, 'pos': pos, 'ref': ref,
- #              'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
- #              'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
- #              'matches': len(matches),
- #              'matches_fwd': len(matches_fwd),
- #              'matches_rev': len(matches_rev),
- #              'matches_pp': len(matches_pp),
- #              'matches_pp_fwd': len(matches_pp_fwd),
- #              'matches_pp_rev': len(matches_pp_rev),
- #              'mismatches': len(mismatches),
- #              'mismatches_fwd': len(mismatches_fwd),
- #              'mismatches_rev': len(mismatches_rev),
- #              'mismatches_pp': len(mismatches_pp),
- #              'mismatches_pp_fwd': len(mismatches_pp_fwd),
- #              'mismatches_pp_rev': len(mismatches_pp_rev),
+               'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'matches': len(matches),
+               'matches_fwd': len(matches_fwd),
+               'matches_rev': len(matches_rev),
+               'matches_pp': len(matches_pp),
+               'matches_pp_fwd': len(matches_pp_fwd),
+               'matches_pp_rev': len(matches_pp_rev),
+               'mismatches': len(mismatches),
+               'mismatches_fwd': len(mismatches_fwd),
+               'mismatches_rev': len(mismatches_rev),
+               'mismatches_pp': len(mismatches_pp),
+               'mismatches_pp_fwd': len(mismatches_pp_fwd),
+               'mismatches_pp_rev': len(mismatches_pp_rev),
                'rms_baseq': rms_baseq, 
                'rms_baseq_fwd': rms_baseq_fwd, 
                'rms_baseq_rev': rms_baseq_rev, 
@@ -920,8 +918,6 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
             yield rec
 
 
-            
-        
 def test_stat_coverage_binned():
     _test_withrefseq(pysamstats.stat_coverage_binned, stat_coverage_binned_refimpl)
 
@@ -1298,36 +1294,57 @@ def _mean(sum, count):
         return 0
 
 
-def test_truncate():
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 2000,
-              'end': 2100,
-              'one_based': False,
-              'truncate': True}
-    a = pysamstats.load_coverage(Samfile('fixture/test.bam'), **kwargs)
-    eq_(2000, a['pos'][0])
-    eq_(2099, a['pos'][-1])
+pileup_functions = [
+    (pysamstats.load_coverage, 0),
+    (pysamstats.load_coverage_strand, 0),
+    (pysamstats.load_coverage_ext, 0),
+    (pysamstats.load_coverage_ext_strand, 0),
+    (pysamstats.load_variation, 1),
+    (pysamstats.load_variation_strand, 1),
+    (pysamstats.load_tlen, 0),
+    (pysamstats.load_tlen_strand, 0),
+    (pysamstats.load_mapq, 0),
+    (pysamstats.load_mapq_strand, 0),
+    (pysamstats.load_baseq, 0),
+    (pysamstats.load_baseq_strand, 0),
+    (pysamstats.load_baseq_ext, 1),
+    (pysamstats.load_baseq_ext_strand, 1),
+    (pysamstats.load_coverage_gc, 1),
+    (pysamstats.load_coverage_normed, 0),
+    (pysamstats.load_coverage_normed_gc, 1),
+]
 
 
-def test_pad():
-    functions = [(pysamstats.load_coverage, 0),
-                 (pysamstats.load_coverage_strand, 0),
-                 (pysamstats.load_coverage_ext, 0),
-                 (pysamstats.load_coverage_ext_strand, 0),
-                 (pysamstats.load_variation, 1),
-                 (pysamstats.load_variation_strand, 1),
-                 (pysamstats.load_tlen, 0),
-                 (pysamstats.load_tlen_strand, 0),
-                 (pysamstats.load_mapq, 0),
-                 (pysamstats.load_mapq_strand, 0),
-                 (pysamstats.load_baseq, 0),
-                 (pysamstats.load_baseq_strand, 0),
-                 (pysamstats.load_baseq_ext, 1),
-                 (pysamstats.load_baseq_ext_strand, 1),
-                 (pysamstats.load_coverage_gc, 1),
-                 (pysamstats.load_coverage_normed, 0),
-                 (pysamstats.load_coverage_normed_gc, 1),
-                 ]
+def test_pileup_truncate():
+    kwargs_notrunc = {'chrom': 'Pf3D7_01_v3',
+                      'start': 2000,
+                      'end': 2100,
+                      'one_based': False,
+                      'truncate': False}
+    kwargs_trunc = {'chrom': 'Pf3D7_01_v3',
+                    'start': 2000,
+                    'end': 2100,
+                    'one_based': False,
+                    'truncate': True}
+    for f, needs_ref in pileup_functions:
+        print f.__name__
+        # test no truncate
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_notrunc)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_notrunc)
+        eq_(1925, a['pos'][0])
+        eq_(2174, a['pos'][-1])
+        # test truncate
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_trunc)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_trunc)
+        eq_(2000, a['pos'][0])
+        eq_(2099, a['pos'][-1])
+
+
+def test_pileup_pad():
     kwargs_nopad = {'chrom': 'Pf3D7_01_v3',
                     'start': 0,
                     'end': 20000,
@@ -1338,7 +1355,7 @@ def test_pad():
                   'end': 20000,
                   'one_based': False,
                   'pad': True}
-    for f, needs_ref in functions:
+    for f, needs_ref in pileup_functions:
         print f.__name__
         # test no pad
         if needs_ref:
