@@ -60,6 +60,10 @@ Options:
   -e END, --end=END     end position (1-based)
   -z, --zero-based      use zero-based coordinates (default is false, i.e.,
                         use one-based coords)
+  -u, --truncate        truncate pileup-based stats so no records are emitted
+                        outside the specified position range
+  -d, --pad             pad pileup-based stats so a record is emitted for
+                        every position (default is only covered positions)
   -f FASTA, --fasta=FASTA
                         reference sequence file, only required for some
                         statistics
@@ -105,7 +109,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.9 (pysam 0.7.4)
+Version: 0.10 (pysam 0.7.6)
 ```
 
 From Python:
