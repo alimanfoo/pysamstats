@@ -93,6 +93,7 @@ Version: {version} (pysam {pysamversion})
     parser.add_option('-e', '--end', dest='end', type='int', help='end position (1-based)', default=None)
     parser.add_option('-z', '--zero-based', dest='zero_based', help='use zero-based coordinates (default is false, i.e., use one-based coords)', action='store_true', default=False)
     parser.add_option('-u', '--truncate', dest='truncate', help='truncate pileup-based stats so no records are emitted outside the specified position range', action='store_true', default=False)
+    parser.add_option('-d', '--pad', dest='pad', help='pad pileup-based stats so a record is emitted for every position (default is only covered positions)', action='store_true', default=False)
     parser.add_option('-f', '--fasta', dest='fasta', help='reference sequence file, only required for some statistics', default=None)
     parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
     parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
@@ -122,6 +123,7 @@ Version: {version} (pysam {pysamversion})
                   chrom=options.chromosome, start=options.start, end=options.end, 
                   one_based=one_based,
                   truncate=options.truncate,
+                  pad=options.pad,
                   progress=options.progress,
                   window_size=options.window_size,
                   window_offset=options.window_offset)
@@ -135,6 +137,7 @@ Version: {version} (pysam {pysamversion})
               chrom=options.chromosome, start=options.start, end=options.end, 
               one_based=one_based, 
               truncate=options.truncate,
+              pad=options.pad,
               progress=options.progress,
               window_size=options.window_size,
               window_offset=options.window_offset)

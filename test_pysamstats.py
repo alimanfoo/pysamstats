@@ -1307,3 +1307,50 @@ def test_truncate():
     a = pysamstats.load_coverage(Samfile('fixture/test.bam'), **kwargs)
     eq_(2000, a['pos'][0])
     eq_(2099, a['pos'][-1])
+
+
+def test_pad():
+    functions = [(pysamstats.load_coverage, 0),
+                 (pysamstats.load_coverage_strand, 0),
+                 (pysamstats.load_coverage_ext, 0),
+                 (pysamstats.load_coverage_ext_strand, 0),
+                 (pysamstats.load_variation, 1),
+                 (pysamstats.load_variation_strand, 1),
+                 (pysamstats.load_tlen, 0),
+                 (pysamstats.load_tlen_strand, 0),
+                 (pysamstats.load_mapq, 0),
+                 (pysamstats.load_mapq_strand, 0),
+                 (pysamstats.load_baseq, 0),
+                 (pysamstats.load_baseq_strand, 0),
+                 (pysamstats.load_baseq_ext, 1),
+                 (pysamstats.load_baseq_ext_strand, 1),
+                 (pysamstats.load_coverage_gc, 1),
+                 (pysamstats.load_coverage_normed, 0),
+                 (pysamstats.load_coverage_normed_gc, 1),
+                 ]
+    kwargs_nopad = {'chrom': 'Pf3D7_01_v3',
+                    'start': 0,
+                    'end': 20000,
+                    'one_based': False,
+                    'pad': False}
+    kwargs_pad = {'chrom': 'Pf3D7_01_v3',
+                  'start': 0,
+                  'end': 20000,
+                  'one_based': False,
+                  'pad': True}
+    for f, needs_ref in functions:
+        print f.__name__
+        # test no pad
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_nopad)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_nopad)
+        eq_(924, a['pos'][0])
+        eq_(10074, a['pos'][-1])
+        # test pad
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_pad)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_pad)
+        eq_(0, a['pos'][0])
+        eq_(19999, a['pos'][-1])

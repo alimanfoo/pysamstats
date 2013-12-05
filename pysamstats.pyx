@@ -100,12 +100,40 @@ cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_b
             'reads_pp': reads_pp}
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+cdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_pp': 0}
+
+
+def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_coverage(samfile, col, one_based)
-        
-        
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+
+    if pad:
+        curpos = start
+        curchr = chrom
+        for col in it:
+            curchr = samfile.getrname(col.tid)
+            while curpos < col.pos:
+                yield construct_rec_coverage_pad(curchr, curpos, one_based)
+                curpos += 1
+            yield construct_rec_coverage(samfile, col, one_based)
+            curpos = col.pos + 1
+        if chrom is not None and end is not None:
+            while curpos < end:
+                yield construct_rec_coverage_pad(chrom, curpos, one_based)
+                curpos += 1
+
+    else:
+        for col in it:
+            yield construct_rec_coverage(samfile, col, one_based)
+
+
 def write_coverage(*args, **kwargs):
     try:
         fields = kwargs['fields']
@@ -180,12 +208,51 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
             'reads_pp_rev': reads_pp_rev}
 
 
-def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+# def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+#     start, end = normalise_coords(start, end, one_based)
+#     for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
+#         yield construct_rec_coverage_strand(samfile, col, one_based)
+        
+
+cdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_fwd': 0,
+            'reads_rev': 0,
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0}
+
+
+def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
     start, end = normalise_coords(start, end, one_based)
-    for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-        yield construct_rec_coverage_strand(samfile, col, one_based)
-        
-        
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+
+    if pad:
+        curpos = start
+        curchr = chrom
+        for col in it:
+            curchr = samfile.getrname(col.tid)
+            while curpos < col.pos:
+                yield construct_rec_coverage_strand_pad(curchr, curpos, one_based)
+                curpos += 1
+            yield construct_rec_coverage_strand(samfile, col, one_based)
+            curpos = col.pos + 1
+        if chrom is not None and end is not None:
+            while curpos < end:
+                yield construct_rec_coverage_strand_pad(chrom, curpos, one_based)
+                curpos += 1
+
+    else:
+        for col in it:
+            yield construct_rec_coverage(samfile, col, one_based)
+
+
+
 def write_coverage_strand(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 
                   'reads_all', 'reads_fwd', 'reads_rev', 
@@ -3020,6 +3087,7 @@ def normalise_coords(start, end, one_based):
     if one_based:
         start = start - 1 if start is not None else None
         end = end - 1 if end is not None else None
+    start = 0 if start is None else start
     return start, end
 
     
