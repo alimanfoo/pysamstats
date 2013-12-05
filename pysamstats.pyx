@@ -3070,6 +3070,12 @@ def flatten(recs, fields):
     return rows
 
 
+def flatten_one(recs, field):
+    getter = itemgetter(field)
+    items = (getter(rec) for rec in recs)
+    return items
+
+
 def load_stats(statfun, default_dtype, *args, **kwargs):
     try:
         fields = kwargs['fields']
@@ -3084,11 +3090,16 @@ def load_stats(statfun, default_dtype, *args, **kwargs):
             dtype[k] = dtype_overrides[k]
     except:
         dtype = dict(default_dtype)
-    # trim dtype to selected fields
-    dtype = [(f, dtype[f]) for f in fields]
     recs = statfun(*args, **kwargs)
-    rows = flatten(recs, fields)
-    a = np.fromiter(rows, dtype=dtype)
+    if len(fields) == 1:
+        f = fields[0]
+        dtype = dtype[f]
+        items = flatten_one(recs, f)
+    else:
+        # trim dtype to selected fields
+        dtype = [(f, dtype[f]) for f in fields]
+        items = flatten(recs, fields)
+    a = np.fromiter(items, dtype=dtype)
     return a.view(np.recarray)
     
                 
