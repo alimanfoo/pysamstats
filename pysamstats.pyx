@@ -2359,7 +2359,20 @@ def stat_coverage_binned(Samfile samfile, Fastafile fastafile,
     else:
         it = _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
     return it
-        
+
+
+cdef inline int gc_content(ref_window):
+    cdef Py_ssize_t i, n
+    cdef char* seq
+    cdef int gc_count = 0
+    n = len(ref_window)
+    seq = ref_window
+    for i in range(n):
+        if seq[i] == 'g' or seq[i] == 'c':
+            gc_count += 1
+    gc_percent = int(round(gc_count * 100. / n))
+    return gc_percent
+
         
 def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, 
                           chrom, start, end, one_based, 
@@ -2371,9 +2384,6 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef IteratorRowRegion it
-    cdef Py_ssize_t i # loop index
-    cdef char* seq # sequence window
-    cdef int gc_count 
     start, end = normalise_coords(start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
@@ -2382,41 +2392,68 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
     bin_start = rstart
     bin_end = bin_start + window_size
     reads_all = reads_pp = 0
-    # start iterating over reads
-    while True:
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end: # end of bin, yield record
+            # determine %GC
+            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+            if len(ref_window) == 0:
+                raise StopIteration # because we've hit the end of the chromosome
+            gc_percent = gc_content(ref_window)
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+            yield rec
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            reads_all = reads_pp = 0
+        # increment counters
+        reads_all += 1
+        flag = b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+        # move iterator on
         it.cnext()
-        if it.retval > 0:
-            if b.core.pos > bin_end: # end of bin, yield record
-                # determine %GC
-                ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-                if len(ref_window) == 0:
-                    raise StopIteration # because we've hit the end of the chromosome
-                seq = ref_window
-                gc_count = 0
-                for i in range(len(ref_window)):
-                    if seq[i] == 'g' or seq[i] == 'c':
-                        gc_count += 1
-                gc_percent = int(round(gc_count * 100. / len(ref_window)))
-                # yield record for bin
-                pos = bin_start + window_offset
-                if one_based:
-                    pos += 1
-                rec = {'chrom': chrom, 'pos': pos, 
-                       'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
-                yield rec
-                # start new bin
-                bin_start = bin_end
-                bin_end = bin_start + window_size
-                reads_all = reads_pp = 0
-            # increment counters
-            reads_all += 1
-            flag = b.core.flag
-            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-            if is_proper_pair:
-                reads_pp += 1
-        else:
-            raise StopIteration
-        
+
+    # deal with last non-empty bin
+    ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+    if len(ref_window) == 0:
+        raise StopIteration # because we've hit the end of the chromosome
+    gc_percent = gc_content(ref_window)
+    # yield record for bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+            if len(ref_window) == 0:
+                raise StopIteration # because we've hit the end of the chromosome
+            gc_percent = gc_content(ref_window)
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0}
+            yield rec
+
+
     
 def write_coverage_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
@@ -2466,76 +2503,112 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     cdef bint mate_is_reverse
     cdef int tlen
     cdef IteratorRowRegion it
-    cdef Py_ssize_t i # loop index
-    cdef char* seq # sequence window
-    cdef int gc_count 
     start, end = normalise_coords(start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
+
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
     reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
-    # start iterating over reads
-    while True:
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end: # end of bin, yield record
+            # determine %GC
+            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+            if len(ref_window) == 0:
+                raise StopIteration # because we've hit the end of the chromosome
+            gc_percent = gc_content(ref_window)
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
+                   'reads_mate_unmapped': reads_mate_unmapped,
+                   'reads_mate_other_chr': reads_mate_other_chr,
+                   'reads_mate_same_strand': reads_mate_same_strand,
+                   'reads_faceaway': reads_faceaway,
+                   'reads_softclipped': reads_softclipped,
+                   'reads_duplicate': reads_duplicate}
+            yield rec
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+        # increment counters
+        reads_all += 1
+        flag = b.core.flag
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_duplicate = <bint>(flag & BAM_FDUP)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        tlen = b.core.isize
+        if is_duplicate:
+            reads_duplicate += 1
+        if is_proper_pair:
+            reads_pp += 1
+        if mate_is_unmapped:
+            reads_mate_unmapped += 1
+        elif b.core.tid != b.core.mtid:
+            reads_mate_other_chr += 1
+        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+            reads_mate_same_strand += 1
+        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+            reads_faceaway += 1
+        if is_softclipped(b):
+            reads_softclipped += 1
+        # move iterator on
         it.cnext()
-        if it.retval > 0:
-            if b.core.pos > bin_end: # end of bin, yield record
-                # determine %GC
-                ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-                if len(ref_window) == 0:
-                    raise StopIteration # because we've hit the end of the chromosome
-                seq = ref_window
-                gc_count = 0
-                for i in range(len(ref_window)):
-                    if seq[i] == 'g' or seq[i] == 'c':
-                        gc_count += 1
-                gc_percent = int(round(gc_count * 100. / len(ref_window)))
-                # yield record for bin
-                pos = bin_start + window_offset
-                if one_based:
-                    pos += 1
-                rec = {'chrom': chrom, 'pos': pos, 
-                       'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
-                       'reads_mate_unmapped': reads_mate_unmapped,
-                       'reads_mate_other_chr': reads_mate_other_chr,
-                       'reads_mate_same_strand': reads_mate_same_strand,
-                       'reads_faceaway': reads_faceaway,
-                       'reads_softclipped': reads_softclipped,
-                       'reads_duplicate': reads_duplicate}
-                yield rec
-                # start new bin
-                bin_start = bin_end
-                bin_end = bin_start + window_size
-                reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
-            # increment counters
-            reads_all += 1
-            flag = b.core.flag
-            is_reverse = <bint>(flag & BAM_FREVERSE)
-            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-            is_duplicate = <bint>(flag & BAM_FDUP)
-            mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-            mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-            tlen = b.core.isize
-            if is_duplicate:
-                reads_duplicate += 1
-            if is_proper_pair:
-                reads_pp += 1
-            if mate_is_unmapped:
-                reads_mate_unmapped += 1
-            elif b.core.tid != b.core.mtid:
-                reads_mate_other_chr += 1
-            elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
-                reads_mate_same_strand += 1
-            elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-                reads_faceaway += 1
-            if is_softclipped(b):
-                reads_softclipped += 1
-        else:
-            raise StopIteration
-        
-    
+
+    # deal with last non-empty bin
+    ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+    if len(ref_window) == 0:
+        raise StopIteration # because we've hit the end of the chromosome
+    gc_percent = gc_content(ref_window)
+    # yield record for bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
+           'reads_mate_unmapped': reads_mate_unmapped,
+           'reads_mate_other_chr': reads_mate_other_chr,
+           'reads_mate_same_strand': reads_mate_same_strand,
+           'reads_faceaway': reads_faceaway,
+           'reads_softclipped': reads_softclipped,
+           'reads_duplicate': reads_duplicate}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
+            if len(ref_window) == 0:
+                raise StopIteration # because we've hit the end of the chromosome
+            gc_percent = gc_content(ref_window)
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0,
+                   'reads_mate_unmapped': 0,
+                   'reads_mate_other_chr': 0,
+                   'reads_mate_same_strand': 0,
+                   'reads_faceaway': 0,
+                   'reads_softclipped': 0,
+                   'reads_duplicate': 0}
+            yield rec
+
+
 def write_coverage_ext_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'gc', 
                   'reads_all', 
@@ -2599,39 +2672,65 @@ def _iter_mapq_binned(Samfile samfile,
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
+
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
     reads_all = reads_mapq0 = mapq_squared_sum = 0
-    # start iterating over reads
-    while True:
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end: # end of bin, yield record
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all,
+                   'reads_mapq0': reads_mapq0,
+                   'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
+            yield rec
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            reads_all = reads_mapq0 = mapq_squared_sum = 0
+        # increment counters
+        reads_all += 1
+        mapq = b.core.qual
+        mapq_squared = mapq**2
+        mapq_squared_sum += mapq_squared
+        if mapq == 0:
+            reads_mapq0 += 1
+        # move iterator on
         it.cnext()
-        if it.retval > 0:
-            if b.core.pos > bin_end: # end of bin, yield record
-                # yield record for bin
-                pos = bin_start + window_offset
-                if one_based:
-                    pos += 1
-                rec = {'chrom': chrom, 'pos': pos, 
-                       'reads_all': reads_all, 
-                       'reads_mapq0': reads_mapq0,
-                       'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
-                yield rec
-                # start new bin
-                bin_start = bin_end
-                bin_end = bin_start + window_size
-                reads_all = reads_mapq0 = mapq_squared_sum = 0
-            # increment counters
-            reads_all += 1
-            mapq = b.core.qual
-            mapq_squared = mapq**2
-            mapq_squared_sum += mapq_squared
-            if mapq == 0:
-                reads_mapq0 += 1
-        else:
-            raise StopIteration
-        
-    
+
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'reads_all': reads_all,
+           'reads_mapq0': reads_mapq0,
+           'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': 0,
+                   'reads_mapq0': 0,
+                   'rms_mapq': 0}
+            yield rec
+
+
 def write_mapq_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'reads_all', 'reads_mapq0', 'rms_mapq')
     write_stats(stat_mapq_binned, fieldnames, *args, **kwargs)
@@ -2682,56 +2781,85 @@ def _iter_alignment_binned(Samfile samfile,
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
+
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
     c = Counter()
-    # start iterating over reads
-    while True:
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end:  # end of bin, yield record
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
+                   'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
+                   'bases_all': M + I + S + EQ + X}
+            yield rec
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            reads_all = M = I = D = N = S = H = P = EQ = X = 0
+        # increment counters
+        cigar_p = bam1_cigar(b)
+        cigar = list()
+        for k in range(b.core.n_cigar):
+            op = cigar_p[k] & BAM_CIGAR_MASK
+            l = cigar_p[k] >> BAM_CIGAR_SHIFT
+            cigar.append((op, l))
+            if op == BAM_CMATCH:
+                M += l
+            elif op == BAM_CINS:
+                I += l
+            elif op == BAM_CDEL:
+                D += l
+            elif op == BAM_CREF_SKIP:
+                N += l
+            elif op == BAM_CSOFT_CLIP:
+                S += l
+            elif op == BAM_CHARD_CLIP:
+                H += l
+            elif op == BAM_CPAD:
+                P += l
+            elif op == BAM_CEQUAL:
+                EQ += l
+            elif op == BAM_CDIFF:
+                X += l
+        reads_all += 1
+        # move iterator on
         it.cnext()
-        if it.retval > 0:
-            if b.core.pos > bin_end: # end of bin, yield record
-                # yield record for bin
-                pos = bin_start + window_offset
-                if one_based:
-                    pos += 1
-                rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
-                       'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
-                       'bases_all': M + I + S + EQ + X}
-                yield rec
-                # start new bin
-                bin_start = bin_end
-                bin_end = bin_start + window_size
-                reads_all = M = I = D = N = S = H = P = EQ = X = 0
-            # increment counters
-            cigar_p = bam1_cigar(b)
-            cigar = list()
-            for k in range(b.core.n_cigar):
-                op = cigar_p[k] & BAM_CIGAR_MASK
-                l = cigar_p[k] >> BAM_CIGAR_SHIFT
-                cigar.append((op, l))
-                if op == BAM_CMATCH:
-                    M += l
-                elif op == BAM_CINS:
-                    I += l
-                elif op == BAM_CDEL:
-                    D += l
-                elif op == BAM_CREF_SKIP:
-                    N += l
-                elif op == BAM_CSOFT_CLIP:
-                    S += l
-                elif op == BAM_CHARD_CLIP:
-                    H += l
-                elif op == BAM_CPAD:
-                    P += l
-                elif op == BAM_CEQUAL:
-                    EQ += l
-                elif op == BAM_CDIFF:
-                    X += l
-            reads_all += 1
-        else:
-            raise StopIteration
-        
+
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
+           'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
+           'bases_all': M + I + S + EQ + X}
+    yield rec
+    # start new bin
+    bin_start = bin_end
+    bin_end = bin_start + window_size
+    reads_all = M = I = D = N = S = H = P = EQ = X = 0
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            reads_all = M = I = D = N = S = H = P = EQ = X = 0
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
+                   'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
+                   'bases_all': M + I + S + EQ + X}
+            yield rec
+
     
 def write_alignment_binned(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'reads_all', 'bases_all', 'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X')
@@ -2795,43 +2923,74 @@ def _iter_tlen_binned(Samfile samfile,
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
+
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
-    # start iterating over reads
-    while True:
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end: # end of bin, yield record
+            # yield record for bin
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all, 'reads_pp': reads_pp,
+                   'mean_tlen': _mean(tlen_sum, reads_all),
+                   'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
+                   'rms_tlen': rootmean(tlen_squared_sum, reads_all),
+                   'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+            yield rec
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
+        # increment counters
+        reads_all += 1
+        tlen = b.core.isize
+        tlen_sum += tlen
+        tlen_squared = tlen**2
+        tlen_squared_sum += tlen_squared
+        flag = b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+            tlen_pp_sum += tlen
+            tlen_pp_squared_sum += tlen_squared
+        # move iterator on
         it.cnext()
-        if it.retval > 0:
-            if b.core.pos > bin_end: # end of bin, yield record
-                # yield record for bin
-                pos = bin_start + window_offset
-                if one_based:
-                    pos += 1
-                rec = {'chrom': chrom, 'pos': pos,
-                       'reads_all': reads_all, 'reads_pp': reads_pp,
-                       'mean_tlen': _mean(tlen_sum, reads_all),
-                       'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-                       'rms_tlen': rootmean(tlen_squared_sum, reads_all),
-                       'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
-                yield rec
-                # start new bin
-                bin_start = bin_end
-                bin_end = bin_start + window_size
-                tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
-            # increment counters
-            reads_all += 1
-            tlen = b.core.isize
-            tlen_sum += tlen
-            tlen_squared = tlen**2
-            tlen_squared_sum += tlen_squared
-            flag = b.core.flag
-            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-            if is_proper_pair:
-                reads_pp += 1
-                tlen_pp_sum += tlen
-                tlen_pp_squared_sum += tlen_squared
-        else:
-            raise StopIteration
+
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'reads_all': reads_all, 'reads_pp': reads_pp,
+           'mean_tlen': _mean(tlen_sum, reads_all),
+           'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
+           'rms_tlen': rootmean(tlen_squared_sum, reads_all),
+           'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all, 'reads_pp': reads_pp,
+                   'mean_tlen': _mean(tlen_sum, reads_all),
+                   'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
+                   'rms_tlen': rootmean(tlen_squared_sum, reads_all),
+                   'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+            yield rec
 
 
 def write_tlen_binned(*args, **kwargs):

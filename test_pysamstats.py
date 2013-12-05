@@ -15,16 +15,13 @@ from nose.tools import eq_, assert_almost_equal
 import numpy as np
 from math import sqrt
 import pysamstats
+from itertools import izip_longest
 
 
-def _test(impl, refimpl):
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 1000,
-              'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
-    for e, a in zip(expected, actual):
+def _compare_iterators(expected, actual):
+    for e, a in izip_longest(expected, actual, fillvalue=None):
+        assert e is not None, ('expected value is None', e, a)
+        assert a is not None, ('actual value is None', e, a)
         for k, v in e.items():
             try:
                 if isinstance(v, float):
@@ -36,7 +33,7 @@ def _test(impl, refimpl):
                 print e
                 print a
                 raise
-        for k in a: # check no unexpected fields
+        for k in a:  # check no unexpected fields
             try:
                 assert k in e
             except:
@@ -46,26 +43,24 @@ def _test(impl, refimpl):
                 raise
 
 
-from itertools import izip_longest
+def _test(impl, refimpl):
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    _compare_iterators(expected, actual)
 
 
 def _test_withrefseq(impl, refimpl, bam_fn='fixture/test.bam', fasta_fn='fixture/ref.fa'):
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
-              'end': 1000,
+              'end': 2000,
               'one_based': False}
     expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    for e, a in izip_longest(expected, actual, fillvalue=None):
-        assert e is not None, ('expected value is None', e, a)
-        assert a is not None, ('actual value is None', e, a)
-        for k, v in e.items():
-            try:
-                eq_(v, a[k])
-            except:
-                print k
-                print e, a
-                raise
+    _compare_iterators(expected, actual)
 
 
 def normalise_coords(one_based, start, end):
@@ -320,21 +315,21 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
         N_pp = [read for read in reads_pp_nodel
                    if read.alignment.seq[read.qpos] == 'N']
         yield {'chrom': chrom, 'pos': pos, 'ref': ref,
-               'reads_all': len(reads),
-               'reads_pp':len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
-               'matches':len(matches), 'matches_fwd': len(fwd(matches)), 'matches_rev': len(rev(matches)),
-               'matches_pp':len(matches_pp), 'matches_pp_fwd': len(fwd(matches_pp)), 'matches_pp_rev': len(rev(matches_pp)),
-               'mismatches':len(mismatches), 'mismatches_fwd': len(fwd(mismatches)), 'mismatches_rev': len(rev(mismatches)),
-               'mismatches_pp':len(mismatches_pp), 'mismatches_pp_fwd': len(fwd(mismatches_pp)), 'mismatches_pp_rev': len(rev(mismatches_pp)),
-               'deletions':len(deletions), 'deletions_fwd': len(fwd(deletions)), 'deletions_rev': len(rev(deletions)),
-               'deletions_pp':len(deletions_pp), 'deletions_pp_fwd': len(fwd(deletions_pp)), 'deletions_pp_rev': len(rev(deletions_pp)),
-               'insertions':len(insertions), 'insertions_fwd': len(fwd(insertions)), 'insertions_rev': len(rev(insertions)),
-               'insertions_pp':len(insertions_pp), 'insertions_pp_fwd': len(fwd(insertions_pp)), 'insertions_pp_rev': len(rev(insertions_pp)),
-               'A':len(A), 'A_fwd': len(fwd(A)), 'A_rev': len(rev(A)), 'A_pp':len(A_pp), 'A_pp_fwd': len(fwd(A_pp)), 'A_pp_rev': len(rev(A_pp)),
-               'C':len(C), 'C_fwd': len(fwd(C)), 'C_rev': len(rev(C)), 'C_pp':len(C_pp), 'C_pp_fwd': len(fwd(C_pp)), 'C_pp_rev': len(rev(C_pp)),
-               'T':len(T), 'T_fwd': len(fwd(T)), 'T_rev': len(rev(T)), 'T_pp':len(T_pp), 'T_pp_fwd': len(fwd(T_pp)), 'T_pp_rev': len(rev(T_pp)),
-               'G':len(G), 'G_fwd': len(fwd(G)), 'G_rev': len(rev(G)), 'G_pp':len(G_pp), 'G_pp_fwd': len(fwd(G_pp)), 'G_pp_rev': len(rev(G_pp)),
-               'N':len(N), 'N_fwd': len(fwd(N)), 'N_rev': len(rev(N)), 'N_pp':len(N_pp), 'N_pp_fwd': len(fwd(N_pp)), 'N_pp_rev': len(rev(N_pp))}
+               'reads_all': len(reads), 'reads_fwd': len(fwd(reads)), 'reads_rev': len(rev(reads)),
+               'reads_pp': len(reads_pp), 'reads_pp_fwd': len(fwd(reads_pp)), 'reads_pp_rev': len(rev(reads_pp)),
+               'matches': len(matches), 'matches_fwd': len(fwd(matches)), 'matches_rev': len(rev(matches)),
+               'matches_pp': len(matches_pp), 'matches_pp_fwd': len(fwd(matches_pp)), 'matches_pp_rev': len(rev(matches_pp)),
+               'mismatches': len(mismatches), 'mismatches_fwd': len(fwd(mismatches)), 'mismatches_rev': len(rev(mismatches)),
+               'mismatches_pp': len(mismatches_pp), 'mismatches_pp_fwd': len(fwd(mismatches_pp)), 'mismatches_pp_rev': len(rev(mismatches_pp)),
+               'deletions': len(deletions), 'deletions_fwd': len(fwd(deletions)), 'deletions_rev': len(rev(deletions)),
+               'deletions_pp': len(deletions_pp), 'deletions_pp_fwd': len(fwd(deletions_pp)), 'deletions_pp_rev': len(rev(deletions_pp)),
+               'insertions': len(insertions), 'insertions_fwd': len(fwd(insertions)), 'insertions_rev': len(rev(insertions)),
+               'insertions_pp': len(insertions_pp), 'insertions_pp_fwd': len(fwd(insertions_pp)), 'insertions_pp_rev': len(rev(insertions_pp)),
+               'A': len(A), 'A_fwd': len(fwd(A)), 'A_rev': len(rev(A)), 'A_pp':len(A_pp), 'A_pp_fwd': len(fwd(A_pp)), 'A_pp_rev': len(rev(A_pp)),
+               'C': len(C), 'C_fwd': len(fwd(C)), 'C_rev': len(rev(C)), 'C_pp':len(C_pp), 'C_pp_fwd': len(fwd(C_pp)), 'C_pp_rev': len(rev(C_pp)),
+               'T': len(T), 'T_fwd': len(fwd(T)), 'T_rev': len(rev(T)), 'T_pp':len(T_pp), 'T_pp_fwd': len(fwd(T_pp)), 'T_pp_rev': len(rev(T_pp)),
+               'G': len(G), 'G_fwd': len(fwd(G)), 'G_rev': len(rev(G)), 'G_pp':len(G_pp), 'G_pp_fwd': len(fwd(G_pp)), 'G_pp_rev': len(rev(G_pp)),
+               'N': len(N), 'N_fwd': len(fwd(N)), 'N_rev': len(rev(N)), 'N_pp':len(N_pp), 'N_pp_fwd': len(fwd(N_pp)), 'N_pp_rev': len(rev(N_pp))}
 
 
 def test_stat_variation_strand():
@@ -880,9 +875,10 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
     bin_start = start
     bin_end = bin_start + window_size
     reads_all = reads_pp = 0
+
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
-        if aln.pos > bin_end: # end of bin
+        while aln.pos > bin_end:  # end of bin
             nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
             gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
             pos = bin_start + window_offset
@@ -897,6 +893,33 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
         reads_all += 1
         if aln.is_proper_pair:
             reads_pp += 1
+
+    # deal with last non-empty bin
+    nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
+    gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            reads_all = reads_pp = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
+            gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+            yield rec
+
+
             
         
 def test_stat_coverage_binned():
@@ -927,9 +950,10 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
     bin_start = start
     bin_end = bin_start + window_size
     reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
-        if aln.pos > bin_end: # end of bin
+        while aln.pos > bin_end:  # end of bin
             nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
             gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
             pos = bin_start + window_offset
@@ -966,6 +990,47 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
         elif ((aln.is_reverse and aln.tlen > 0) # mapped to reverse strand but leftmost
               or (not aln.is_reverse and aln.tlen < 0)): # mapped to fwd strand but rightmost
             reads_faceaway += 1
+
+    # deal with last non-empty bin
+    nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
+    gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'gc': gc_percent,
+           'reads_all': reads_all,
+           'reads_pp': reads_pp,
+           'reads_mate_unmapped': reads_mate_unmapped,
+           'reads_mate_other_chr': reads_mate_other_chr,
+           'reads_mate_same_strand': reads_mate_same_strand,
+           'reads_faceaway': reads_faceaway,
+           'reads_softclipped': reads_softclipped,
+           'reads_duplicate': reads_duplicate}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
+            gc_percent = int(round((nc['g'] + nc['c']) * 100. / window_size))
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent,
+                   'reads_all': reads_all,
+                   'reads_pp': reads_pp,
+                   'reads_mate_unmapped': reads_mate_unmapped,
+                   'reads_mate_other_chr': reads_mate_other_chr,
+                   'reads_mate_same_strand': reads_mate_same_strand,
+                   'reads_faceaway': reads_faceaway,
+                   'reads_softclipped': reads_softclipped,
+                   'reads_duplicate': reads_duplicate}
+            yield rec
             
         
 def test_stat_coverage_ext_binned():
@@ -996,16 +1061,17 @@ def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window
     bin_start = start
     bin_end = bin_start + window_size
     reads_all = reads_mapq0 = mapq_square_sum = 0
+
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
-        if aln.pos > bin_end: # end of bin
+        while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos, 
                    'reads_all': reads_all, 
                    'reads_mapq0': reads_mapq0,
-                   'rms_mapq': int(round(sqrt(mapq_square_sum * 1. / reads_all)))}
+                   'rms_mapq': rootmean(mapq_square_sum, reads_all)}
             yield rec
             reads_all = reads_mapq0 = mapq_square_sum = 0
             bin_start = bin_end
@@ -1014,7 +1080,32 @@ def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window
         mapq_square_sum += aln.mapq**2
         if aln.mapq == 0:
             reads_mapq0 += 1
-            
+
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'reads_all': reads_all,
+           'reads_mapq0': reads_mapq0,
+           'rms_mapq': rootmean(mapq_square_sum, reads_all)}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            reads_all = reads_mapq0 = mapq_square_sum = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all,
+                   'reads_mapq0': reads_mapq0,
+                   'rms_mapq': rootmean(mapq_square_sum, reads_all)}
+            yield rec
+
         
 def test_stat_mapq_binned():
     _test(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
@@ -1044,9 +1135,10 @@ def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, w
     bin_end = bin_start + window_size
     c = Counter()
     reads_all = 0
+
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
-        if aln.pos > bin_end: # end of bin
+        while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
@@ -1069,7 +1161,35 @@ def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, w
         tags = dict(aln.tags)
 #        if 'NM' in tags:
 #            c['NM'] += tags['NM']
-            
+
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
+    for i in range(len(CIGAR)):
+        rec[CIGAR[i]] = c[i]
+#            rec['NM'] = c['NM']
+    rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            c = Counter()
+            reads_all = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
+            for i in range(len(CIGAR)):
+                rec[CIGAR[i]] = c[i]
+        #            rec['NM'] = c['NM']
+            rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
+            yield rec
+
         
 def test_stat_alignment_binned():
     _test(pysamstats.stat_alignment_binned, stat_alignment_binned_refimpl)
@@ -1097,9 +1217,10 @@ def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window
     reads_all = reads_pp = 0
     tlens = []
     tlens_pp = []
+
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
-        if aln.pos > bin_end: # end of bin
+        while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
@@ -1123,11 +1244,59 @@ def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window
             reads_pp += 1
             tlens_pp.append(aln.tlen)
 
+    # deal with last non-empty bin
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'reads_all': reads_all,
+           'reads_pp': reads_pp,
+           'mean_tlen': mean(tlens),
+           'rms_tlen': rms(tlens),
+           'mean_tlen_pp': mean(tlens_pp),
+           'rms_tlen_pp': rms(tlens_pp),
+           }
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            reads_all = reads_pp = 0
+            tlens = []
+            tlens_pp = []
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'reads_all': reads_all,
+                   'reads_pp': reads_pp,
+                   'mean_tlen': mean(tlens),
+                   'rms_tlen': rms(tlens),
+                   'mean_tlen_pp': mean(tlens_pp),
+                   'rms_tlen_pp': rms(tlens_pp),
+                   }
+            yield rec
+
 
 def test_stat_tlen_binned():
     _test(pysamstats.stat_tlen_binned, stat_tlen_binned_refimpl)
 
 
+def rootmean(sqsum, count):
+    if count > 0:
+        return int(round(sqrt(sqsum * 1. / count)))
+    else:
+        return 0
 
 
-        
+def _mean(sum, count):
+    if count > 0:
+        return int(round(sum * 1. / count))
+    else:
+        return 0
+
+
+
+
