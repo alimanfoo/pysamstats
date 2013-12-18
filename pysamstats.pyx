@@ -2856,6 +2856,7 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
     cdef int reads_all, reads_pp
     cdef bam1_t * b
     cdef uint32_t flag
+    cdef bint is_unmapped
     cdef bint is_proper_pair
     cdef IteratorRowRegion it
     start, end = normalise_coords(start, end, one_based)
@@ -2888,11 +2889,13 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile,
             bin_end = bin_start + window_size
             reads_all = reads_pp = 0
         # increment counters
-        reads_all += 1
         flag = b.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            reads_all += 1
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                reads_pp += 1
         # move iterator on
         it.cnext()
 
@@ -2970,7 +2973,8 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, reads_mate_same_strand, reads_faceaway, reads_softclipped, reads_duplicate
     cdef bam1_t * b
     cdef uint32_t flag
-    cdef bint is_reverse 
+    cdef bint is_unmapped
+    cdef bint is_reverse
     cdef bint is_proper_pair 
     cdef bint is_duplicate
     cdef bint mate_is_unmappped 
@@ -3014,28 +3018,30 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
             bin_end = bin_start + window_size
             reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
         # increment counters
-        reads_all += 1
         flag = b.core.flag
-        is_reverse = <bint>(flag & BAM_FREVERSE)
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        is_duplicate = <bint>(flag & BAM_FDUP)
-        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-        tlen = b.core.isize
-        if is_duplicate:
-            reads_duplicate += 1
-        if is_proper_pair:
-            reads_pp += 1
-        if mate_is_unmapped:
-            reads_mate_unmapped += 1
-        elif b.core.tid != b.core.mtid:
-            reads_mate_other_chr += 1
-        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
-            reads_mate_same_strand += 1
-        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-            reads_faceaway += 1
-        if is_softclipped(b):
-            reads_softclipped += 1
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            reads_all += 1
+            is_reverse = <bint>(flag & BAM_FREVERSE)
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            is_duplicate = <bint>(flag & BAM_FDUP)
+            mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+            mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+            tlen = b.core.isize
+            if is_duplicate:
+                reads_duplicate += 1
+            if is_proper_pair:
+                reads_pp += 1
+            if mate_is_unmapped:
+                reads_mate_unmapped += 1
+            elif b.core.tid != b.core.mtid:
+                reads_mate_other_chr += 1
+            elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+                reads_mate_same_strand += 1
+            elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+                reads_faceaway += 1
+            if is_softclipped(b):
+                reads_softclipped += 1
         # move iterator on
         it.cnext()
 
@@ -3138,6 +3144,7 @@ def _iter_mapq_binned(Samfile samfile,
     cdef int reads_all, reads_mapq0
     cdef bam1_t * b
     cdef uint32_t flag
+    cdef bint is_unmapped
     cdef IteratorRowRegion it
     cdef uint64_t mapq
     cdef uint64_t mapq_squared
@@ -3170,12 +3177,15 @@ def _iter_mapq_binned(Samfile samfile,
             bin_end = bin_start + window_size
             reads_all = reads_mapq0 = mapq_squared_sum = 0
         # increment counters
-        reads_all += 1
-        mapq = b.core.qual
-        mapq_squared = mapq**2
-        mapq_squared_sum += mapq_squared
-        if mapq == 0:
-            reads_mapq0 += 1
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            reads_all += 1
+            mapq = b.core.qual
+            mapq_squared = mapq**2
+            mapq_squared_sum += mapq_squared
+            if mapq == 0:
+                reads_mapq0 += 1
         # move iterator on
         it.cnext()
 
@@ -3245,6 +3255,7 @@ def _iter_alignment_binned(Samfile samfile,
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef bam1_t * b
     cdef uint32_t flag
+    cdef bint is_unmapped
     cdef bint is_proper_pair
     cdef IteratorRowRegion it
     cdef Py_ssize_t i # loop index
@@ -3278,31 +3289,34 @@ def _iter_alignment_binned(Samfile samfile,
             bin_end = bin_start + window_size
             reads_all = M = I = D = N = S = H = P = EQ = X = 0
         # increment counters
-        cigar_p = bam1_cigar(b)
-        cigar = list()
-        for k in range(b.core.n_cigar):
-            op = cigar_p[k] & BAM_CIGAR_MASK
-            l = cigar_p[k] >> BAM_CIGAR_SHIFT
-            cigar.append((op, l))
-            if op == BAM_CMATCH:
-                M += l
-            elif op == BAM_CINS:
-                I += l
-            elif op == BAM_CDEL:
-                D += l
-            elif op == BAM_CREF_SKIP:
-                N += l
-            elif op == BAM_CSOFT_CLIP:
-                S += l
-            elif op == BAM_CHARD_CLIP:
-                H += l
-            elif op == BAM_CPAD:
-                P += l
-            elif op == BAM_CEQUAL:
-                EQ += l
-            elif op == BAM_CDIFF:
-                X += l
-        reads_all += 1
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            cigar_p = bam1_cigar(b)
+            cigar = list()
+            for k in range(b.core.n_cigar):
+                op = cigar_p[k] & BAM_CIGAR_MASK
+                l = cigar_p[k] >> BAM_CIGAR_SHIFT
+                cigar.append((op, l))
+                if op == BAM_CMATCH:
+                    M += l
+                elif op == BAM_CINS:
+                    I += l
+                elif op == BAM_CDEL:
+                    D += l
+                elif op == BAM_CREF_SKIP:
+                    N += l
+                elif op == BAM_CSOFT_CLIP:
+                    S += l
+                elif op == BAM_CHARD_CLIP:
+                    H += l
+                elif op == BAM_CPAD:
+                    P += l
+                elif op == BAM_CEQUAL:
+                    EQ += l
+                elif op == BAM_CDIFF:
+                    X += l
+            reads_all += 1
         # move iterator on
         it.cnext()
 
@@ -3385,6 +3399,7 @@ def _iter_tlen_binned(Samfile samfile,
     cdef int reads_pp = 0
     cdef bam1_t * b
     cdef uint32_t flag
+    cdef bint is_unmapped
     cdef bint is_proper_pair
     cdef IteratorRowRegion it
     cdef int64_t tlen
@@ -3422,17 +3437,19 @@ def _iter_tlen_binned(Samfile samfile,
             bin_end = bin_start + window_size
             tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
         # increment counters
-        reads_all += 1
-        tlen = b.core.isize
-        tlen_sum += tlen
-        tlen_squared = tlen**2
-        tlen_squared_sum += tlen_squared
         flag = b.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
-            tlen_pp_sum += tlen
-            tlen_pp_squared_sum += tlen_squared
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            reads_all += 1
+            tlen = b.core.isize
+            tlen_sum += tlen
+            tlen_squared = tlen**2
+            tlen_squared_sum += tlen_squared
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                reads_pp += 1
+                tlen_pp_sum += tlen
+                tlen_pp_squared_sum += tlen_squared
         # move iterator on
         it.cnext()
 

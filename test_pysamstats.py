@@ -888,9 +888,10 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, wind
             reads_all = reads_pp = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-        reads_all += 1
-        if aln.is_proper_pair:
-            reads_pp += 1
+        if not aln.is_unmapped:
+            reads_all += 1
+            if aln.is_proper_pair:
+                reads_pp += 1
 
     # deal with last non-empty bin
     nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
@@ -969,23 +970,25 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, 
             reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-        reads_all += 1
 #        print aln, aln.cigar, repr(aln.cigarstring)
-        if aln.is_proper_pair:
-            reads_pp += 1
-        if aln.is_duplicate:
-            reads_duplicate += 1
-        if aln.cigar is not None and any((op[0] == 4) for op in aln.cigar):
-            reads_softclipped += 1
-        if aln.mate_is_unmapped:
-            reads_mate_unmapped += 1
-        elif aln.tid != aln.rnext:
-            reads_mate_other_chr += 1
-        elif aln.is_reverse == aln.mate_is_reverse:
-            reads_mate_same_strand += 1
-        elif ((aln.is_reverse and aln.tlen > 0) # mapped to reverse strand but leftmost
-              or (not aln.is_reverse and aln.tlen < 0)): # mapped to fwd strand but rightmost
-            reads_faceaway += 1
+        if not aln.is_unmapped:
+            reads_all += 1
+            if aln.is_proper_pair:
+                reads_pp += 1
+            if aln.is_duplicate:
+                reads_duplicate += 1
+            if aln.cigar is not None and any((op[0] == 4) for op in aln.cigar):
+                reads_softclipped += 1
+            # should be mutually exclusive
+            if aln.mate_is_unmapped:
+                reads_mate_unmapped += 1
+            elif aln.tid != aln.rnext:
+                reads_mate_other_chr += 1
+            elif aln.is_reverse == aln.mate_is_reverse:
+                reads_mate_same_strand += 1
+            elif ((aln.is_reverse and aln.tlen > 0) # mapped to reverse strand but leftmost
+                  or (not aln.is_reverse and aln.tlen < 0)): # mapped to fwd strand but rightmost
+                reads_faceaway += 1
 
     # deal with last non-empty bin
     nc = Counter(fastafile.fetch(chrom, bin_start, bin_end).lower())
@@ -1072,10 +1075,11 @@ def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window
             reads_all = reads_mapq0 = mapq_square_sum = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-        reads_all += 1
-        mapq_square_sum += aln.mapq**2
-        if aln.mapq == 0:
-            reads_mapq0 += 1
+        if not aln.is_unmapped:
+            reads_all += 1
+            mapq_square_sum += aln.mapq**2
+            if aln.mapq == 0:
+                reads_mapq0 += 1
 
     # deal with last non-empty bin
     pos = bin_start + window_offset
@@ -1149,14 +1153,15 @@ def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, w
             bin_start = bin_end
             bin_end = bin_start + window_size
 #        print aln.cigar
-        reads_all += 1
-        if aln.cigar is not None:
-            for op, l in aln.cigar:
-                c[op] += l
-        # add edit distance
-        tags = dict(aln.tags)
-#        if 'NM' in tags:
-#            c['NM'] += tags['NM']
+        if not aln.is_unmapped:
+            reads_all += 1
+            if aln.cigar is not None:
+                for op, l in aln.cigar:
+                    c[op] += l
+            # add edit distance
+    #        tags = dict(aln.tags)
+    #        if 'NM' in tags:
+    #            c['NM'] += tags['NM']
 
     # deal with last non-empty bin
     pos = bin_start + window_offset
@@ -1234,11 +1239,12 @@ def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window
             tlens_pp = []
             bin_start = bin_end
             bin_end = bin_start + window_size
-        reads_all += 1
-        tlens.append(aln.tlen)
-        if aln.is_proper_pair:
-            reads_pp += 1
-            tlens_pp.append(aln.tlen)
+        if not aln.is_unmapped:
+            reads_all += 1
+            tlens.append(aln.tlen)
+            if aln.is_proper_pair:
+                reads_pp += 1
+                tlens_pp.append(aln.tlen)
 
     # deal with last non-empty bin
     pos = bin_start + window_offset
