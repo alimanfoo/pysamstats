@@ -10,4 +10,4 @@ git push --tags
 python setup.py register sdist upload
 # increment version and add -SNAPSHOT 
 # git commit and push
-git commit -a -m 'increment version'; git push
+#git commit -a -m 'increment version'; git push
