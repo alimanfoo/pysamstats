@@ -733,37 +733,6 @@ def test_stat_baseq_ext_strand():
     _test_withrefseq(pysamstats.stat_baseq_ext_strand, stat_baseq_ext_strand_refimpl)
 
 
-from bisect import bisect_left
-
-
-def stat_coverage_normed_refimpl(samfile, chrom=None, start=None, end=None, one_based=False):
-    start, end = normalise_coords(one_based, start, end)
-    
-    # first need to load the coverage data into an array, to calculate the median
-    it = (col.n for col in samfile.pileup(reference=chrom, start=start, end=end))
-    a = np.fromiter(it, dtype='u4')
-    dp_mean = np.mean(a)
-    dp_median = np.median(a)
-    dp_percentiles = [np.percentile(a, q) for q in range(101)]
-    
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
-        chrom = samfile.getrname(col.tid)
-        pos = col.pos + 1 if one_based else col.pos
-        dp = col.n
-        dp_normed_median = dp * 1. / dp_median
-        dp_normed_mean = dp * 1. / dp_mean
-        dp_percentile = bisect_left(dp_percentiles, dp)
-        yield {'chrom': chrom, 'pos': pos, 
-               'reads_all': col.n, 
-               'dp_normed_median': dp_normed_median,
-               'dp_normed_mean': dp_normed_mean,
-               'dp_percentile': dp_percentile}
-        
-
-def test_stat_coverage_normed():
-    _test(pysamstats.stat_coverage_normed, stat_coverage_normed_refimpl)
-
-
 from collections import Counter
 
 
@@ -802,52 +771,6 @@ def test_stat_coverage_gc():
 
 def test_stat_coverage_gc_uppercase_fasta():
     _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl, fasta_fn='fixture/ref.upper.fa')
-
-
-def stat_coverage_normed_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False):
-    start, end = normalise_coords(one_based, start, end)
-    
-    # first need to load the coverage data into an array, to calculate the median
-    recs = stat_coverage_gc_refimpl(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
-    it = ((rec['reads_all'], rec['gc']) for rec in recs)
-    a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
-    dp_mean = np.mean(a.dp)
-    dp_median = np.median(a.dp)
-    dp_percentiles = [np.percentile(a.dp, q) for q in range(101)]    
-    dp_mean_bygc = dict()
-    dp_median_bygc = dict()
-    dp_percentiles_bygc = dict()
-    for gc in range(101):
-        flt = a.gc == gc
-        if np.count_nonzero(flt) > 0:
-            b = a[flt].dp
-            dp_mean_bygc[gc] = np.mean(b)
-            dp_median_bygc[gc] = np.median(b)
-            dp_percentiles_bygc[gc] = [np.percentile(b, q) for q in range(101)]
-    
-    # second pass
-    recs = stat_coverage_gc_refimpl(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based)
-    for rec in recs:
-        dp = rec['reads_all']
-        gc = rec['gc']
-        dp_normed_median = dp * 1. / dp_median
-        dp_normed_mean = dp * 1. / dp_mean
-        dp_percentile = bisect_left(dp_percentiles, dp)
-        dp_normed_median_bygc = dp * 1. / dp_median_bygc[gc]
-        dp_normed_mean_bygc = dp * 1. / dp_mean_bygc[gc]
-        dp_percentile_bygc = bisect_left(dp_percentiles_bygc[gc], dp)
-        rec['dp_normed_median'] = dp_normed_median
-        rec['dp_normed_mean'] = dp_normed_mean
-        rec['dp_percentile'] = dp_percentile
-        rec['dp_normed_median_gc'] = dp_normed_median_bygc
-        rec['dp_normed_mean_gc'] = dp_normed_mean_bygc
-        rec['dp_percentile_gc'] = dp_percentile_bygc
-        del rec['reads_pp']
-        yield rec
-        
-
-def test_stat_coverage_normed_gc():
-    _test_withrefseq(pysamstats.stat_coverage_normed_gc, stat_coverage_normed_gc_refimpl)
 
 
 from itertools import chain
@@ -1316,8 +1239,6 @@ pileup_functions = [
     (pysamstats.load_baseq_ext, 1),
     (pysamstats.load_baseq_ext_strand, 1),
     (pysamstats.load_coverage_gc, 1),
-    (pysamstats.load_coverage_normed, 0),
-    (pysamstats.load_coverage_normed_gc, 1),
 ]
 
 
@@ -1339,8 +1260,8 @@ def test_pileup_truncate():
             a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_notrunc)
         else:
             a = f(Samfile('fixture/test.bam'), **kwargs_notrunc)
-        eq_(1925, a['pos'][0])
-        eq_(2174, a['pos'][-1])
+        eq_(1952, a['pos'][0])
+        eq_(2154, a['pos'][-1])
         # test truncate
         if needs_ref:
             a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_trunc)
@@ -1404,10 +1325,10 @@ def test_pileup_pad_wg():
             a = f(Samfile('fixture/test.bam'), **kwargs_pad)
         assert sorted(set(a['chrom'])) == ['Pf3D7_01_v3', 'Pf3D7_02_v3', 'Pf3D7_03_v3']
         eq_(0, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][0])
-        eq_(99999, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][-1])
+        eq_(50000, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][-1])
         eq_(0, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][0])
-        eq_(149999, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
+        eq_(60000, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
         eq_(0, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][0])
-        eq_(199999, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
+        eq_(70000, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
 
 

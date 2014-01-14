@@ -2618,87 +2618,7 @@ def load_baseq_ext_strand(*args, **kwargs):
                      ('rms_baseq_mismatches_pp', 'i4'), ('rms_baseq_mismatches_pp_fwd', 'i4'), ('rms_baseq_mismatches_pp_rev', 'i4'),
                     ]
     return load_stats(stat_baseq_ext_strand, default_dtype, *args, **kwargs)
-        
-    
-##############################
-# NORMED COVERAGE STATISTICS #
-##############################
 
-
-from bisect import bisect_left
-
-
-def construct_rec_coverage_normed_pad(chrom, pos, one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos,
-            'reads_all': 0,
-            'dp_normed_median': 0,
-            'dp_normed_mean': 0,
-            'dp_percentile': 0}
-
-
-def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-                         **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    
-    # first need to load the coverage data into an array, to calculate the median
-    a = load_coverage(samfile, fields=['pos', 'reads_all'], chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, pad=pad)
-    dp_mean = np.mean(a.reads_all)
-    dp_median = np.median(a.reads_all)
-    dp_percentiles = [np.percentile(a.reads_all, q) for q in range(101)]
-
-    def construct_rec_coverage_normed(Samfile samfile, PileupProxy col, bint one_based=False):
-        chrom = samfile.getrname(col.tid)
-        pos = col.pos + 1 if one_based else col.pos
-        dp = col.n
-        dp_normed_median = dp * 1. / dp_median
-        dp_normed_mean = dp * 1. / dp_mean
-        dp_percentile = bisect_left(dp_percentiles, dp)
-        return {'chrom': chrom, 'pos': pos,
-                'reads_all': col.n,
-                'dp_normed_median': dp_normed_median,
-                'dp_normed_mean': dp_normed_mean,
-                'dp_percentile': dp_percentile}
-
-    # then iterate again to generate stats
-    return stat_pileup(construct_rec_coverage_normed, construct_rec_coverage_normed_pad,
-                       samfile, chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
-
-    # for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-    #     chrom = samfile.getrname(col.tid)
-    #     pos = col.pos + 1 if one_based else col.pos
-    #     dp = col.n
-    #     dp_normed_median = dp * 1. / dp_median
-    #     dp_normed_mean = dp * 1. / dp_mean
-    #     dp_percentile = bisect_left(dp_percentiles, dp)
-    #     yield {'chrom': chrom, 'pos': pos,
-    #            'reads_all': col.n,
-    #            'dp_normed_median': dp_normed_median,
-    #            'dp_normed_mean': dp_normed_mean,
-    #            'dp_percentile': dp_percentile}
-        
-        
-def write_coverage_normed(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 
-                  'dp_normed_median', 
-                  'dp_normed_mean',
-                  'dp_percentile'
-                  )
-    write_stats(stat_coverage_normed, fieldnames, *args, **kwargs)
-    
-    
-def load_coverage_normed(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), 
-                     ('dp_normed_median', 'f4'), 
-                     ('dp_normed_mean', 'f4'),
-                     ('dp_percentile', 'u1')
-                    ]
-    return load_stats(stat_coverage_normed, default_dtype, *args, **kwargs)
-        
     
 #################################################
 # BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
@@ -2753,26 +2673,6 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
                                samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based,
                                truncate=truncate, pad=pad, **kwargs)
 
-    # for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate):
-    #
-    #     chrom = samfile.getrname(col.tid)
-    #
-    #     if col.pos <= window_offset:
-    #         continue # until we get a bit further into the chromosome
-    #
-    #     ref_window_start = col.pos - window_offset
-    #     ref_window_end = ref_window_start + window_size
-    #     ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
-    #
-    #     if len(ref_window) == 0:
-    #         break # because we've hit the end of the chromosome
-    #
-    #     gc_percent = gc_content(ref_window)
-    #
-    #     rec = construct_rec_coverage(samfile, col, one_based)
-    #     rec['gc'] = gc_percent
-    #     yield rec
-        
         
 def write_coverage_gc(*args, **kwargs):
     fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
@@ -2787,89 +2687,6 @@ def load_coverage_gc(*args, **kwargs):
                      ('reads_pp', 'i4'), 
                     ]
     return load_stats(stat_coverage_gc, default_dtype, *args, **kwargs)
-        
-    
-####################################
-# COVERAGE STATISTICS NORMED BY GC #
-####################################
-
-
-def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile, 
-                            chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-                            window_size=300, window_offset=None, **kwargs):
-    start, end = normalise_coords(start, end, one_based)
-    if window_offset is None:
-        window_offset = window_size / 2
-    
-    # first need to load the coverage data into an array, to calculate the median
-    a = load_coverage_gc(samfile, fafile, fields=['gc', 'reads_all'], chrom=chrom, start=start, end=end,
-                         one_based=one_based, truncate=truncate, pad=pad,
-                         window_size=window_size, window_offset=window_offset)
-    dp_mean = np.mean(a.reads_all)
-    dp_median = np.median(a.reads_all)
-    dp_percentiles = [np.percentile(a.reads_all, q) for q in range(101)]
-    dp_mean_bygc = dict()
-    dp_median_bygc = dict()
-    dp_percentiles_bygc = dict()
-    for gc in range(101):
-        flt = a.gc == gc
-        if np.count_nonzero(flt) > 0:
-            b = a[flt].reads_all
-            dp_mean_bygc[gc] = np.mean(b)
-            dp_median_bygc[gc] = np.median(b)
-            dp_percentiles_bygc[gc] = [np.percentile(b, q) for q in range(101)]
-    
-    # second pass
-    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, truncate=truncate, pad=pad,
-                            window_size=window_size, window_offset=window_offset)
-    for rec in recs:
-        dp = rec['reads_all']
-        gc = rec['gc']
-        dp_normed_median = dp * 1. / dp_median
-        dp_normed_mean = dp * 1. / dp_mean
-        dp_percentile = bisect_left(dp_percentiles, dp)
-        dp_normed_median_bygc = dp * 1. / dp_median_bygc[gc]
-        dp_normed_mean_bygc = dp * 1. / dp_mean_bygc[gc]
-        dp_percentile_bygc = bisect_left(dp_percentiles_bygc[gc], dp)
-        rec['dp_normed_median'] = dp_normed_median
-        rec['dp_normed_mean'] = dp_normed_mean
-        rec['dp_percentile'] = dp_percentile
-        rec['dp_normed_median_gc'] = dp_normed_median_bygc
-        rec['dp_normed_mean_gc'] = dp_normed_mean_bygc
-        rec['dp_percentile_gc'] = dp_percentile_bygc
-        del rec['reads_pp']
-        yield rec
-        
-        
-def write_coverage_normed_gc(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'gc',
-                  'reads_all', #'reads_pp',
-                  'dp_normed_median', 
-                  'dp_normed_mean',
-                  'dp_percentile',
-                  'dp_normed_median_gc',
-                  'dp_normed_mean_gc',
-                  'dp_percentile_gc')
-    write_stats(stat_coverage_normed_gc, fieldnames, *args, **kwargs)
-    
-
-def load_coverage_normed_gc(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('gc', 'u1'),
-                      ('reads_all', 'i4'), #('reads_pp', 'i4'),
-                      ('dp_normed_median', 'f4'), 
-                      ('dp_normed_mean', 'f4'),
-                      ('dp_percentile', 'u1'),
-                      ('dp_normed_median_gc', 'f4'),
-                      ('dp_normed_mean_gc', 'f4'),
-                      ('dp_percentile_gc', 'u1')
-                    ]
-    return load_stats(stat_coverage_normed_gc, default_dtype, *args, **kwargs)
-        
-    
-from itertools import chain
 
 
 ###################
@@ -2883,8 +2700,8 @@ def stat_coverage_binned(Samfile samfile, Fastafile fastafile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
-                     for chrom in sorted(samfile.references)])
+        it = itertools.chain(*[_iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset)
+                               for chrom in sorted(samfile.references)])
     else:
         it = _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
     return it
@@ -3013,8 +2830,8 @@ def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset) 
-                     for chrom in sorted(samfile.references)])
+        it = itertools.chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset)
+                               for chrom in sorted(samfile.references)])
     else:
         it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
     return it
@@ -3184,8 +3001,8 @@ def stat_mapq_binned(Samfile samfile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
-                     for chrom in sorted(samfile.references)])
+        it = itertools.chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
+                               for chrom in sorted(samfile.references)])
     else:
         it = _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
     return it
@@ -3296,8 +3113,8 @@ def stat_alignment_binned(Samfile samfile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_alignment_binned(samfile, chrom, None, None, one_based, window_size, window_offset) 
-                     for chrom in sorted(samfile.references)])
+        it = itertools.chain(*[_iter_alignment_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
+                               for chrom in sorted(samfile.references)])
     else:
         it = _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
     return it
@@ -3438,8 +3255,8 @@ def stat_tlen_binned(Samfile samfile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
-                     for chrom in sorted(samfile.references)])
+        it = itertools.chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
+                               for chrom in sorted(samfile.references)])
     else:
         it = _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
     return it
@@ -3658,18 +3475,6 @@ cdef inline bint is_softclipped(bam1_t * aln):
         if op == BAM_CSOFT_CLIP:
             return 1
     return 0
-
-
-#cdef inline object cigar_counter(bam1_t * aln):
-#    # TODO optimise here?
-#    cdef int k
-#    cigar = []
-#    cigar_p = bam1_cigar(aln);
-#    for k from 0 <= k < aln.core.n_cigar:
-#        op = cigar_p[k] & BAM_CIGAR_MASK
-#        l = cigar_p[k] >> BAM_CIGAR_SHIFT
-#        cigar.append((op, l))
-#    return Counter(dict(cigar))    
 
 
 cdef inline object get_seq_base(bam1_t *src, uint32_t k):
