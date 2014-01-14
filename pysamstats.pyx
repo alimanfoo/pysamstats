@@ -7,6 +7,7 @@ __version__ = '0.12-SNAPSHOT'
 
 
 import sys
+import itertools
 import numpy as np
 cimport numpy as np
 import time
@@ -110,29 +111,113 @@ cpdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
 
 
 def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+    if pad:
+        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+    else:
+        return stat_pileup_default(frec, samfile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+
+
+def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+    start, end = normalise_coords(start, end, one_based)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    for col in it:
+        yield frec(samfile, col, one_based)
+
+
+def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
     cdef PileupProxy col
     cdef int curpos
     start, end = normalise_coords(start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
 
-    if pad:
-        curpos = start
-        curchr = chrom
-        for col in it:
-            curchr = samfile.getrname(col.tid)
-            while curpos < col.pos:
-                yield fpad(curchr, curpos, one_based)
-                curpos += 1
-            yield frec(samfile, col, one_based)
-            curpos = col.pos + 1
-        if chrom is not None and end is not None:
-            while curpos < end:
-                yield fpad(chrom, curpos, one_based)
-                curpos += 1
-
+    if chrom is not None:
+        assert chrom in samfile.references, 'chromosome not in SAM file references'
+        it = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start, end=end, one_based=one_based,
+                                      truncate=truncate, **kwargs)
     else:
-        for col in it:
-            yield frec(samfile, col, one_based)
+        its = list()
+        for chrom in samfile.references:
+            itc = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=None, end=None, one_based=one_based,
+                                           truncate=truncate, **kwargs)
+            its.append(itc)
+        it = itertools.chain(*its)
+    return it
+
+
+def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None, end=None, one_based=False, truncate=False, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
+    start, end = normalise_coords(start, end, one_based)
+    if start is None:  # pad from start of chromosome
+        start = 0
+    if end is None:  # pad to end of chromosome
+        end = samfile.lengths[samfile.references.index(chrom)]
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    curpos = start
+    for col in it:
+        while curpos < col.pos:
+            yield fpad(chrom, curpos, one_based)
+            curpos += 1
+        yield frec(samfile, col, one_based)
+        curpos = col.pos + 1
+    while curpos < end:
+        yield fpad(chrom, curpos, one_based)
+        curpos += 1
+
+
+def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
+                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                        **kwargs):
+    if pad:
+        return stat_pileup_withref_padded(frec, fpad, samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+    else:
+        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+
+
+def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+    start, end = normalise_coords(start, end, one_based)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    for col in it:
+        yield frec(samfile, fafile, col, one_based)
+
+
+def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
+    start, end = normalise_coords(start, end, one_based)
+
+    if chrom is not None:
+        assert chrom in samfile.references, 'chromosome not in SAM file references'
+        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=start, end=end, one_based=one_based,
+                                              truncate=truncate, **kwargs)
+    else:
+        its = list()
+        for chrom in samfile.references:
+            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=None, end=None, one_based=one_based,
+                                                   truncate=truncate, **kwargs)
+            its.append(itc)
+        it = itertools.chain(*its)
+    return it
+
+
+def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafile, chrom, start=None, end=None, one_based=False, truncate=False, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
+    start, end = normalise_coords(start, end, one_based)
+    if start is None:  # pad from start of chromosome
+        start = 0
+    if end is None:  # pad to end of chromosome
+        end = samfile.lengths[samfile.references.index(chrom)]
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    curpos = start
+    for col in it:
+        while curpos < col.pos:
+            yield fpad(fafile, chrom, curpos, one_based)
+            curpos += 1
+        yield frec(samfile, fafile, col, one_based)
+        curpos = col.pos + 1
+    while curpos < end:
+        yield fpad(fafile, chrom, curpos, one_based)
+        curpos += 1
 
 
 def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
@@ -745,34 +830,6 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
 #         yield construct_rec_variation(samfile, fafile, col, one_based)
         
         
-def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
-                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-                        **kwargs):
-    cdef PileupProxy col
-    cdef int curpos
-    start, end = normalise_coords(start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
-
-    if pad:
-        curpos = start
-        curchr = chrom
-        for col in it:
-            curchr = samfile.getrname(col.tid)
-            while curpos < col.pos:
-                yield fpad(fafile, curchr, curpos, one_based)
-                curpos += 1
-            yield frec(samfile, fafile, col, one_based)
-            curpos = col.pos + 1
-        if chrom is not None and end is not None:
-            while curpos < end:
-                yield fpad(fafile, chrom, curpos, one_based)
-                curpos += 1
-
-    else:
-        for col in it:
-            yield frec(samfile, fafile, col, one_based)
-
-
 cpdef object construct_rec_variation_pad(Fastafile fafile, chrom, pos, bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
@@ -2585,11 +2642,10 @@ def stat_coverage_normed(Samfile samfile, chrom=None, start=None, end=None, one_
     start, end = normalise_coords(start, end, one_based)
     
     # first need to load the coverage data into an array, to calculate the median
-    it = (col.n for col in samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate))
-    a = np.fromiter(it, dtype='u4')
-    dp_mean = np.mean(a)
-    dp_median = np.median(a)
-    dp_percentiles = [np.percentile(a, q) for q in range(101)]
+    a = load_coverage(samfile, fields=['pos', 'reads_all'], chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, pad=pad)
+    dp_mean = np.mean(a.reads_all)
+    dp_median = np.median(a.reads_all)
+    dp_percentiles = [np.percentile(a.reads_all, q) for q in range(101)]
 
     def construct_rec_coverage_normed(Samfile samfile, PileupProxy col, bint one_based=False):
         chrom = samfile.getrname(col.tid)
@@ -2746,21 +2802,19 @@ def stat_coverage_normed_gc(Samfile samfile, Fastafile fafile,
         window_offset = window_size / 2
     
     # first need to load the coverage data into an array, to calculate the median
-    recs = stat_coverage_gc(samfile, fafile, chrom=chrom, start=start, end=end, 
-                            one_based=one_based, truncate=truncate, pad=pad,
-                            window_size=window_size, window_offset=window_offset)
-    it = ((rec['reads_all'], rec['gc']) for rec in recs)
-    a = np.fromiter(it, dtype=[('dp', 'u4'), ('gc', 'u1')]).view(np.recarray)
-    dp_mean = np.mean(a.dp)
-    dp_median = np.median(a.dp)
-    dp_percentiles = [np.percentile(a.dp, q) for q in range(101)]    
+    a = load_coverage_gc(samfile, fafile, fields=['gc', 'reads_all'], chrom=chrom, start=start, end=end,
+                         one_based=one_based, truncate=truncate, pad=pad,
+                         window_size=window_size, window_offset=window_offset)
+    dp_mean = np.mean(a.reads_all)
+    dp_median = np.median(a.reads_all)
+    dp_percentiles = [np.percentile(a.reads_all, q) for q in range(101)]
     dp_mean_bygc = dict()
     dp_median_bygc = dict()
     dp_percentiles_bygc = dict()
     for gc in range(101):
         flt = a.gc == gc
         if np.count_nonzero(flt) > 0:
-            b = a[flt].dp
+            b = a[flt].reads_all
             dp_mean_bygc[gc] = np.mean(b)
             dp_median_bygc[gc] = np.median(b)
             dp_percentiles_bygc[gc] = [np.percentile(b, q) for q in range(101)]
@@ -3512,7 +3566,7 @@ def normalise_coords(start, end, one_based):
     if one_based:
         start = start - 1 if start is not None else None
         end = end - 1 if end is not None else None
-    start = 0 if start is None else start
+#    start = 0 if start is None else start
     return start, end
 
     

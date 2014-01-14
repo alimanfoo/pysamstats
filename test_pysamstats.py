@@ -1369,7 +1369,7 @@ def test_pileup_pad():
         else:
             a = f(Samfile('fixture/test.bam'), **kwargs_nopad)
         eq_(924, a['pos'][0])
-        eq_(10074, a['pos'][-1])
+        eq_(9935, a['pos'][-1])
         # test pad
         if needs_ref:
             a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_pad)
@@ -1377,3 +1377,37 @@ def test_pileup_pad():
             a = f(Samfile('fixture/test.bam'), **kwargs_pad)
         eq_(0, a['pos'][0])
         eq_(19999, a['pos'][-1])
+
+
+def test_pileup_pad_wg():
+    expected = stat_coverage_refimpl(Samfile('fixture/test.bam'))  # whole genome
+    actual = pysamstats.stat_coverage(Samfile('fixture/test.bam'))
+    _compare_iterators(expected, actual)
+    kwargs_nopad = {'pad': False}
+    kwargs_pad = {'pad': True}
+    for f, needs_ref in pileup_functions:
+        print f.__name__
+        # test no pad
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_nopad)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_nopad)
+        assert sorted(set(a['chrom'])) == ['Pf3D7_01_v3', 'Pf3D7_02_v3']
+        eq_(924, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][0])
+        eq_(9935, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][-1])
+        eq_(926, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][0])
+        eq_(10074, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
+        # test pad
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs_pad)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs_pad)
+        assert sorted(set(a['chrom'])) == ['Pf3D7_01_v3', 'Pf3D7_02_v3', 'Pf3D7_03_v3']
+        eq_(0, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][0])
+        eq_(99999, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][-1])
+        eq_(0, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][0])
+        eq_(149999, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
+        eq_(0, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][0])
+        eq_(199999, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
+
+
