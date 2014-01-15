@@ -136,7 +136,7 @@ plt.plot(a.pos, a.reads_all)
 plt.show()
 ```
 
-Field Definitions
+Field definitions
 -----------------
 
 The suffix **_fwd** means the field is restricted to reads mapped to
