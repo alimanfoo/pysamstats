@@ -28,16 +28,16 @@ def _compare_iterators(expected, actual):
                     eq_(v, a[k])
             except:
                 print k
-                print e
-                print a
+                print 'expected: %r' % e
+                print 'actual: %r' % a
                 raise
         for k in a:  # check no unexpected fields
             try:
                 assert k in e
             except:
                 print k
-                print e
-                print a
+                print 'expected: %r' % e
+                print 'actual: %r' % a
                 raise
 
 
@@ -790,8 +790,13 @@ def stat_coverage_binned_refimpl(samfile, fastafile,
 def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
@@ -864,8 +869,13 @@ def stat_coverage_ext_binned_refimpl(samfile, fastafile,
 def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
@@ -977,8 +987,13 @@ def stat_mapq_binned_refimpl(samfile,
 def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
@@ -1051,8 +1066,13 @@ CIGAR = 'MIDNSHP=X'
 def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
@@ -1133,8 +1153,13 @@ def stat_tlen_binned_refimpl(samfile,
 def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
     # setup first bin
     bin_start = start
     bin_end = bin_start + window_size
@@ -1330,5 +1355,53 @@ def test_pileup_pad_wg():
         eq_(60000, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
         eq_(0, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][0])
         eq_(70000, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
+
+
+binned_functions = [
+    (pysamstats.load_coverage_binned, 1),
+    (pysamstats.load_coverage_ext_binned, 1),
+    (pysamstats.load_mapq_binned, 0),
+    (pysamstats.load_alignment_binned, 0),
+    (pysamstats.load_tlen_binned, 0),
+]
+
+
+def test_binned_pad_region():
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 1000,
+              'end': 20000,
+              'one_based': False,
+              'window_size': 200,
+              'window_offset': 100}
+    for f, needs_ref in binned_functions:
+        print f.__name__
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs)
+        assert set(a['chrom']) == {'Pf3D7_01_v3'}
+        eq_(1100, a['pos'][0])
+        eq_(19900, a['pos'][-1])
+
+
+def test_binned_pad_wg():
+    expected = stat_coverage_binned_refimpl(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'))  # whole genome
+    actual = pysamstats.stat_coverage_binned(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'))
+    _compare_iterators(expected, actual)
+    kwargs = {'window_size': 200,
+              'window_offset': 100}
+    for f, needs_ref in binned_functions:
+        print f.__name__
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs)
+        assert sorted(set(a['chrom'])) == ['Pf3D7_01_v3', 'Pf3D7_02_v3', 'Pf3D7_03_v3']
+        eq_(100, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][0])
+        eq_(50100, a[a['chrom'] == 'Pf3D7_01_v3']['pos'][-1])
+        eq_(100, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][0])
+        eq_(60100, a[a['chrom'] == 'Pf3D7_02_v3']['pos'][-1])
+        eq_(100, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][0])
+        eq_(70100, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
 
 

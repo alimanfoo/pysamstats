@@ -15,10 +15,8 @@ if __name__ == '__main__':
     stats_types = ('coverage', 
                    'coverage_strand', 
                    'coverage_ext', 
-                   'coverage_ext_strand', 
-                   'coverage_normed',
+                   'coverage_ext_strand',
                    'coverage_gc',
-                   'coverage_normed_gc',
                    'variation', 
                    'variation_strand',
                    'tlen',
@@ -38,8 +36,7 @@ if __name__ == '__main__':
                                    'variation_strand', 
                                    'baseq_ext', 
                                    'baseq_ext_strand', 
-                                   'coverage_gc', 
-                                   'coverage_normed_gc', 
+                                   'coverage_gc',
                                    'coverage_binned',
                                    'coverage_ext_binned')
     usage = 'usage: %prog [options] FILE'
@@ -54,11 +51,8 @@ Supported statistics types:
                             coverage for reads not properly paired (mate 
                             unmapped, mate on other chromosome, ...)
     * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts 
-    * coverage_normed     - depth of coverage normalised by median or mean
     * coverage_gc         - as coverage but also includes a column for %GC
-    * coverage_normed_gc  - as coverage_normed but also includes columns for normalisation
-                            by %GC      
-    * variation           - numbers of matches, mismatches, deletions, 
+    * variation           - numbers of matches, mismatches, deletions,
                             insertions, etc.
     * variation_strand    - as variation but with forward/reverse strand counts
     * tlen                - insert size statistics
@@ -98,7 +92,7 @@ Version: {version} (pysam {pysamversion})
     parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
     parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
     parser.add_option('--window-size', dest='window_size', type='int', help='size of window for binned statistics [300]', metavar='N', default=300)
-    parser.add_option('--window-offset', dest='window_offset', type=int, help='window offset to use for deciding which genome position to report binned statistics against [150]', default=150, metavar='N')
+    parser.add_option('--window-offset', dest='window_offset', type=int, help='window offset to use for deciding which genome position to report binned statistics against [150]', default=None, metavar='N')
     options, args = parser.parse_args()
     
     if len(args) != 1:
