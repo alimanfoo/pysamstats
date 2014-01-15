@@ -47,10 +47,9 @@ Options:
   -h, --help            show this help message and exit
   -t TYPE, --type=TYPE  type of statistics to print: coverage,
                         coverage_strand, coverage_ext, coverage_ext_strand,
-                        coverage_normed, coverage_gc, coverage_normed_gc,
-                        variation, variation_strand, tlen, tlen_strand, mapq,
-                        mapq_strand, baseq, baseq_strand, baseq_ext,
-                        baseq_ext_strand, coverage_binned,
+                        coverage_gc, variation, variation_strand, tlen,
+                        tlen_strand, mapq, mapq_strand, baseq, baseq_strand,
+                        baseq_ext, baseq_ext_strand, coverage_binned,
                         coverage_ext_binned, mapq_binned, alignment_binned,
                         tlen_binned
   -c CHROMOSOME, --chromosome=CHROMOSOME
@@ -82,10 +81,7 @@ Supported statistics types:
                             coverage for reads not properly paired (mate
                             unmapped, mate on other chromosome, ...)
     * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts
-    * coverage_normed     - depth of coverage normalised by median or mean
     * coverage_gc         - as coverage but also includes a column for %GC
-    * coverage_normed_gc  - as coverage_normed but also includes columns for normalisation
-                            by %GC
     * variation           - numbers of matches, mismatches, deletions,
                             insertions, etc.
     * variation_strand    - as variation but with forward/reverse strand counts
@@ -109,7 +105,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.10 (pysam 0.7.6)
+Version: 0.12 (pysam 0.7.7)
 ```
 
 From Python:
@@ -251,3 +247,11 @@ properly paired.
     for bases aligned at this position where the base does not match
     the reference.
 
+
+Release notes
+-------------
+
+* [0.12](https://github.com/alimanfoo/pysamstats/issues?milestone=3&state=closed)
+* [0.11](https://github.com/alimanfoo/pysamstats/issues?milestone=6&state=closed)
+* [0.10](https://github.com/alimanfoo/pysamstats/issues?milestone=2&state=closed)
+* [0.7](https://github.com/alimanfoo/pysamstats/issues?milestone=1&state=closed)
