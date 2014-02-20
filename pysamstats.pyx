@@ -4,7 +4,8 @@
 # 0.9.1
 # 0.11.1
 # 0.12
-__version__ = '0.14-SNAPSHOT'
+# 0.14
+__version__ = '0.14'
 
 
 import sys
@@ -3324,7 +3325,9 @@ def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
         recs = statfun(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, **kwargs)
 
     if progress is None:
-        writer.writerows(recs)
+        # N.B., don't use writer.writerows(recs) as you don't get any output until all records are returned!
+        for rec in recs:
+            writer.writerow(rec)
 
     else:
         modulus = progress
