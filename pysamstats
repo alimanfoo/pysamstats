@@ -44,34 +44,34 @@ if __name__ == '__main__':
     epilog = """
 Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
-    * coverage            - number of reads aligned to each genome position 
-                            (total and properly paired)
-    * coverage_strand     - as coverage but with forward/reverse strand counts
-    * coverage_ext        - various additional coverage metrics, including 
+    * coverage            - Number of reads aligned to each genome position
+                            (total and properly paired).
+    * coverage_strand     - As coverage but with forward/reverse strand counts.
+    * coverage_ext        - Various additional coverage metrics, including
                             coverage for reads not properly paired (mate 
-                            unmapped, mate on other chromosome, ...)
-    * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts 
-    * coverage_gc         - as coverage but also includes a column for %GC
-    * variation           - numbers of matches, mismatches, deletions,
+                            unmapped, mate on other chromosome, ...).
+    * coverage_ext_strand - As coverage_ext but with forward/reverse strand counts.
+    * coverage_gc         - As coverage but also includes a column for %GC.
+    * variation           - Numbers of matches, mismatches, deletions,
                             insertions, etc.
-    * variation_strand    - as variation but with forward/reverse strand counts
-    * tlen                - insert size statistics
-    * tlen_strand         - as tlen but with statistics by forward/reverse strand
-    * mapq                - mapping quality statistics
-    * mapq_strand         - as mapq but with statistics by forward/reverse strand
-    * baseq               - baseq quality statistics
-    * baseq_strand        - as baseq but with statistics by forward/reverse strand
-    * baseq_ext           - extended base quality statistics, including qualities
-                            of bases matching and mismatching reference
-    * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+    * variation_strand    - As variation but with forward/reverse strand counts.
+    * tlen                - Insert size statistics.
+    * tlen_strand         - As tlen but with statistics by forward/reverse strand.
+    * mapq                - Mapping quality statistics.
+    * mapq_strand         - As mapq but with statistics by forward/reverse strand.
+    * baseq               - Base quality statistics.
+    * baseq_strand        - As baseq but with statistics by forward/reverse strand.
+    * baseq_ext           - Extended base quality statistics, including qualities
+                            of bases matching and mismatching reference.
+    * baseq_ext_strand    - As baseq_ext but with statistics by forward/reverse strand.
 
 Binned statistics types (each row has statistics over reads aligned starting within a genome window):
 
-    * coverage_binned     - as coverage but binned
-    * coverage_ext_binned - as coverage_ext but binned
-    * mapq_binned         - similar to mapq but binned
-    * alignment_binned    - aggregated counts from cigar strings
-    * tlen_binned         - as tlen but binned
+    * coverage_binned     - As coverage but binned.
+    * coverage_ext_binned - As coverage_ext but binned.
+    * mapq_binned         - Similar to mapq but binned.
+    * alignment_binned    - Aggregated counts from cigar strings.
+    * tlen_binned         - As tlen but binned.
     
 Examples:
 
@@ -84,19 +84,19 @@ Version: {version} (pysam {pysamversion})
 
     OptionParser.format_epilog = lambda self, formatter: self.epilog
     parser = OptionParser(usage=usage, description=description, epilog=epilog)
-    parser.add_option('-t', '--type', dest='type', help='type of statistics to print: %s' % ', '.join(stats_types), default='coverage')
-    parser.add_option('-c', '--chromosome', dest='chromosome', help='chromosome name', default=None)
-    parser.add_option('-s', '--start', dest='start', type='int', help='start position (1-based)', default=None)
-    parser.add_option('-e', '--end', dest='end', type='int', help='end position (1-based)', default=None)
-    parser.add_option('-z', '--zero-based', dest='zero_based', help='use zero-based coordinates (default is false, i.e., use one-based coords)', action='store_true', default=False)
-    parser.add_option('-u', '--truncate', dest='truncate', help='truncate pileup-based stats so no records are emitted outside the specified position range', action='store_true', default=False)
-    parser.add_option('-d', '--pad', dest='pad', help='pad pileup-based stats so a record is emitted for every position (default is only covered positions)', action='store_true', default=False)
-    parser.add_option('-f', '--fasta', dest='fasta', help='reference sequence file, only required for some statistics', default=None)
-    parser.add_option('-o', '--omit-header', dest='omit_header', help='omit header row from output', action='store_true')
-    parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
-    parser.add_option('--window-size', dest='window_size', type='int', help='size of window for binned statistics [300]', metavar='N', default=300)
-    parser.add_option('--window-offset', dest='window_offset', type=int, help='window offset to use for deciding which genome position to report binned statistics against [150]', default=None, metavar='N')
-    parser.add_option('--max-depth', dest='max_depth', type=int, default=8000, help='Maximum read depth permitted in pileup-based statistics. The default limit is *8000*.')
+    parser.add_option('-t', '--type', dest='type', help='Type of statistics to print, one of: %s.' % ', '.join(stats_types), default='coverage')
+    parser.add_option('-c', '--chromosome', dest='chromosome', help='Chromosome name.', default=None)
+    parser.add_option('-s', '--start', dest='start', type='int', help='Start position (1-based).', default=None)
+    parser.add_option('-e', '--end', dest='end', type='int', help='End position (1-based).', default=None)
+    parser.add_option('-z', '--zero-based', dest='zero_based', help='Use zero-based coordinates (default is false, i.e., use one-based coords).', action='store_true', default=False)
+    parser.add_option('-u', '--truncate', dest='truncate', help='Truncate pileup-based stats so no records are emitted outside the specified position range.', action='store_true', default=False)
+    parser.add_option('-d', '--pad', dest='pad', help='Pad pileup-based stats so a record is emitted for every position (default is only covered positions).', action='store_true', default=False)
+    parser.add_option('-D', '--max-depth', dest='max_depth', type=int, default=8000, help='Maximum read depth permitted in pileup-based statistics. The default limit is 8000.')
+    parser.add_option('-f', '--fasta', dest='fasta', help='Reference sequence file, only required for some statistics.', default=None)
+    parser.add_option('-o', '--omit-header', dest='omit_header', help='Omit header row from output.', action='store_true')
+    parser.add_option('-p', '--progress', dest='progress', type='int', help='Report progress every N rows.', metavar='N', default=None)
+    parser.add_option('--window-size', dest='window_size', type='int', help='Size of window for binned statistics (default is 300).', metavar='N', default=300)
+    parser.add_option('--window-offset', dest='window_offset', type=int, help='Window offset to use for deciding which genome position to report binned statistics against. The default is 150, i.e., the middle of 300bp window.', default=None, metavar='N')
     options, args = parser.parse_args()
     
     if len(args) != 1:

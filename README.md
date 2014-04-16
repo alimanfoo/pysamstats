@@ -44,73 +44,74 @@ from a SAM or BAM file and print them to stdout.
 
 Options:
   -h, --help            show this help message and exit
-  -t TYPE, --type=TYPE  type of statistics to print: coverage,
+  -t TYPE, --type=TYPE  Type of statistics to print, one of: coverage,
                         coverage_strand, coverage_ext, coverage_ext_strand,
                         coverage_gc, variation, variation_strand, tlen,
                         tlen_strand, mapq, mapq_strand, baseq, baseq_strand,
                         baseq_ext, baseq_ext_strand, coverage_binned,
                         coverage_ext_binned, mapq_binned, alignment_binned,
-                        tlen_binned
+                        tlen_binned.
   -c CHROMOSOME, --chromosome=CHROMOSOME
-                        chromosome name
+                        Chromosome name.
   -s START, --start=START
-                        start position (1-based)
-  -e END, --end=END     end position (1-based)
-  -z, --zero-based      use zero-based coordinates (default is false, i.e.,
-                        use one-based coords)
-  -u, --truncate        truncate pileup-based stats so no records are emitted
-                        outside the specified position range
-  -d, --pad             pad pileup-based stats so a record is emitted for
-                        every position (default is only covered positions)
-  -f FASTA, --fasta=FASTA
-                        reference sequence file, only required for some
-                        statistics
-  -o, --omit-header     omit header row from output
-  -p N, --progress=N    report progress every N rows
-  --window-size=N       size of window for binned statistics [300]
-  --window-offset=N     window offset to use for deciding which genome
-                        position to report binned statistics against [150]
-  --max-depth=MAX_DEPTH
+                        Start position (1-based).
+  -e END, --end=END     End position (1-based).
+  -z, --zero-based      Use zero-based coordinates (default is false, i.e.,
+                        use one-based coords).
+  -u, --truncate        Truncate pileup-based stats so no records are emitted
+                        outside the specified position range.
+  -d, --pad             Pad pileup-based stats so a record is emitted for
+                        every position (default is only covered positions).
+  -D MAX_DEPTH, --max-depth=MAX_DEPTH
                         Maximum read depth permitted in pileup-based
-                        statistics. The default limit is *8000*.
+                        statistics. The default limit is 8000.
+  -f FASTA, --fasta=FASTA
+                        Reference sequence file, only required for some
+                        statistics.
+  -o, --omit-header     Omit header row from output.
+  -p N, --progress=N    Report progress every N rows.
+  --window-size=N       Size of window for binned statistics (default is 300).
+  --window-offset=N     Window offset to use for deciding which genome
+                        position to report binned statistics against. The
+                        default is 150, i.e., the middle of 300bp window.
 
 Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
-    * coverage            - number of reads aligned to each genome position
-                            (total and properly paired)
-    * coverage_strand     - as coverage but with forward/reverse strand counts
-    * coverage_ext        - various additional coverage metrics, including
+    * coverage            - Number of reads aligned to each genome position
+                            (total and properly paired).
+    * coverage_strand     - As coverage but with forward/reverse strand counts.
+    * coverage_ext        - Various additional coverage metrics, including
                             coverage for reads not properly paired (mate
-                            unmapped, mate on other chromosome, ...)
-    * coverage_ext_strand - as coverage_ext but with forward/reverse strand counts
-    * coverage_gc         - as coverage but also includes a column for %GC
-    * variation           - numbers of matches, mismatches, deletions,
+                            unmapped, mate on other chromosome, ...).
+    * coverage_ext_strand - As coverage_ext but with forward/reverse strand counts.
+    * coverage_gc         - As coverage but also includes a column for %GC.
+    * variation           - Numbers of matches, mismatches, deletions,
                             insertions, etc.
-    * variation_strand    - as variation but with forward/reverse strand counts
-    * tlen                - insert size statistics
-    * tlen_strand         - as tlen but with statistics by forward/reverse strand
-    * mapq                - mapping quality statistics
-    * mapq_strand         - as mapq but with statistics by forward/reverse strand
-    * baseq               - baseq quality statistics
-    * baseq_strand        - as baseq but with statistics by forward/reverse strand
-    * baseq_ext           - extended base quality statistics, including qualities
-                            of bases matching and mismatching reference
-    * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+    * variation_strand    - As variation but with forward/reverse strand counts.
+    * tlen                - Insert size statistics.
+    * tlen_strand         - As tlen but with statistics by forward/reverse strand.
+    * mapq                - Mapping quality statistics.
+    * mapq_strand         - As mapq but with statistics by forward/reverse strand.
+    * baseq               - Base quality statistics.
+    * baseq_strand        - As baseq but with statistics by forward/reverse strand.
+    * baseq_ext           - Extended base quality statistics, including qualities
+                            of bases matching and mismatching reference.
+    * baseq_ext_strand    - As baseq_ext but with statistics by forward/reverse strand.
 
 Binned statistics types (each row has statistics over reads aligned starting within a genome window):
 
-    * coverage_binned     - as coverage but binned
-    * coverage_ext_binned - as coverage_ext but binned
-    * mapq_binned         - similar to mapq but binned
-    * alignment_binned    - aggregated counts from cigar strings
-    * tlen_binned         - as tlen but binned
+    * coverage_binned     - As coverage but binned.
+    * coverage_ext_binned - As coverage_ext but binned.
+    * mapq_binned         - Similar to mapq but binned.
+    * alignment_binned    - Aggregated counts from cigar strings.
+    * tlen_binned         - As tlen but binned.
 
 Examples:
 
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.15 (pysam 0.7.7)
+Version: 0.15.1 (pysam 0.7.7)
 ```
 
 From Python:
@@ -143,6 +144,7 @@ plt.show()
 
 For pileup-based statistics function, note the following:
 
+* By default a row is emitted for all genome positions covered by reads overlapping the selected region. This means rows will be emitted for positions outside the selected region, but statistics may not be accurate as not all reads overlapping that position will have been counted. To truncate output to exactly the selected region, provide a ``truncate=True`` keyword argument.
 * By default a row is only emitted for genome positions covered by at least one read. To emit a row for every genome position, provide a ``pad=True`` keyword argument.
 * By default the number of reads in a pileup column is limited to 8000. To increase this limit, provide a ``max_depth=100000`` keyword argument (or whatever number is suitable for your situation).
 
