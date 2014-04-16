@@ -263,8 +263,4 @@ properly paired.
 Release notes
 -------------
 
-* [0.14](https://github.com/alimanfoo/pysamstats/issues?milestone=4&page=1&state=closed) 
-* [0.12](https://github.com/alimanfoo/pysamstats/issues?milestone=3&state=closed) (requires pysam>=0.7.7)
-* [0.11](https://github.com/alimanfoo/pysamstats/issues?milestone=6&state=closed)
-* [0.10](https://github.com/alimanfoo/pysamstats/issues?milestone=2&state=closed)
-* [0.7](https://github.com/alimanfoo/pysamstats/issues?milestone=1&state=closed)
+Release notes are available from the github releases page: https://github.com/alimanfoo/pysamstats/releases
