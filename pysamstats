@@ -72,7 +72,7 @@ Binned statistics types (each row has statistics over reads aligned starting wit
     * mapq_binned         - Similar to mapq but binned.
     * alignment_binned    - Aggregated counts from cigar strings.
     * tlen_binned         - As tlen but binned.
-    
+
 Examples:
 
     pysamstats --type coverage example.bam > example.coverage.txt
