@@ -5,7 +5,9 @@
 # 0.11.1
 # 0.12
 # 0.14
-__version__ = '0.15.1'
+# 0.15
+# 0.15.1
+__version__ = '0.16-SNAPSHOT'
 
 
 import sys
