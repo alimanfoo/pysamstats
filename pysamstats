@@ -42,7 +42,7 @@ if __name__ == '__main__':
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics against genome positions based on sequence alignments from a SAM or BAM file and print them to stdout."
     epilog = """
-Supported statistics types:
+Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
     * coverage            - number of reads aligned to each genome position 
                             (total and properly paired)
@@ -64,6 +64,9 @@ Supported statistics types:
     * baseq_ext           - extended base quality statistics, including qualities
                             of bases matching and mismatching reference
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+
+Binned statistics types (each row has statistics over reads aligned starting within a genome window):
+
     * coverage_binned     - as coverage but binned
     * coverage_ext_binned - as coverage_ext but binned
     * mapq_binned         - similar to mapq but binned
@@ -93,6 +96,7 @@ Version: {version} (pysam {pysamversion})
     parser.add_option('-p', '--progress', dest='progress', type='int', help='report progress every N rows', metavar='N', default=None)
     parser.add_option('--window-size', dest='window_size', type='int', help='size of window for binned statistics [300]', metavar='N', default=300)
     parser.add_option('--window-offset', dest='window_offset', type=int, help='window offset to use for deciding which genome position to report binned statistics against [150]', default=None, metavar='N')
+    parser.add_option('--max-depth', dest='max_depth', type=int, default=8000, help='Maximum read depth permitted in pileup-based statistics. The default limit is *8000*.')
     options, args = parser.parse_args()
     
     if len(args) != 1:
@@ -118,6 +122,7 @@ Version: {version} (pysam {pysamversion})
                   one_based=one_based,
                   truncate=options.truncate,
                   pad=options.pad,
+                  max_depth=options.max_depth,
                   progress=options.progress,
                   window_size=options.window_size,
                   window_offset=options.window_offset)
@@ -132,6 +137,7 @@ Version: {version} (pysam {pysamversion})
               one_based=one_based, 
               truncate=options.truncate,
               pad=options.pad,
+              max_depth=options.max_depth,
               progress=options.progress,
               window_size=options.window_size,
               window_offset=options.window_offset)

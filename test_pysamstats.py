@@ -1405,3 +1405,32 @@ def test_binned_pad_wg():
         eq_(70100, a[a['chrom'] == 'Pf3D7_03_v3']['pos'][-1])
 
 
+def test_pileup_limit():
+
+    for f, needs_ref in pileup_functions:
+        print f.__name__
+
+        # test with effectively no limit
+        kwargs = dict(fields=['reads_all'], max_depth=1000000)
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(26169, a[70])
+
+        # test with specific limit
+        kwargs = dict(fields=['reads_all'], max_depth=12000)
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(12045, a[70])  # no idea why limit is not exact
+
+        # test with default limit
+        kwargs = dict(fields=['reads_all'])
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(8051, a[70])  # no idea why limit is not exact
+

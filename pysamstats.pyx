@@ -5,7 +5,7 @@
 # 0.11.1
 # 0.12
 # 0.14
-__version__ = '0.15-SNAPSHOT'
+__version__ = '0.15'
 
 
 import sys
@@ -112,42 +112,48 @@ cpdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
             'reads_pp': 0}
 
 
-def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
+                pad=False, max_depth=8000, **kwargs):
     if pad:
-        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start, end=end, one_based=one_based,
+                                  truncate=truncate, max_depth=max_depth, **kwargs)
     else:
-        return stat_pileup_default(frec, samfile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+        return stat_pileup_default(frec, samfile, chrom=chrom, start=start, end=end, one_based=one_based,
+                                   truncate=truncate, max_depth=max_depth, **kwargs)
 
 
-def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
+                        max_depth=8000, **kwargs):
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
     for col in it:
         yield frec(samfile, col, one_based)
 
 
-def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
+                       max_depth=8000, **kwargs):
     cdef PileupProxy col
     cdef int curpos
 
     if chrom is not None:
         it = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start, end=end, one_based=one_based,
-                                      truncate=truncate, **kwargs)
+                                      truncate=truncate, max_depth=max_depth, **kwargs)
     else:
         its = list()
         for chrom in samfile.references:
             itc = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=None, end=None, one_based=one_based,
-                                           truncate=truncate, **kwargs)
+                                           truncate=truncate, max_depth=max_depth, **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
     return it
 
 
-def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None, end=None, one_based=False, truncate=False,
+                             max_depth=8000, **kwargs):
     cdef PileupProxy col
     cdef int curpos
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
     curpos = start
     for col in it:
         while curpos < col.pos:
@@ -161,45 +167,50 @@ def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None, end
 
 
 def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
-                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, max_depth=8000,
                         **kwargs):
     if pad:
-        return stat_pileup_withref_padded(frec, fpad, samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+        return stat_pileup_withref_padded(frec, fpad, samfile, fafile, chrom=chrom, start=start, end=end,
+                                          one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
     else:
-        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, truncate=truncate, **kwargs)
+        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom, start=start, end=end,
+                                           one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
 
 
-def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                                one_based=False, truncate=False, max_depth=8000, **kwargs):
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
     for col in it:
         yield frec(samfile, fafile, col, one_based)
 
 
-def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
+                               one_based=False, truncate=False, max_depth=8000, **kwargs):
     cdef PileupProxy col
     cdef int curpos
 
     if chrom is not None:
-        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=start, end=end, one_based=one_based,
-                                              truncate=truncate, **kwargs)
+        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=start, end=end,
+                                              one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
     else:
         its = list()
         for chrom in samfile.references:
-            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=None, end=None, one_based=one_based,
-                                                   truncate=truncate, **kwargs)
+            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=None, end=None,
+                                                   one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
     return it
 
 
-def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafile, chrom, start=None, end=None, one_based=False, truncate=False, **kwargs):
+def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafile, chrom, start=None, end=None,
+                                     one_based=False, truncate=False, max_depth=8000, **kwargs):
     cdef PileupProxy col
     cdef int curpos
     assert chrom is not None, 'chromosome is None'
     assert chrom in fafile.references, 'chromosome not in FASTA references: %s' % chrom
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate)
+    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
     curpos = start
     for col in it:
         while curpos < col.pos:
@@ -212,10 +223,11 @@ def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafi
         curpos += 1
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                  max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_coverage, construct_rec_coverage_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_coverage(*args, **kwargs):
@@ -304,10 +316,11 @@ cpdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False)
             'reads_pp_rev': 0}
 
 
-def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                         max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_coverage_strand, construct_rec_coverage_strand_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_coverage_strand(*args, **kwargs):
@@ -417,10 +430,11 @@ cpdef object construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
             'reads_duplicate': 0}
 
 
-def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                      max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_coverage_ext, construct_rec_coverage_ext_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_coverage_ext(*args, **kwargs):
@@ -620,10 +634,11 @@ cpdef object construct_rec_coverage_ext_strand_pad(chrom, pos, bint one_based=Fa
            }
 
 
-def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
+                             pad=False, max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_coverage_ext_strand, construct_rec_coverage_ext_strand_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_coverage_ext_strand(*args, **kwargs):
@@ -824,11 +839,11 @@ cpdef object construct_rec_variation_pad(Fastafile fafile, chrom, pos, bint one_
 
 
 def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, **kwargs):
+                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
     return stat_pileup_withref(construct_rec_variation, construct_rec_variation_pad,
                                samfile, fafile,
                                chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, **kwargs)
+                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_variation(*args, **kwargs):
@@ -1006,11 +1021,11 @@ cpdef object construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos, bi
 
 
 def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                          one_based=False, truncate=False, pad=False, **kwargs):
+                          one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
     return stat_pileup_withref(construct_rec_variation_strand, construct_rec_variation_strand_pad,
                                samfile, fafile,
                                chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, **kwargs)
+                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_variation_strand(*args, **kwargs):
@@ -1187,10 +1202,11 @@ cpdef object construct_rec_tlen_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+              max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_tlen, construct_rec_tlen_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_tlen(*args, **kwargs):
@@ -1489,10 +1505,11 @@ cpdef object construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                     max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_tlen_strand, construct_rec_tlen_strand_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_tlen_strand(*args, **kwargs):
@@ -1615,10 +1632,11 @@ cpdef object construct_rec_mapq_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+              max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_mapq, construct_rec_mapq_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_mapq(*args, **kwargs):
@@ -1836,10 +1854,11 @@ cpdef object construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                     max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_mapq_strand, construct_rec_mapq_strand_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_mapq_strand(*args, **kwargs):
@@ -1942,10 +1961,11 @@ cpdef object construct_rec_baseq_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+               max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_baseq, construct_rec_baseq_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth,  **kwargs)
 
 
 def write_baseq(*args, **kwargs):
@@ -2101,10 +2121,11 @@ cpdef object construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, **kwargs):
+def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                      max_depth=8000, **kwargs):
     return stat_pileup(construct_rec_baseq_strand, construct_rec_baseq_strand_pad, samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_baseq_strand(*args, **kwargs):
@@ -2246,11 +2267,11 @@ cpdef object construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos, bint one_
 
 
 def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, **kwargs):
+                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
     return stat_pileup_withref(construct_rec_baseq_ext, construct_rec_baseq_ext_pad,
                                samfile, fafile,
                                chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, **kwargs)
+                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_baseq_ext(*args, **kwargs):
@@ -2491,11 +2512,11 @@ cpdef object construct_rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos, bi
 
 
 def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, **kwargs):
+                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
     return stat_pileup_withref(construct_rec_baseq_ext_strand, construct_rec_baseq_ext_strand_pad,
                                samfile, fafile,
                                chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, **kwargs)
+                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_baseq_ext_strand(*args, **kwargs):
@@ -2545,7 +2566,7 @@ from collections import Counter
 
 
 def stat_coverage_gc(Samfile samfile, Fastafile fafile,
-                     chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+                     chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, max_depth=8000,
                      window_size=300, window_offset=None, **kwargs):
     cdef Py_ssize_t i # loop index
     cdef char* seq # sequence window
@@ -2587,7 +2608,7 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
 
     return stat_pileup_withref(construct_rec_coverage_gc, construct_rec_coverage_gc_pad,
                                samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, **kwargs)
+                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
 
         
 def write_coverage_gc(*args, **kwargs):

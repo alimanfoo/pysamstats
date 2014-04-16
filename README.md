@@ -14,14 +14,13 @@ Building pysamstats depends on [numpy](http://www.numpy.org/), please install
 that first. Then try:
 
 ```
-$ pip install --upgrade pysam pysamstats
+$ pip install --upgrade pysam
+$ pip install --upgrade pysamstats
 ```
 
 N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
-which needs to be installed before attempting to install pysamstats. The
-command above should do it, but if you have any problems, try installing
-pysam separately first. If you have problems installing pysam, email the
-[pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
+which needs to be installed before attempting to install pysamstats. If you have problems installing pysam,
+email the [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
 Alternatively, clone the git repo and build in-place:
 
@@ -71,8 +70,11 @@ Options:
   --window-size=N       size of window for binned statistics [300]
   --window-offset=N     window offset to use for deciding which genome
                         position to report binned statistics against [150]
+  --max-depth=MAX_DEPTH
+                        Maximum read depth permitted in pileup-based
+                        statistics. The default limit is *8000*.
 
-Supported statistics types:
+Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
     * coverage            - number of reads aligned to each genome position
                             (total and properly paired)
@@ -94,6 +96,9 @@ Supported statistics types:
     * baseq_ext           - extended base quality statistics, including qualities
                             of bases matching and mismatching reference
     * baseq_ext_strand    - as baseq_ext but with statistics by forward/reverse strand
+
+Binned statistics types (each row has statistics over reads aligned starting within a genome window):
+
     * coverage_binned     - as coverage but binned
     * coverage_ext_binned - as coverage_ext but binned
     * mapq_binned         - similar to mapq but binned
@@ -105,7 +110,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.12 (pysam 0.7.7)
+Version: 0.15 (pysam 0.7.7)
 ```
 
 From Python:
@@ -135,6 +140,11 @@ a = pysamstats.load_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end=20000)
 plt.plot(a.pos, a.reads_all)
 plt.show()
 ```
+
+For pileup-based statistics function, note the following:
+
+* By default a row is only emitted for genome positions covered by at least one read. To emit a row for every genome position, provide a ``pad=True`` keyword argument.
+* By default the number of reads in a pileup column is limited to 8000. To increase this limit, provide a ``max_depth=100000`` keyword argument (or whatever number is suitable for your situation).
 
 Field definitions
 -----------------
