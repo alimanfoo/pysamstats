@@ -14,13 +14,15 @@ Building pysamstats depends on [numpy](http://www.numpy.org/), please install
 that first. Then try:
 
 ```
-$ pip install --upgrade pysam
+$ pip install pysam=0.7.8
 $ pip install --upgrade pysamstats
 ```
 
 N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
-which needs to be installed before attempting to install pysamstats. If you have problems installing pysam,
+which needs to be installed **before** attempting to install pysamstats. If you have problems installing pysam,
 email the [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
+
+**Please note that pysamstats currently only works with the 0.7.x branch of pysam. If you also need to use the 0.8.x branch of pysam for some other purpose, it is recommended that you install pysam 0.7.8 and pysamstats into a virtual environment.**
 
 Alternatively, clone the git repo and build in-place:
 
