@@ -14,15 +14,16 @@ Building pysamstats depends on [numpy](http://www.numpy.org/), please install
 that first. Then try:
 
 ```
-$ pip install pysam==0.7.8
-$ pip install --upgrade pysamstats
+$ pip install pysam==0.8.0
+$ pip install pysamstats==0.16
 ```
 
 N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
-which needs to be installed **before** attempting to install pysamstats. If you have problems installing pysam,
-email the [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
+which needs to be installed **before** attempting to install pysamstats. If you
+have problems installing pysam, email the
+[pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-**Please note that pysamstats currently only works with the 0.7.x branch of pysam. If you also need to use the 0.8.x branch of pysam for some other purpose, it is recommended that you install pysam 0.7.8 and pysamstats into a virtual environment.**
+**Please note that pysamstats version 0.16 requires pysam version 0.8.0.**
 
 Alternatively, clone the git repo and build in-place:
 
@@ -192,29 +193,8 @@ properly paired.
 
 * **reads_duplicate** - Number of reads that are flagged as duplicate.
 
-* **dp_normed_median** - Number of reads divided by the median number
-    of reads over all positions in the specified region, or whole
-    genome if no region specified.
-
-* **dp_normed_mean** - Number of reads divided by the mean number of
-    reads over all positions in the specified region, or whole genome
-    if no region specified.
-
-* **dp_percentile** - Percentile within which the number of reads falls
-    considering all positions in the specified region, or whole genome
-    if no region specified.
-
 * **gc** - Percentage GC content in the reference at this position
     (depends on window length and offset specified).
-
-* **dp_normed_median_gc** - As *dp_normed_median* but normalised by
-    positions with the same percent GC composition.
-
-* **dp_normed_mean_gc** - As *dp_normed_mean* but normalised by
-    positions with the same percent GC composition.
-
-* **dp_percentile_gc** - As *dp_percentile* but only considering
-    positions with the same percent GC composition.
 
 * **matches** - Number of reads where the aligned base matches the
     reference.

@@ -13,7 +13,10 @@ import csv
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
-from pysam.csamtools cimport Samfile, Fastafile, PileupProxy, bam1_t, bam_pileup1_t, bam1_cigar, bam1_seq, bam1_qual, IteratorRowRegion
+from pysam.chtslib cimport bam1_t, bam_pileup1_t
+from pysam.cfaidx cimport Fastafile
+from pysam.csamfile cimport Samfile, PileupProxy, IteratorRowRegion, \
+    pysam_bam_get_cigar, pysam_bam_get_seq, pysam_bam_get_qual
 
 
 ## These are bits set in the flag.
@@ -1927,7 +1930,7 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
         # N.B., base quality only makes sense if the aligned read is not a deletion
         if not read.is_del:
             reads_nodel += 1
-            baseq = bam1_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
             baseq_squared = baseq**2
             baseq_squared_sum += baseq_squared
             if is_proper_pair:
@@ -2054,7 +2057,7 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
         # N.B., baseq only makes sense if not a deletion
         if not read.is_del:
             reads_nodel += 1
-            baseq = bam1_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
             baseq_squared = baseq**2
             baseq_squared_sum += baseq_squared
             if is_reverse:
@@ -2201,7 +2204,7 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
             reads_pp += 1
         if not read.is_del:
             reads_nodel += 1
-            baseq = bam1_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
             baseq_squared = baseq**2
             baseq_squared_sum += baseq_squared
             if is_proper_pair:
@@ -2394,7 +2397,7 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
 
         if not read.is_del:
             reads_nodel += 1
-            baseq = bam1_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
             baseq_squared = baseq**2
             baseq_squared_sum += baseq_squared
             if is_reverse:
@@ -3090,7 +3093,7 @@ def _iter_alignment_binned(Samfile samfile,
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
-            cigar_p = bam1_cigar(b)
+            cigar_p = pysam_bam_get_cigar(b)
             cigar = list()
             for k in range(b.core.n_cigar):
                 op = cigar_p[k] & BAM_CIGAR_MASK
@@ -3408,7 +3411,7 @@ def load_stats(statfun, default_dtype, *args, **kwargs):
                 
 cdef inline bint is_softclipped(bam1_t * aln):
     cdef int k
-    cigar_p = bam1_cigar(aln);
+    cigar_p = pysam_bam_get_cigar(aln);
     for k in range(aln.core.n_cigar):
         op = cigar_p[k] & BAM_CIGAR_MASK
         if op == BAM_CSOFT_CLIP:
@@ -3425,10 +3428,8 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
 
     seq = PyBytes_FromStringAndSize(NULL, 1)
     s   = <char*>seq
-    p   = bam1_seq(src)
+    p   = pysam_bam_get_seq(src)
 
-    # equivalent to bam_nt16_rev_table[bam1_seqi(s, i)] (see bam.c)
-    # note: do not use string literal as it will be a python string
     s[0] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
 
     return seq
