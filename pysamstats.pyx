@@ -1,7 +1,7 @@
 # cython: profile=False
 
 
-__version__ = '0.16'
+__version__ = '0.17-SNAPSHOT'
 
 
 import sys
