@@ -114,7 +114,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.15.1 (pysam 0.7.7)
+Version: 0.16 (pysam 0.8.0)
 ```
 
 From Python:
