@@ -2,3 +2,4 @@ cython
 numpy
 pysam==0.7.8
 nose
+ipython[all]
