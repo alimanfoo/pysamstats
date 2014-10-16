@@ -63,153 +63,204 @@ cdef char* CODE2CIGAR= "MIDNSHP=X"
 cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 
-#############################
-# BASIC COVERAGE STATISTICS #
-#############################
+def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None,
+                one_based=False, truncate=False, pad=False, max_depth=8000,
+                **kwargs):
+    """General purpose function to generate statistics, where one record is
+    generated for each genome position in the selected range, based on a
+    pileup column.
 
+    :param frec: function to build a record
+    :param fpad: function to build an empty record (only applies if pad==True)
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
 
-cpdef object construct_rec_coverage(Samfile samfile, PileupProxy col, bint one_based=False):
-
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i # loop index
-    cdef int n # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef int reads_pp = 0
-
-    # initialise variables
-    n = col.n
-    plp = col.plp
-
-    # get chromosome name and position
-    chrom = samfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-    
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
-
-    return {'chrom': chrom, 
-            'pos': pos, 
-            'reads_all': n, 
-            'reads_pp': reads_pp}
-
-
-cpdef object construct_rec_coverage_pad(chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_pp': 0}
-
-
-def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
-                pad=False, max_depth=8000, **kwargs):
     if pad:
-        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start, end=end, one_based=one_based,
-                                  truncate=truncate, max_depth=max_depth, **kwargs)
+        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start,
+                                  end=end, one_based=one_based,
+                                  truncate=truncate, max_depth=max_depth,
+                                  **kwargs)
     else:
-        return stat_pileup_default(frec, samfile, chrom=chrom, start=start, end=end, one_based=one_based,
-                                   truncate=truncate, max_depth=max_depth, **kwargs)
+        return stat_pileup_default(frec, samfile, chrom=chrom, start=start,
+                                   end=end, one_based=one_based,
+                                   truncate=truncate, max_depth=max_depth,
+                                   **kwargs)
 
 
-def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
-                        max_depth=8000, **kwargs):
+def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None,
+                        one_based=False, truncate=False, max_depth=8000,
+                        **kwargs):
+    """Default function to generate statistics from pileup columns. Emits one
+    record per covered genome position.
+
+    """
+
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
     for col in it:
         yield frec(samfile, col, one_based)
 
 
-def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
+def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None,
+                       end=None, one_based=False, truncate=False,
                        max_depth=8000, **kwargs):
-    cdef PileupProxy col
-    cdef int curpos
+    """Function to generate statistics from pileup columns, padding to emit a
+    record for every genome position even if not covered.
+
+    """
 
     if chrom is not None:
-        it = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start, end=end, one_based=one_based,
-                                      truncate=truncate, max_depth=max_depth, **kwargs)
+        # iterator for a single chromosome
+        it = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start,
+                                      end=end, one_based=one_based,
+                                      truncate=truncate, max_depth=max_depth,
+                                      **kwargs)
     else:
+        # chain together iterators for all chromosomes
         its = list()
         for chrom in samfile.references:
-            itc = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=None, end=None, one_based=one_based,
-                                           truncate=truncate, max_depth=max_depth, **kwargs)
+            itc = stat_pileup_padded_chrom(frec, fpad, samfile, chrom,
+                                           start=None, end=None,
+                                           one_based=one_based,
+                                           truncate=truncate,
+                                           max_depth=max_depth, **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
     return it
 
 
-def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None, end=None, one_based=False, truncate=False,
+def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None,
+                             end=None, one_based=False, truncate=False,
                              max_depth=8000, **kwargs):
+    """Function to generate statistics from pileup columns from a single
+    chromosome, padding to emit a record for every genome position even if
+    not covered.
+
+    """
+
     cdef PileupProxy col
     cdef int curpos
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
+
+    # obtain an iterator
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
+
+    # keep track of current position to ensure we emit records for all
+    # positions in the request range
     curpos = start
+
     for col in it:
+
+        # pad up to first pileup column
         while curpos < col.pos:
             yield fpad(chrom, curpos, one_based)
             curpos += 1
+
+        # emit a record for the current column
         yield frec(samfile, col, one_based)
         curpos = col.pos + 1
+
+    # pad from last pileup column to end of range
     while curpos < end:
         yield fpad(chrom, curpos, one_based)
         curpos += 1
 
 
 def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
-                        chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, max_depth=8000,
-                        **kwargs):
+                        chrom=None, start=None, end=None, one_based=False,
+                        truncate=False, pad=False, max_depth=8000, **kwargs):
+    """General purpose function to generate statistics, where one record is
+    generated for each genome position in the selected range, based on a pileup
+    column and a reference sequence.
+
+    :param frec: function to build a record
+    :param fpad: function to build an empty record (only applies if pad==True)
+    :param samfile: SAM or BAM file
+    :param fafile: FASTA file for reference sequence
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
     if pad:
-        return stat_pileup_withref_padded(frec, fpad, samfile, fafile, chrom=chrom, start=start, end=end,
-                                          one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
+        return stat_pileup_withref_padded(frec, fpad, samfile, fafile,
+                                          chrom=chrom, start=start, end=end,
+                                          one_based=one_based,
+                                          truncate=truncate,
+                                          max_depth=max_depth, **kwargs)
     else:
-        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom, start=start, end=end,
-                                           one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
+        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom,
+                                           start=start, end=end,
+                                           one_based=one_based,
+                                           truncate=truncate,
+                                           max_depth=max_depth, **kwargs)
 
 
-def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                                one_based=False, truncate=False, max_depth=8000, **kwargs):
+def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile,
+                                chrom=None, start=None, end=None,
+                                one_based=False, truncate=False, max_depth=8000,
+                                **kwargs):
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
     for col in it:
         yield frec(samfile, fafile, col, one_based)
 
 
-def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                               one_based=False, truncate=False, max_depth=8000, **kwargs):
-    cdef PileupProxy col
-    cdef int curpos
+def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile,
+                               chrom=None, start=None, end=None,
+                               one_based=False, truncate=False, max_depth=8000,
+                               **kwargs):
 
     if chrom is not None:
-        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=start, end=end,
-                                              one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
+        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
+                                              chrom, start=start, end=end,
+                                              one_based=one_based,
+                                              truncate=truncate,
+                                              max_depth=max_depth, **kwargs)
     else:
         its = list()
         for chrom in samfile.references:
-            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile, chrom, start=None, end=None,
-                                                   one_based=one_based, truncate=truncate, max_depth=max_depth, **kwargs)
+            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
+                                                   chrom, start=None, end=None,
+                                                   one_based=one_based,
+                                                   truncate=truncate,
+                                                   max_depth=max_depth,
+                                                   **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
     return it
 
 
-def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafile, chrom, start=None, end=None,
-                                     one_based=False, truncate=False, max_depth=8000, **kwargs):
+def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
+                                     Fastafile fafile, chrom, start=None,
+                                     end=None, one_based=False,
+                                     truncate=False, max_depth=8000, **kwargs):
     cdef PileupProxy col
     cdef int curpos
     assert chrom is not None, 'chromosome is None'
-    assert chrom in fafile.references, 'chromosome not in FASTA references: %s' % chrom
+    assert chrom in fafile.references, \
+        'chromosome not in FASTA references: %s' % chrom
     start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, max_depth=max_depth)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
     curpos = start
     for col in it:
         while curpos < col.pos:
@@ -222,11 +273,77 @@ def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile, Fastafile fafi
         curpos += 1
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-                  max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_coverage, construct_rec_coverage_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+#############################
+# BASIC COVERAGE STATISTICS #
+#############################
+
+
+cpdef dict construct_rec_coverage(Samfile samfile, PileupProxy col,
+                                  bint one_based=False):
+    """Construct a coverage record from a pileup column.
+
+    :param samfile: SAM or BAM file
+    :param col: pileup column
+    :param one_based: coordinate system
+    :return: record
+    """
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i  # loop index
+    cdef int n  # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef int reads_pp = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = samfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_pp': reads_pp}
+
+
+cpdef dict construct_rec_coverage_pad(chrom, pos, bint one_based=False):
+    """Construct an empty coverage record for a position with no aligned reads.
+
+    :param chrom: chromosome/contig
+    :param pos: position
+    :param one_based: coordinate system
+    :return: record
+    """
+
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_pp': 0}
+
+
+def stat_coverage(Samfile samfile, chrom=None, start=None, end=None,
+                  one_based=False, truncate=False, pad=False, max_depth=8000,
+                  **kwargs):
+    return stat_pileup(construct_rec_coverage, construct_rec_coverage_pad,
+                       samfile, chrom=chrom, start=start, end=end,
+                       one_based=one_based, truncate=truncate, pad=pad,
+                       max_depth=max_depth, **kwargs)
 
 
 def write_coverage(*args, **kwargs):
@@ -235,14 +352,16 @@ def write_coverage(*args, **kwargs):
     except:
         fields = ('chrom', 'pos', 'reads_all', 'reads_pp')
     write_stats(stat_coverage, fields, *args, **kwargs)
-    
-    
+
+
+dtype_coverage = [('chrom', 'a12'),
+                  ('pos', 'i4'),
+                  ('reads_all', 'i4'),
+                  ('reads_pp', 'i4')]
+
+
 def load_coverage(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'),
-                     ('reads_pp', 'i4')]
-    return load_stats(stat_coverage, default_dtype, *args, **kwargs)
+    return load_stats(stat_coverage, dtype_coverage, *args, **kwargs)
     
     
 ################################
@@ -250,7 +369,8 @@ def load_coverage(*args, **kwargs):
 ################################
 
 
-cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
+                                           bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -303,7 +423,8 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col, bin
             'reads_pp_rev': reads_pp_rev}
 
 
-cpdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False):
+cpdef object construct_rec_coverage_strand_pad(chrom, pos,
+                                               bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
             'pos': pos,
@@ -315,11 +436,15 @@ cpdef object construct_rec_coverage_strand_pad(chrom, pos, bint one_based=False)
             'reads_pp_rev': 0}
 
 
-def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None,
+                         one_based=False, truncate=False, pad=False,
                          max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_coverage_strand, construct_rec_coverage_strand_pad, samfile,
+    return stat_pileup(construct_rec_coverage_strand,
+                       construct_rec_coverage_strand_pad,
+                       samfile,
                        chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+                       truncate=truncate, pad=pad, max_depth=max_depth,
+                       **kwargs)
 
 
 def write_coverage_strand(*args, **kwargs):
@@ -347,7 +472,8 @@ def load_coverage_strand(*args, **kwargs):
 ################################
 
 
-cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col, bint one_based=False):
+cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
+                                        bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -3192,8 +3318,8 @@ def stat_tlen_binned(Samfile samfile,
 
 
 def _iter_tlen_binned(Samfile samfile,
-                          chrom, start, end, one_based,
-                          int window_size, int window_offset):
+                      chrom, start, end, one_based,
+                      int window_size, int window_offset):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all = 0
@@ -3309,21 +3435,30 @@ def load_tlen_binned(*args, **kwargs):
 
 
 def normalise_coords(Samfile samfile, chrom, start, end, one_based):
+    """Convert to zero-based coordinates and deal with unspecified start
+    and/or end.
+
+    """
+
     if chrom is None:
         return None, None
+
     else:
-        assert chrom in samfile.references, 'chromosome not in SAM references: %s' % chrom
+        assert chrom in samfile.references, \
+            'chromosome not in SAM references: %s' % chrom
+
         if one_based:
             start = start - 1 if start is not None else None
             end = end - 1 if end is not None else None
+
         chrlen = samfile.lengths[samfile.references.index(chrom)]
         if start is None:
             start = 0
         if end is None:
             end = chrlen
         if end > chrlen:
-    #        print >>sys.stderr, 'WARNING: end is greater than reference length: %s, %s, %s' % (chrom, end, chrlen)
             end = chrlen
+
         return start, end
 
     
@@ -3340,12 +3475,14 @@ def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
         writer.writeheader()
 
     if fafile is None:
-        recs = statfun(samfile, chrom=chrom, start=start, end=end, one_based=one_based, **kwargs)
+        recs = statfun(samfile, chrom=chrom, start=start, end=end,
+                       one_based=one_based, **kwargs)
     else:
-        recs = statfun(samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based, **kwargs)
+        recs = statfun(samfile, fafile, chrom=chrom, start=start, end=end,
+                       one_based=one_based, **kwargs)
 
     if progress is None:
-        # N.B., don't use writer.writerows(recs) as you don't get any output until all records are returned!
+        # N.B., don't use writer.writerows(recs)!
         for rec in recs:
             writer.writerow(rec)
 
@@ -3370,43 +3507,44 @@ def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
 from operator import itemgetter
 
 
-def flatten(recs, fields):
+def flatten(recs, *fields):
     getter = itemgetter(*fields)
-    rows = (getter(rec) for rec in recs)
-    return rows
-
-
-def flatten_one(recs, field):
-    getter = itemgetter(field)
-    items = (getter(rec) for rec in recs)
-    return items
+    it = (getter(rec) for rec in recs)
+    return it
 
 
 def load_stats(statfun, default_dtype, *args, **kwargs):
-    try:
-        fields = kwargs['fields']
-        del kwargs['fields']
-    except:
+
+    # determine fields to load
+    fields = kwargs.pop('fields', None)
+    if not fields:
         fields = [t[0] for t in default_dtype]
-    try:
-        dtype_overrides = kwargs['dtype'] # expect dict
-        del kwargs['dtype']
-        dtype = dict(default_dtype)
-        for k in dtype_overrides:
-            dtype[k] = dtype_overrides[k]
-    except:
-        dtype = dict(default_dtype)
-    recs = statfun(*args, **kwargs)
+
+    # determine dtype
+    dtype = dict(default_dtype)
+    dtype_overrides = kwargs.pop('dtype', None)
+    if dtype_overrides:
+        # expect dict
+        dtype.update(dtype_overrides)
     if len(fields) == 1:
-        f = fields[0]
-        dtype = dtype[f]
-        items = flatten_one(recs, f)
+        dtype = dtype[fields[0]]
     else:
-        # trim dtype to selected fields
         dtype = [(f, dtype[f]) for f in fields]
-        items = flatten(recs, fields)
-    a = np.fromiter(items, dtype=dtype)
-    return a.view(np.recarray)
+
+    # setup record generator
+    recs = statfun(*args, **kwargs)
+
+    # flatten records
+    it = flatten(recs, *fields)
+
+    # load into a Numpy array
+    a = np.fromiter(it, dtype=dtype)
+
+    # view as recarray for convenience
+    if len(fields) > 1:
+        a = a.view(np.recarray)
+
+    return a
     
                 
 cdef inline bint is_softclipped(bam1_t * aln):
