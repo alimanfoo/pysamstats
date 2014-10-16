@@ -1,4 +1,5 @@
 # cython: profile=False
+# cython: embedsignature=True
 
 
 __version__ = '0.17-SNAPSHOT'
@@ -63,219 +64,18 @@ cdef char* CODE2CIGAR= "MIDNSHP=X"
 cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 
-def stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None,
-                one_based=False, truncate=False, pad=False, max_depth=8000,
-                **kwargs):
-    """General purpose function to generate statistics, where one record is
-    generated for each genome position in the selected range, based on a
-    pileup column.
-
-    :param frec: function to build a record
-    :param fpad: function to build an empty record (only applies if pad==True)
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
-    """
-
-    if pad:
-        return stat_pileup_padded(frec, fpad, samfile, chrom=chrom, start=start,
-                                  end=end, one_based=one_based,
-                                  truncate=truncate, max_depth=max_depth,
-                                  **kwargs)
-    else:
-        return stat_pileup_default(frec, samfile, chrom=chrom, start=start,
-                                   end=end, one_based=one_based,
-                                   truncate=truncate, max_depth=max_depth,
-                                   **kwargs)
-
-
-def stat_pileup_default(frec, Samfile samfile, chrom=None, start=None, end=None,
-                        one_based=False, truncate=False, max_depth=8000,
-                        **kwargs):
-    """Default function to generate statistics from pileup columns. Emits one
-    record per covered genome position.
-
-    """
-
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
-    for col in it:
-        yield frec(samfile, col, one_based)
-
-
-def stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None,
-                       end=None, one_based=False, truncate=False,
-                       max_depth=8000, **kwargs):
-    """Function to generate statistics from pileup columns, padding to emit a
-    record for every genome position even if not covered.
-
-    """
-
-    if chrom is not None:
-        # iterator for a single chromosome
-        it = stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start,
-                                      end=end, one_based=one_based,
-                                      truncate=truncate, max_depth=max_depth,
-                                      **kwargs)
-    else:
-        # chain together iterators for all chromosomes
-        its = list()
-        for chrom in samfile.references:
-            itc = stat_pileup_padded_chrom(frec, fpad, samfile, chrom,
-                                           start=None, end=None,
-                                           one_based=one_based,
-                                           truncate=truncate,
-                                           max_depth=max_depth, **kwargs)
-            its.append(itc)
-        it = itertools.chain(*its)
-    return it
-
-
-def stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None,
-                             end=None, one_based=False, truncate=False,
-                             max_depth=8000, **kwargs):
-    """Function to generate statistics from pileup columns from a single
-    chromosome, padding to emit a record for every genome position even if
-    not covered.
-
-    """
-
-    cdef PileupProxy col
-    cdef int curpos
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
-
-    # obtain an iterator
-    it = samfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
-
-    # keep track of current position to ensure we emit records for all
-    # positions in the request range
-    curpos = start
-
-    for col in it:
-
-        # pad up to first pileup column
-        while curpos < col.pos:
-            yield fpad(chrom, curpos, one_based)
-            curpos += 1
-
-        # emit a record for the current column
-        yield frec(samfile, col, one_based)
-        curpos = col.pos + 1
-
-    # pad from last pileup column to end of range
-    while curpos < end:
-        yield fpad(chrom, curpos, one_based)
-        curpos += 1
-
-
-def stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
-                        chrom=None, start=None, end=None, one_based=False,
-                        truncate=False, pad=False, max_depth=8000, **kwargs):
-    """General purpose function to generate statistics, where one record is
-    generated for each genome position in the selected range, based on a pileup
-    column and a reference sequence.
-
-    :param frec: function to build a record
-    :param fpad: function to build an empty record (only applies if pad==True)
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file for reference sequence
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
-    """
-
-    if pad:
-        return stat_pileup_withref_padded(frec, fpad, samfile, fafile,
-                                          chrom=chrom, start=start, end=end,
-                                          one_based=one_based,
-                                          truncate=truncate,
-                                          max_depth=max_depth, **kwargs)
-    else:
-        return stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom,
-                                           start=start, end=end,
-                                           one_based=one_based,
-                                           truncate=truncate,
-                                           max_depth=max_depth, **kwargs)
-
-
-def stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile,
-                                chrom=None, start=None, end=None,
-                                one_based=False, truncate=False, max_depth=8000,
-                                **kwargs):
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
-    for col in it:
-        yield frec(samfile, fafile, col, one_based)
-
-
-def stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile,
-                               chrom=None, start=None, end=None,
-                               one_based=False, truncate=False, max_depth=8000,
-                               **kwargs):
-
-    if chrom is not None:
-        it = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
-                                              chrom, start=start, end=end,
-                                              one_based=one_based,
-                                              truncate=truncate,
-                                              max_depth=max_depth, **kwargs)
-    else:
-        its = list()
-        for chrom in samfile.references:
-            itc = stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
-                                                   chrom, start=None, end=None,
-                                                   one_based=one_based,
-                                                   truncate=truncate,
-                                                   max_depth=max_depth,
-                                                   **kwargs)
-            its.append(itc)
-        it = itertools.chain(*its)
-    return it
-
-
-def stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
-                                     Fastafile fafile, chrom, start=None,
-                                     end=None, one_based=False,
-                                     truncate=False, max_depth=8000, **kwargs):
-    cdef PileupProxy col
-    cdef int curpos
-    assert chrom is not None, 'chromosome is None'
-    assert chrom in fafile.references, \
-        'chromosome not in FASTA references: %s' % chrom
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
-    it = samfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
-    curpos = start
-    for col in it:
-        while curpos < col.pos:
-            yield fpad(fafile, chrom, curpos, one_based)
-            curpos += 1
-        yield frec(samfile, fafile, col, one_based)
-        curpos = col.pos + 1
-    while curpos < end:
-        yield fpad(fafile, chrom, curpos, one_based)
-        curpos += 1
-
-
 #############################
 # BASIC COVERAGE STATISTICS #
 #############################
+
+
+dtype_coverage = [('chrom', 'a12'),
+                  ('pos', 'i4'),
+                  ('reads_all', 'i4'),
+                  ('reads_pp', 'i4')]
+
+
+fields_coverage = [t[0] for t in dtype_coverage]
 
 
 cpdef dict construct_rec_coverage(Samfile samfile, PileupProxy col,
@@ -340,28 +140,32 @@ cpdef dict construct_rec_coverage_pad(chrom, pos, bint one_based=False):
 def stat_coverage(Samfile samfile, chrom=None, start=None, end=None,
                   one_based=False, truncate=False, pad=False, max_depth=8000,
                   **kwargs):
-    return stat_pileup(construct_rec_coverage, construct_rec_coverage_pad,
-                       samfile, chrom=chrom, start=start, end=end,
-                       one_based=one_based, truncate=truncate, pad=pad,
-                       max_depth=max_depth, **kwargs)
+    """Generate coverage statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_coverage, construct_rec_coverage_pad,
+                        samfile, chrom=chrom, start=start, end=end,
+                        one_based=one_based, truncate=truncate, pad=pad,
+                        max_depth=max_depth, **kwargs)
 
 
 def write_coverage(*args, **kwargs):
-    try:
-        fields = kwargs['fields']
-    except:
-        fields = ('chrom', 'pos', 'reads_all', 'reads_pp')
-    write_stats(stat_coverage, fields, *args, **kwargs)
-
-
-dtype_coverage = [('chrom', 'a12'),
-                  ('pos', 'i4'),
-                  ('reads_all', 'i4'),
-                  ('reads_pp', 'i4')]
+    _write_stats(stat_coverage, fields_coverage, *args, **kwargs)
 
 
 def load_coverage(*args, **kwargs):
-    return load_stats(stat_coverage, dtype_coverage, *args, **kwargs)
+    return _load_stats(stat_coverage, dtype_coverage, *args, **kwargs)
     
     
 ################################
@@ -369,8 +173,23 @@ def load_coverage(*args, **kwargs):
 ################################
 
 
-cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
-                                           bint one_based=False):
+dtype_coverage_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+]
+
+
+fields_coverage_strand = [t[0] for t in dtype_coverage_strand]
+
+
+cpdef dict construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
+                                         bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -423,8 +242,8 @@ cpdef object construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
             'reads_pp_rev': reads_pp_rev}
 
 
-cpdef object construct_rec_coverage_strand_pad(chrom, pos,
-                                               bint one_based=False):
+cpdef dict construct_rec_coverage_strand_pad(chrom, pos,
+                                             bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
             'pos': pos,
@@ -439,32 +258,36 @@ cpdef object construct_rec_coverage_strand_pad(chrom, pos,
 def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None,
                          one_based=False, truncate=False, pad=False,
                          max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_coverage_strand,
-                       construct_rec_coverage_strand_pad,
-                       samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth,
-                       **kwargs)
+    """Generate coverage statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_coverage_strand,
+                        construct_rec_coverage_strand_pad,
+                        samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_coverage_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev')
-    write_stats(stat_coverage_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_coverage_strand, fields_coverage_strand,
+                *args, **kwargs)
 
 
 def load_coverage_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'),
-                     ('reads_fwd', 'i4'),
-                     ('reads_rev', 'i4'),
-                     ('reads_pp', 'i4'),
-                     ('reads_pp_fwd', 'i4'),
-                     ('reads_pp_rev', 'i4'),
-                     ]
-    return load_stats(stat_coverage_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_strand, dtype_coverage_strand,
+                      *args, **kwargs)
     
     
 ################################
@@ -472,15 +295,32 @@ def load_coverage_strand(*args, **kwargs):
 ################################
 
 
-cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
-                                        bint one_based=False):
+dtype_coverage_ext = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_mate_unmapped', 'i4'),
+    ('reads_mate_other_chr', 'i4'),
+    ('reads_mate_same_strand', 'i4'),
+    ('reads_faceaway', 'i4'),
+    ('reads_softclipped', 'i4'),
+    ('reads_duplicate', 'i4')
+]
+
+
+fields_coverage_ext = [t[0] for t in dtype_coverage_ext]
+
+
+cpdef dict construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
+                                      bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int i  # loop index
+    cdef int n  # total number of reads in column
     cdef bint is_reverse 
     cdef bint is_proper_pair 
     cdef bint is_duplicate
@@ -524,25 +364,26 @@ cpdef object construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
             reads_mate_unmapped += 1
         elif tid != aln.core.mtid:
             reads_mate_other_chr += 1
-        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+        elif (is_reverse and mate_is_reverse) \
+                or (not is_reverse and not mate_is_reverse):
             reads_mate_same_strand += 1
         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
             reads_faceaway += 1
-        if is_softclipped(aln):
+        if _is_softclipped(aln):
             reads_softclipped += 1
             
     return {'chrom': chrom, 'pos': pos, 
-               'reads_all': n, 
-               'reads_pp': reads_pp,
-               'reads_mate_unmapped': reads_mate_unmapped,
-               'reads_mate_other_chr': reads_mate_other_chr,
-               'reads_mate_same_strand': reads_mate_same_strand,
-               'reads_faceaway': reads_faceaway,
-               'reads_softclipped': reads_softclipped,
-               'reads_duplicate': reads_duplicate}
+            'reads_all': n,
+            'reads_pp': reads_pp,
+            'reads_mate_unmapped': reads_mate_unmapped,
+            'reads_mate_other_chr': reads_mate_other_chr,
+            'reads_mate_same_strand': reads_mate_same_strand,
+            'reads_faceaway': reads_faceaway,
+            'reads_softclipped': reads_softclipped,
+            'reads_duplicate': reads_duplicate}
 
 
-cpdef object construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
             'reads_all': 0,
@@ -555,39 +396,36 @@ cpdef object construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
             'reads_duplicate': 0}
 
 
-def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None,
+                      one_based=False, truncate=False, pad=False,
                       max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_coverage_ext, construct_rec_coverage_ext_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    """Generate extended coverage statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_coverage_ext,
+                        construct_rec_coverage_ext_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_coverage_ext(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 
-                  'reads_pp', 
-                  'reads_mate_unmapped', 
-                  'reads_mate_other_chr',
-                  'reads_mate_same_strand',
-                  'reads_faceaway', 
-                  'reads_softclipped',
-                  'reads_duplicate')
-    write_stats(stat_coverage_ext, fieldnames, *args, **kwargs)
+    _write_stats(stat_coverage_ext, fields_coverage_ext, *args, **kwargs)
 
 
 def load_coverage_ext(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), 
-                     ('reads_pp', 'i4'), 
-                     ('reads_mate_unmapped', 'i4'), 
-                     ('reads_mate_other_chr', 'i4'),
-                     ('reads_mate_same_strand', 'i4'),
-                     ('reads_faceaway', 'i4'), 
-                     ('reads_softclipped', 'i4'),
-                     ('reads_duplicate', 'i4')
-                     ]
-    return load_stats(stat_coverage_ext, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_ext, dtype_coverage_ext, *args, **kwargs)
     
     
 ##########################################
@@ -595,7 +433,41 @@ def load_coverage_ext(*args, **kwargs):
 ##########################################
 
 
-cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+dtype_coverage_ext_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('reads_mate_unmapped', 'i4'),
+    ('reads_mate_unmapped_fwd', 'i4'),
+    ('reads_mate_unmapped_rev', 'i4'),
+    ('reads_mate_other_chr', 'i4'),
+    ('reads_mate_other_chr_fwd', 'i4'),
+    ('reads_mate_other_chr_rev', 'i4'),
+    ('reads_mate_same_strand', 'i4'),
+    ('reads_mate_same_strand_fwd', 'i4'),
+    ('reads_mate_same_strand_rev', 'i4'),
+    ('reads_faceaway', 'i4'),
+    ('reads_faceaway_fwd', 'i4'),
+    ('reads_faceaway_rev', 'i4'),
+    ('reads_softclipped', 'i4'),
+    ('reads_softclipped_fwd', 'i4'),
+    ('reads_softclipped_rev', 'i4'),
+    ('reads_duplicate', 'i4'),
+    ('reads_duplicate_fwd', 'i4'),
+    ('reads_duplicate_rev', 'i4'),
+]
+
+
+fields_coverage_ext_strand = [t[0] for t in dtype_coverage_ext_strand]
+
+
+cpdef dict construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
+                                             bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -688,7 +560,7 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
                 reads_faceaway_rev += 1
             else:
                 reads_faceaway_fwd += 1
-        if is_softclipped(aln):
+        if _is_softclipped(aln):
             reads_softclipped += 1
             if is_reverse:
                 reads_softclipped_rev += 1
@@ -729,7 +601,8 @@ cpdef object construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
            }
 
 
-cpdef object construct_rec_coverage_ext_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_coverage_ext_strand_pad(chrom, pos,
+                                                 bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
            'reads_all': 0,
@@ -759,72 +632,38 @@ cpdef object construct_rec_coverage_ext_strand_pad(chrom, pos, bint one_based=Fa
            }
 
 
-def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False,
-                             pad=False, max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_coverage_ext_strand, construct_rec_coverage_ext_strand_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None,
+                             one_based=False, truncate=False, pad=False,
+                             max_depth=8000, **kwargs):
+    """Generate extended coverage statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_coverage_ext_strand,
+                        construct_rec_coverage_ext_strand_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_coverage_ext_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 
-                  'reads_fwd', 
-                  'reads_rev', 
-                  'reads_pp', 
-                  'reads_pp_fwd', 
-                  'reads_pp_rev', 
-                  'reads_mate_unmapped', 
-                  'reads_mate_unmapped_fwd', 
-                  'reads_mate_unmapped_rev', 
-                  'reads_mate_other_chr',
-                  'reads_mate_other_chr_fwd',
-                  'reads_mate_other_chr_rev',
-                  'reads_mate_same_strand',
-                  'reads_mate_same_strand_fwd',
-                  'reads_mate_same_strand_rev',
-                  'reads_faceaway', 
-                  'reads_faceaway_fwd', 
-                  'reads_faceaway_rev', 
-                  'reads_softclipped',
-                  'reads_softclipped_fwd',
-                  'reads_softclipped_rev',
-                  'reads_duplicate',
-                  'reads_duplicate_fwd',
-                  'reads_duplicate_rev',
-                  )
-    write_stats(stat_coverage_ext_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_coverage_ext_strand, fields_coverage_ext_strand,
+                 *args, **kwargs)
 
 
 def load_coverage_ext_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'),
-                     ('reads_fwd', 'i4'),
-                     ('reads_rev', 'i4'),
-                     ('reads_pp', 'i4'),
-                     ('reads_pp_fwd', 'i4'),
-                     ('reads_pp_rev', 'i4'),
-                     ('reads_mate_unmapped', 'i4'), 
-                     ('reads_mate_unmapped_fwd', 'i4'), 
-                     ('reads_mate_unmapped_rev', 'i4'), 
-                     ('reads_mate_other_chr', 'i4'),
-                     ('reads_mate_other_chr_fwd', 'i4'),
-                     ('reads_mate_other_chr_rev', 'i4'),
-                     ('reads_mate_same_strand', 'i4'),
-                     ('reads_mate_same_strand_fwd', 'i4'),
-                     ('reads_mate_same_strand_rev', 'i4'),
-                     ('reads_faceaway', 'i4'), 
-                     ('reads_faceaway_fwd', 'i4'), 
-                     ('reads_faceaway_rev', 'i4'), 
-                     ('reads_softclipped', 'i4'),
-                     ('reads_softclipped_fwd', 'i4'),
-                     ('reads_softclipped_rev', 'i4'),
-                     ('reads_duplicate', 'i4'),
-                     ('reads_duplicate_fwd', 'i4'),
-                     ('reads_duplicate_rev', 'i4'),
-                    ]
-    return load_stats(stat_coverage_ext_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_ext_strand, dtype_coverage_ext_strand,
+                       *args, **kwargs)
     
     
 ########################
@@ -832,15 +671,45 @@ def load_coverage_ext_strand(*args, **kwargs):
 ########################
 
 
-cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile, 
-                                     PileupProxy col, bint one_based=False):
+dtype_variation = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('ref', 'a1'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('matches', 'i4'),
+    ('matches_pp', 'i4'),
+    ('mismatches', 'i4'),
+    ('mismatches_pp', 'i4'),
+    ('deletions', 'i4'),
+    ('deletions_pp', 'i4'),
+    ('insertions', 'i4'),
+    ('insertions_pp', 'i4'),
+    ('A', 'i4'),
+    ('A_pp', 'i4'),
+    ('C', 'i4'),
+    ('C_pp', 'i4'),
+    ('T', 'i4'),
+    ('T_pp', 'i4'),
+    ('G', 'i4'),
+    ('G_pp', 'i4'),
+    ('N', 'i4'),
+    ('N_pp', 'i4')
+]
+
+
+fields_variation = [t[0] for t in dtype_variation]
+
+
+cpdef dict construct_rec_variation(Samfile samfile, Fastafile fafile,
+                                   PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int i  # loop index
+    cdef int n  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     # counting variables
@@ -873,7 +742,9 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
     pos = col.pos + 1 if one_based else col.pos
     
     # reference base
-    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    refbase = fafile\
+        .fetch(reference=chrom, start=col.pos, end=col.pos+1)\
+        .upper()
     
     # loop over reads, extract what we need
     for i in range(n):
@@ -892,7 +763,7 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
                 deletions_pp += 1
         else:
 #            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = _get_seq_base(aln, read.qpos)
             if alnbase == 'A':
                 A += 1
                 if is_proper_pair:
@@ -943,7 +814,8 @@ cpdef object construct_rec_variation(Samfile samfile, Fastafile fafile,
             'N': N, 'N_pp': N_pp}
 
 
-cpdef object construct_rec_variation_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict construct_rec_variation_pad(Fastafile fafile, chrom, pos,
+                                       bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -963,56 +835,92 @@ cpdef object construct_rec_variation_pad(Fastafile fafile, chrom, pos, bint one_
             'N': 0, 'N_pp': 0}
 
 
-def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
-    return stat_pileup_withref(construct_rec_variation, construct_rec_variation_pad,
-                               samfile, fafile,
-                               chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None,
+                   end=None, one_based=False, truncate=False, pad=False,
+                   max_depth=8000, **kwargs):
+    """Generate variation statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup_withref(construct_rec_variation,
+                                construct_rec_variation_pad,
+                                samfile, fafile,
+                                chrom=chrom, start=start, end=end,
+                                one_based=one_based, truncate=truncate,
+                                pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_variation(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'ref', 
-                  'reads_all', 'reads_pp',
-                  'matches', 'matches_pp',
-                  'mismatches', 'mismatches_pp',
-                  'deletions', 'deletions_pp',
-                  'insertions', 'insertions_pp',
-                  'A', 'A_pp', 'C', 'C_pp', 'T', 'T_pp', 'G', 'G_pp', 'N', 'N_pp')
-    write_stats(stat_variation, fieldnames, *args, **kwargs)
+    _write_stats(stat_variation, fields_variation, *args, **kwargs)
     
     
 def load_variation(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('ref', 'a1'), 
-                     ('reads_all', 'i4'), 
-                     ('reads_pp', 'i4'),
-                     ('matches', 'i4'), 
-                     ('matches_pp', 'i4'),
-                     ('mismatches', 'i4'), 
-                     ('mismatches_pp', 'i4'),
-                     ('deletions', 'i4'), 
-                     ('deletions_pp', 'i4'),
-                     ('insertions', 'i4'), 
-                     ('insertions_pp', 'i4'),
-                     ('A', 'i4'), 
-                     ('A_pp', 'i4'), 
-                     ('C', 'i4'), 
-                     ('C_pp', 'i4'), 
-                     ('T', 'i4'), 
-                     ('T_pp', 'i4'), 
-                     ('G', 'i4'), 
-                     ('G_pp', 'i4'), 
-                     ('N', 'i4'), 
-                     ('N_pp', 'i4')
-                    ]
-    return load_stats(stat_variation, default_dtype, *args, **kwargs)
+    return _load_stats(stat_variation, dtype_variation, *args, **kwargs)
 
     
 #################################
 # STRANDED VARIATION STATISTICS #
 #################################
+
+
+dtype_variation_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('ref', 'a1'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('matches', 'i4'),
+    ('matches_fwd', 'i4'),
+    ('matches_rev', 'i4'),
+    ('matches_pp', 'i4'),
+    ('matches_pp_fwd', 'i4'),
+    ('matches_pp_rev', 'i4'),
+    ('mismatches', 'i4'),
+    ('mismatches_fwd', 'i4'),
+    ('mismatches_rev', 'i4'),
+    ('mismatches_pp', 'i4'),
+    ('mismatches_pp_fwd', 'i4'),
+    ('mismatches_pp_rev', 'i4'),
+    ('deletions', 'i4'),
+    ('deletions_fwd', 'i4'),
+    ('deletions_rev', 'i4'),
+    ('deletions_pp', 'i4'),
+    ('deletions_pp_fwd', 'i4'),
+    ('deletions_pp_rev', 'i4'),
+    ('insertions', 'i4'),
+    ('insertions_fwd', 'i4'),
+    ('insertions_rev', 'i4'),
+    ('insertions_pp', 'i4'),
+    ('insertions_pp_fwd', 'i4'),
+    ('insertions_pp_rev', 'i4'),
+    ('A', 'i4'), ('A_fwd', 'i4'), ('A_rev', 'i4'),
+    ('A_pp', 'i4'), ('A_pp_fwd', 'i4'), ('A_pp_rev', 'i4'),
+    ('C', 'i4'), ('C_fwd', 'i4'), ('C_rev', 'i4'),
+    ('C_pp', 'i4'), ('C_pp_fwd', 'i4'), ('C_pp_rev', 'i4'),
+    ('T', 'i4'), ('T_fwd', 'i4'), ('T_rev', 'i4'),
+    ('T_pp', 'i4'), ('T_pp_fwd', 'i4'), ('T_pp_rev', 'i4'),
+    ('G', 'i4'), ('G_fwd', 'i4'), ('G_rev', 'i4'),
+    ('G_pp', 'i4'), ('G_pp_fwd', 'i4'), ('G_pp_rev', 'i4'),
+    ('N', 'i4'), ('N_fwd', 'i4'), ('N_rev', 'i4'),
+    ('N_pp', 'i4'), ('N_pp_fwd', 'i4'), ('N_pp_rev', 'i4')
+]
+
+
+fields_variation_strand = [t[0] for t in dtype_variation_strand]
 
 
 cdef struct CountPpStrand:
@@ -1023,7 +931,8 @@ cdef inline init_pp_strand(CountPpStrand* c):
     c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0    
 
 
-cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse, bint is_proper_pair):
+cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
+                           bint is_proper_pair):
     c.all += 1
     if is_reverse:
         c.rev += 1
@@ -1037,8 +946,9 @@ cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse, bint is_proper_pai
             c.pp_fwd += 1
                 
 
-cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile, 
-                                            PileupProxy col, bint one_based=False):
+cpdef dict construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
+                                          PileupProxy col,
+                                          bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1049,7 +959,8 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
     cdef uint32_t flag
     cdef bint is_proper_pair, is_reverse
     # counting variables
-    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, A, C, T, G, N
+    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, \
+        A, C, T, G, N
     
     # initialise variables
     n = col.n
@@ -1086,7 +997,7 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
         if read.is_del:
             incr_pp_strand(&deletions, is_reverse, is_proper_pair)
         else:
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = _get_seq_base(aln, read.qpos)
             if alnbase == 'A':
                 incr_pp_strand(&A, is_reverse, is_proper_pair)
             elif alnbase == 'T':
@@ -1123,7 +1034,8 @@ cpdef object construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
             }
 
 
-cpdef object construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos,
+                                              bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -1137,58 +1049,53 @@ cpdef object construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos, bi
             'deletions_pp': 0, 'deletions_pp_fwd': 0, 'deletions_pp_rev': 0,
             'insertions': 0, 'insertions_fwd': 0, 'insertions_rev': 0, 
             'insertions_pp': 0, 'insertions_pp_fwd': 0, 'insertions_pp_rev': 0,
-            'A': 0, 'A_fwd': 0, 'A_rev': 0, 'A_pp': 0, 'A_pp_fwd': 0, 'A_pp_rev': 0,
-            'C': 0, 'C_fwd': 0, 'C_rev': 0, 'C_pp': 0, 'C_pp_fwd': 0, 'C_pp_rev': 0,
-            'T': 0, 'T_fwd': 0, 'T_rev': 0, 'T_pp': 0, 'T_pp_fwd': 0, 'T_pp_rev': 0,
-            'G': 0, 'G_fwd': 0, 'G_rev': 0, 'G_pp': 0, 'G_pp_fwd': 0, 'G_pp_rev': 0,
-            'N': 0, 'N_fwd': 0, 'N_rev': 0, 'N_pp': 0, 'N_pp_fwd': 0, 'N_pp_rev': 0,
+            'A': 0, 'A_fwd': 0, 'A_rev': 0,
+            'A_pp': 0, 'A_pp_fwd': 0, 'A_pp_rev': 0,
+            'C': 0, 'C_fwd': 0, 'C_rev': 0,
+            'C_pp': 0, 'C_pp_fwd': 0, 'C_pp_rev': 0,
+            'T': 0, 'T_fwd': 0, 'T_rev': 0,
+            'T_pp': 0, 'T_pp_fwd': 0, 'T_pp_rev': 0,
+            'G': 0, 'G_fwd': 0, 'G_rev': 0,
+            'G_pp': 0, 'G_pp_fwd': 0, 'G_pp_rev': 0,
+            'N': 0, 'N_fwd': 0, 'N_rev': 0,
+            'N_pp': 0, 'N_pp_fwd': 0, 'N_pp_rev': 0,
             }
 
 
-def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                          one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
-    return stat_pileup_withref(construct_rec_variation_strand, construct_rec_variation_strand_pad,
-                               samfile, fafile,
-                               chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None,
+                          start=None, end=None, one_based=False,
+                          truncate=False, pad=False, max_depth=8000, **kwargs):
+    """Generate variation statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param fafile: FASTA file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup_withref(construct_rec_variation_strand,
+                                construct_rec_variation_strand_pad,
+                                samfile, fafile,
+                                chrom=chrom, start=start, end=end,
+                                one_based=one_based, truncate=truncate,
+                                pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_variation_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'ref', 
-                'reads_all', 'reads_fwd', 'reads_rev', 'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
-                'matches', 'matches_fwd', 'matches_rev', 'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
-                'mismatches', 'mismatches_fwd', 'mismatches_rev', 'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev',
-                'deletions', 'deletions_fwd', 'deletions_rev', 'deletions_pp', 'deletions_pp_fwd', 'deletions_pp_rev',
-                'insertions', 'insertions_fwd', 'insertions_rev', 'insertions_pp', 'insertions_pp_fwd', 'insertions_pp_rev',
-                'A', 'A_fwd', 'A_rev', 'A_pp', 'A_pp_fwd', 'A_pp_rev',
-                'C', 'C_fwd', 'C_rev', 'C_pp', 'C_pp_fwd', 'C_pp_rev',
-                'T', 'T_fwd', 'T_rev', 'T_pp', 'T_pp_fwd', 'T_pp_rev',
-                'G', 'G_fwd', 'G_rev', 'G_pp', 'G_pp_fwd', 'G_pp_rev',
-                'N', 'N_fwd', 'N_rev', 'N_pp', 'N_pp_fwd', 'N_pp_rev')
-    write_stats(stat_variation_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_variation_strand, fields_variation_strand,
+                 *args, **kwargs)
     
     
 def load_variation_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('ref', 'a1'), 
-                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
-                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'),
-                     ('matches', 'i4'), ('matches_fwd', 'i4'), ('matches_rev', 'i4'), 
-                     ('matches_pp', 'i4'), ('matches_pp_fwd', 'i4'), ('matches_pp_rev', 'i4'),
-                     ('mismatches', 'i4'), ('mismatches_fwd', 'i4'), ('mismatches_rev', 'i4'), 
-                     ('mismatches_pp', 'i4'), ('mismatches_pp_fwd', 'i4'), ('mismatches_pp_rev', 'i4'),
-                     ('deletions', 'i4'), ('deletions_fwd', 'i4'), ('deletions_rev', 'i4'), 
-                     ('deletions_pp', 'i4'), ('deletions_pp_fwd', 'i4'), ('deletions_pp_rev', 'i4'),
-                     ('insertions', 'i4'), ('insertions_fwd', 'i4'), ('insertions_rev', 'i4'), 
-                     ('insertions_pp', 'i4'), ('insertions_pp_fwd', 'i4'), ('insertions_pp_rev', 'i4'),
-                     ('A', 'i4'), ('A_fwd', 'i4'), ('A_rev', 'i4'), ('A_pp', 'i4'), ('A_pp_fwd', 'i4'), ('A_pp_rev', 'i4'),
-                     ('C', 'i4'), ('C_fwd', 'i4'), ('C_rev', 'i4'), ('C_pp', 'i4'), ('C_pp_fwd', 'i4'), ('C_pp_rev', 'i4'),
-                     ('T', 'i4'), ('T_fwd', 'i4'), ('T_rev', 'i4'), ('T_pp', 'i4'), ('T_pp_fwd', 'i4'), ('T_pp_rev', 'i4'),
-                     ('G', 'i4'), ('G_fwd', 'i4'), ('G_rev', 'i4'), ('G_pp', 'i4'), ('G_pp_fwd', 'i4'), ('G_pp_rev', 'i4'),
-                     ('N', 'i4'), ('N_fwd', 'i4'), ('N_rev', 'i4'), ('N_pp', 'i4'), ('N_pp_fwd', 'i4'), ('N_pp_rev', 'i4')
-                    ]
-    return load_stats(stat_variation_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_variation_strand, dtype_variation_strand,
+                       *args, **kwargs)
     
 
 ##########################
@@ -1196,21 +1103,42 @@ def load_variation_strand(*args, **kwargs):
 ##########################
 
 
-cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col, 
-                                bint one_based=False):
+dtype_tlen = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_paired', 'i4'),
+    ('reads_pp', 'i4'),
+    ('mean_tlen', 'i4'),
+    ('mean_tlen_pp', 'i4'),
+    ('rms_tlen', 'i4'),
+    ('rms_tlen_pp', 'i4'),
+    ('std_tlen', 'i4'),
+    ('std_tlen_pp', 'i4')
+]
+
+
+fields_tlen = [t[0] for t in dtype_tlen]
+
+
+cpdef dict construct_rec_tlen(Samfile samfile, PileupProxy col,
+                              bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int i  # loop index
+    cdef int n  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef bint mate_is_unmappped 
     cdef bint mate_other_chr
-    cdef int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
-    cdef int reads_pp = 0 # reads "properly paired", as defined by aligner
+    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
+    # meaningful
+    cdef int reads_p = 0
+    # reads "properly paired", as defined by aligner
+    cdef int reads_pp = 0
     cdef int64_t tlen
     cdef int64_t tlen_squared
     cdef int64_t tlen_p_sum = 0
@@ -1285,14 +1213,14 @@ cpdef object construct_rec_tlen(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
+        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
+        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
@@ -1327,31 +1255,35 @@ cpdef object construct_rec_tlen_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-              max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_tlen, construct_rec_tlen_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_tlen(Samfile samfile, chrom=None, start=None, end=None,
+              one_based=False, truncate=False, pad=False, max_depth=8000,
+              **kwargs):
+    """Generate insert size statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_tlen, construct_rec_tlen_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_tlen(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_paired', 'reads_pp', 
-                  'mean_tlen', 'mean_tlen_pp',
-                  'rms_tlen', 'rms_tlen_pp',
-                  'std_tlen', 'std_tlen_pp')
-    write_stats(stat_tlen, fieldnames, *args, **kwargs)
+    _write_stats(stat_tlen, fields_tlen, *args, **kwargs)
     
 
 def load_tlen(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), ('reads_paired', 'i4'), ('reads_pp', 'i4'),
-                     ('mean_tlen', 'i4'), ('mean_tlen_pp', 'i4'),
-                     ('rms_tlen', 'i4'), ('rms_tlen_pp', 'i4'),
-                     ('std_tlen', 'i4'), ('std_tlen_pp', 'i4')
-                    ]
-    return load_stats(stat_tlen, default_dtype, *args, **kwargs)
+    return _load_stats(stat_tlen, dtype_tlen, *args, **kwargs)
     
     
 ####################################
@@ -1359,8 +1291,44 @@ def load_tlen(*args, **kwargs):
 ####################################
 
 
-cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col, 
-                                       bint one_based=False):
+dtype_tlen_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_paired', 'i4'),
+    ('reads_paired_fwd', 'i4'),
+    ('reads_paired_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('mean_tlen', 'i4'),
+    ('mean_tlen_fwd', 'i4'),
+    ('mean_tlen_rev', 'i4'),
+    ('mean_tlen_pp', 'i4'),
+    ('mean_tlen_pp_fwd', 'i4'),
+    ('mean_tlen_pp_rev', 'i4'),
+    ('rms_tlen', 'i4'),
+    ('rms_tlen_fwd', 'i4'),
+    ('rms_tlen_rev', 'i4'),
+    ('rms_tlen_pp', 'i4'),
+    ('rms_tlen_pp_fwd', 'i4'),
+    ('rms_tlen_pp_rev', 'i4'),
+    ('std_tlen', 'i4'),
+    ('std_tlen_fwd', 'i4'),
+    ('std_tlen_rev', 'i4'),
+    ('std_tlen_pp', 'i4'),
+    ('std_tlen_pp_fwd', 'i4'),
+    ('std_tlen_pp_rev', 'i4')
+]
+
+
+fields_tlen_strand = [t[0] for t in dtype_tlen_strand]
+
+
+cpdef dict construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
+                                     bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1376,10 +1344,13 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     # counting variables
     cdef int reads_fwd = 0
     cdef int reads_rev = 0
-    cdef int reads_p = 0 # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
+    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
+    # meaningful
+    cdef int reads_p = 0
     cdef int reads_p_fwd = 0
     cdef int reads_p_rev = 0
-    cdef int reads_pp = 0 # reads "properly paired", as defined by aligner
+    # reads "properly paired", as defined by aligner
+    cdef int reads_pp = 0
     cdef int reads_pp_fwd = 0
     cdef int reads_pp_rev = 0
     
@@ -1448,7 +1419,8 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
         tlen = aln.core.isize 
         tlen_squared = tlen**2
 
-        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        # N.B. insert size is only meaningful if mate is mapped to same
+        # chromosome
         if not mate_is_unmapped and not mate_other_chr:
             reads_p += 1
             tlen_p_sum += tlen
@@ -1499,7 +1471,8 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
         tlen = aln.core.isize
-        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        # N.B. insert size is only meaningful if mate is mapped to same
+        # chromosome
         if not mate_is_unmapped and not mate_other_chr:
             tlen_p_dev_squared = (tlen - tlen_p_mean)**2
             tlen_p_dev_squared_sum += tlen_p_dev_squared
@@ -1524,42 +1497,42 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
     # interesting    
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
+        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 0
     if reads_p_rev > 0:
         mean_tlen_rev = int(round(tlen_p_rev_mean))
-        rms_tlen_rev = rootmean(tlen_p_rev_squared_sum, reads_p_rev)
+        rms_tlen_rev = _rootmean(tlen_p_rev_squared_sum, reads_p_rev)
         variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
         rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
     if reads_p_fwd > 0:
         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-        rms_tlen_fwd = rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
+        rms_tlen_fwd = _rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
         rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
+        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
     if reads_pp_rev > 0:
         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-        rms_tlen_pp_rev = rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
+        rms_tlen_pp_rev = _rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
         rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
     if reads_pp_fwd > 0:
         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-        rms_tlen_pp_fwd = rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
+        rms_tlen_pp_fwd = _rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
@@ -1596,7 +1569,7 @@ cpdef object construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'std_tlen_pp_rev': std_tlen_pp_rev}
 
 
-cpdef object construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1630,41 +1603,36 @@ cpdef object construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None,
+                     one_based=False, truncate=False, pad=False,
                      max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_tlen_strand, construct_rec_tlen_strand_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    """Generate insert size statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_tlen_strand,
+                        construct_rec_tlen_strand_pad,
+                        samfile, chrom=chrom, start=start, end=end,
+                        one_based=one_based, truncate=truncate, pad=pad,
+                        max_depth=max_depth, **kwargs)
 
 
 def write_tlen_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_paired', 'reads_paired_fwd', 'reads_paired_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
-                  'mean_tlen', 'mean_tlen_fwd', 'mean_tlen_rev', 
-                  'mean_tlen_pp', 'mean_tlen_pp_fwd', 'mean_tlen_pp_rev',
-                  'rms_tlen', 'rms_tlen_fwd', 'rms_tlen_rev', 
-                  'rms_tlen_pp', 'rms_tlen_pp_fwd', 'rms_tlen_pp_rev',
-                  'std_tlen', 'std_tlen_fwd', 'std_tlen_rev', 
-                  'std_tlen_pp', 'std_tlen_pp_fwd', 'std_tlen_pp_rev')
-    write_stats(stat_tlen_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_tlen_strand, fields_tlen_strand, *args, **kwargs)
 
 
 def load_tlen_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
-                     ('reads_paired', 'i4'), ('reads_paired_fwd', 'i4'), ('reads_paired_rev', 'i4'), 
-                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
-                     ('mean_tlen', 'i4'), ('mean_tlen_fwd', 'i4'), ('mean_tlen_rev', 'i4'),
-                     ('mean_tlen_pp', 'i4'), ('mean_tlen_pp_fwd', 'i4'), ('mean_tlen_pp_rev', 'i4'),
-                     ('rms_tlen', 'i4'), ('rms_tlen_fwd', 'i4'), ('rms_tlen_rev', 'i4'),
-                     ('rms_tlen_pp', 'i4'), ('rms_tlen_pp_fwd', 'i4'), ('rms_tlen_pp_rev', 'i4'),
-                     ('std_tlen', 'i4'), ('std_tlen_fwd', 'i4'), ('std_tlen_rev', 'i4'),
-                     ('std_tlen_pp', 'i4'), ('std_tlen_pp_fwd', 'i4'), ('std_tlen_pp_rev', 'i4')
-                    ]
-    return load_stats(stat_tlen_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_tlen_strand, dtype_tlen_strand, *args, **kwargs)
         
     
 ##############################
@@ -1672,7 +1640,25 @@ def load_tlen_strand(*args, **kwargs):
 ##############################
 
 
-cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based=False):
+dtype_mapq = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_mapq0', 'i4'),
+    ('reads_mapq0_pp', 'i4'),
+    ('rms_mapq', 'i4'),
+    ('rms_mapq_pp', 'i4'),
+    ('max_mapq', 'i4'),
+    ('max_mapq_pp', 'i4')
+]
+
+
+fields_mapq = [t[0] for t in dtype_mapq]
+
+
+cpdef dict construct_rec_mapq(Samfile samfile, PileupProxy col,
+                              bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1722,10 +1708,10 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
                 reads_mapq0_pp += 1
 
     # construct output variables
-    rms_mapq = rootmean(mapq_squared_sum, n)
+    rms_mapq = _rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_pp > 0:
-        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
+        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
         rms_mapq_pp = max_mapq_pp = 0
@@ -1742,7 +1728,7 @@ cpdef object construct_rec_mapq(Samfile samfile, PileupProxy col, bint one_based
             'max_mapq_pp': max_mapq_pp}
 
 
-cpdef object construct_rec_mapq_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_mapq_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1757,31 +1743,35 @@ cpdef object construct_rec_mapq_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_mapq(Samfile samfile, chrom=None, start=None, end=None,
+              one_based=False, truncate=False, pad=False,
               max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_mapq, construct_rec_mapq_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    """Generate mapping quality statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_mapq, construct_rec_mapq_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_mapq(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_pp',
-                  'reads_mapq0', 'reads_mapq0_pp',
-                  'rms_mapq', 'rms_mapq_pp',
-                  'max_mapq', 'max_mapq_pp')
-    write_stats(stat_mapq, fieldnames, *args, **kwargs)
+    _write_stats(stat_mapq, fields_mapq, *args, **kwargs)
     
     
 def load_mapq(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), ('reads_pp', 'i4'),
-                     ('reads_mapq0', 'i4'), ('reads_mapq0_pp', 'i4'),
-                     ('rms_mapq', 'i4'), ('rms_mapq_pp', 'i4'),
-                     ('max_mapq', 'i4'), ('max_mapq_pp', 'i4')
-                    ]
-    return load_stats(stat_mapq, default_dtype, *args, **kwargs)
+    return _load_stats(stat_mapq, dtype_mapq, *args, **kwargs)
         
     
 ########################################
@@ -1789,14 +1779,48 @@ def load_mapq(*args, **kwargs):
 ########################################
 
 
-cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+dtype_mapq_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('reads_mapq0', 'i4'),
+    ('reads_mapq0_fwd', 'i4'),
+    ('reads_mapq0_rev', 'i4'),
+    ('reads_mapq0_pp', 'i4'),
+    ('reads_mapq0_pp_fwd', 'i4'),
+    ('reads_mapq0_pp_rev', 'i4'),
+    ('rms_mapq', 'i4'),
+    ('rms_mapq_fwd', 'i4'),
+    ('rms_mapq_rev', 'i4'),
+    ('rms_mapq_pp', 'i4'),
+    ('rms_mapq_pp_fwd', 'i4'),
+    ('rms_mapq_pp_rev', 'i4'),
+    ('max_mapq', 'i4'),
+    ('max_mapq_fwd', 'i4'),
+    ('max_mapq_rev', 'i4'),
+    ('max_mapq_pp', 'i4'),
+    ('max_mapq_pp_fwd', 'i4'),
+    ('max_mapq_pp_rev', 'i4'),
+]
+
+
+fields_mapq_strand = [t[0] for t in dtype_mapq_strand]
+
+
+cpdef dict construct_rec_mapq_strand(Samfile samfile, PileupProxy col,
+                                     bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int i  # loop index
+    cdef int n  # total number of reads in column
 
     cdef uint32_t flag
     cdef uint64_t mapq
@@ -1891,30 +1915,30 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
                     reads_mapq0_pp_fwd += 1
 
     # construct output variables
-    rms_mapq = rootmean(mapq_squared_sum, n)
+    rms_mapq = _rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_rev > 0:
-        rms_mapq_rev = rootmean(mapq_rev_squared_sum, reads_rev)
+        rms_mapq_rev = _rootmean(mapq_rev_squared_sum, reads_rev)
         max_mapq_rev = mapq_rev_max
     else:
         rms_mapq_rev = max_mapq_rev = 0
     if reads_fwd > 0:
-        rms_mapq_fwd = rootmean(mapq_fwd_squared_sum, reads_fwd)
+        rms_mapq_fwd = _rootmean(mapq_fwd_squared_sum, reads_fwd)
         max_mapq_fwd = mapq_fwd_max
     else:
         rms_mapq_fwd = max_mapq_fwd = 0
     if reads_pp > 0:
-        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
+        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
         rms_mapq_pp = max_mapq_pp = 0
     if reads_pp_fwd > 0:
-        rms_mapq_pp_fwd = rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
+        rms_mapq_pp_fwd = _rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
         max_mapq_pp_fwd = mapq_pp_fwd_max
     else:
         rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
     if reads_pp_rev > 0:
-        rms_mapq_pp_rev = rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
+        rms_mapq_pp_rev = _rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
         max_mapq_pp_rev = mapq_pp_rev_max
     else:
         rms_mapq_pp_rev = max_mapq_pp_rev = 0
@@ -1948,7 +1972,7 @@ cpdef object construct_rec_mapq_strand(Samfile samfile, PileupProxy col, bint on
             }
 
 
-cpdef object construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1979,40 +2003,36 @@ cpdef object construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None,
+                     one_based=False, truncate=False, pad=False,
                      max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_mapq_strand, construct_rec_mapq_strand_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    """Generate mapping quality statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_mapq_strand,
+                        construct_rec_mapq_strand_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_mapq_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
-                  'reads_mapq0', 'reads_mapq0_fwd', 'reads_mapq0_rev', 
-                  'reads_mapq0_pp', 'reads_mapq0_pp_fwd', 'reads_mapq0_pp_rev', 
-                  'rms_mapq', 'rms_mapq_fwd', 'rms_mapq_rev', 
-                  'rms_mapq_pp', 'rms_mapq_pp_fwd', 'rms_mapq_pp_rev', 
-                  'max_mapq', 'max_mapq_fwd', 'max_mapq_rev', 
-                  'max_mapq_pp', 'max_mapq_pp_fwd', 'max_mapq_pp_rev', 
-                  )
-    write_stats(stat_mapq_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_mapq_strand, fields_mapq_strand, *args, **kwargs)
     
     
 def load_mapq_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
-                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
-                     ('reads_mapq0', 'i4'), ('reads_mapq0_fwd', 'i4'), ('reads_mapq0_rev', 'i4'), 
-                     ('reads_mapq0_pp', 'i4'), ('reads_mapq0_pp_fwd', 'i4'), ('reads_mapq0_pp_rev', 'i4'), 
-                     ('rms_mapq', 'i4'), ('rms_mapq_fwd', 'i4'), ('rms_mapq_rev', 'i4'),
-                     ('rms_mapq_pp', 'i4'), ('rms_mapq_pp_fwd', 'i4'), ('rms_mapq_pp_rev', 'i4'),
-                     ('max_mapq', 'i4'), ('max_mapq_fwd', 'i4'), ('max_mapq_rev', 'i4'), 
-                     ('max_mapq_pp', 'i4'), ('max_mapq_pp_fwd', 'i4'), ('max_mapq_pp_rev', 'i4'), 
-                    ]
-    return load_stats(stat_mapq_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_mapq_strand, dtype_mapq_strand, *args, **kwargs)
         
     
 ###########################
@@ -2020,7 +2040,21 @@ def load_mapq_strand(*args, **kwargs):
 ###########################
 
 
-cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_based=False):
+dtype_baseq = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('rms_baseq', 'i4'),
+    ('rms_baseq_pp', 'i4'),
+]
+
+
+fields_baseq = [t[0] for t in dtype_baseq]
+
+
+cpdef dict construct_rec_baseq(Samfile samfile, PileupProxy col,
+                               bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2053,7 +2087,8 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         if is_proper_pair:
             reads_pp += 1
-        # N.B., base quality only makes sense if the aligned read is not a deletion
+        # N.B., base quality only makes sense if the aligned read is not a
+        # deletion
         if not read.is_del:
             reads_nodel += 1
             baseq = pysam_bam_get_qual(aln)[read.qpos]
@@ -2064,8 +2099,8 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
                 baseq_pp_squared_sum += baseq_squared
 
     # output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
 
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2075,7 +2110,7 @@ cpdef object construct_rec_baseq(Samfile samfile, PileupProxy col, bint one_base
             'rms_baseq_pp': rms_baseq_pp}
 
 
-cpdef object construct_rec_baseq_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_baseq_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2086,32 +2121,35 @@ cpdef object construct_rec_baseq_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
-               max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_baseq, construct_rec_baseq_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth,  **kwargs)
+def stat_baseq(Samfile samfile, chrom=None, start=None, end=None,
+               one_based=False, truncate=False, pad=False, max_depth=8000,
+               **kwargs):
+    """Generate base quality statistics.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_baseq, construct_rec_baseq_pad, samfile,
+                        chrom=chrom, start=start, end=end, one_based=one_based,
+                        truncate=truncate, pad=pad, max_depth=max_depth,
+                        **kwargs)
 
 
 def write_baseq(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 
-                  'reads_pp', 
-                  'rms_baseq', 
-                  'rms_baseq_pp',
-                  )
-    write_stats(stat_baseq, fieldnames, *args, **kwargs)
+    _write_stats(stat_baseq, fields_baseq, *args, **kwargs)
     
     
 def load_baseq(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'),
-                     ('reads_pp', 'i4'),
-                     ('rms_baseq', 'i4'),
-                     ('rms_baseq_pp', 'i4'),
-                    ]
-    return load_stats(stat_baseq, default_dtype, *args, **kwargs)
+    return _load_stats(stat_baseq, dtype_baseq, *args, **kwargs)
         
     
 #####################################
@@ -2119,7 +2157,29 @@ def load_baseq(*args, **kwargs):
 #####################################
 
 
-cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint one_based=False):
+dtype_baseq_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('rms_baseq', 'i4'),
+    ('rms_baseq_fwd', 'i4'),
+    ('rms_baseq_rev', 'i4'),
+    ('rms_baseq_pp', 'i4'),
+    ('rms_baseq_pp_fwd', 'i4'),
+    ('rms_baseq_pp_rev', 'i4'),
+]
+
+
+fields_baseq_strand = [t[0] for t in dtype_baseq_strand]
+
+
+cpdef dict construct_rec_baseq_strand(Samfile samfile, PileupProxy col,
+                                      bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2203,12 +2263,12 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
                     baseq_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
         
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2227,7 +2287,7 @@ cpdef object construct_rec_baseq_strand(Samfile samfile, PileupProxy col, bint o
             }
 
 
-cpdef object construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2246,32 +2306,38 @@ cpdef object construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False,
+def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None,
+                      one_based=False, truncate=False, pad=False,
                       max_depth=8000, **kwargs):
-    return stat_pileup(construct_rec_baseq_strand, construct_rec_baseq_strand_pad, samfile,
-                       chrom=chrom, start=start, end=end, one_based=one_based,
-                       truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    """Generate base quality statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup(construct_rec_baseq_strand,
+                        construct_rec_baseq_strand_pad,
+                        samfile, chrom=chrom, start=start, end=end,
+                        one_based=one_based, truncate=truncate, pad=pad,
+                        max_depth=max_depth, **kwargs)
 
 
 def write_baseq_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev', 
-                  'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
-                  'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev', 
-                  )
-    write_stats(stat_baseq_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_baseq_strand, fields_baseq_strand,
+                 *args, **kwargs)
     
     
 def load_baseq_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'), 
-                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'), 
-                     ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
-                     ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
-                    ]
-    return load_stats(stat_baseq_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_baseq_strand, dtype_baseq_strand,
+                       *args, **kwargs)
         
     
 ####################################
@@ -2279,8 +2345,30 @@ def load_baseq_strand(*args, **kwargs):
 ####################################
 
 
-cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile, 
-                                     PileupProxy col, bint one_based=False):
+dtype_baseq_ext = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('ref', 'a1'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('matches', 'i4'),
+    ('matches_pp', 'i4'),
+    ('mismatches', 'i4'),
+    ('mismatches_pp', 'i4'),
+    ('rms_baseq', 'i4'),
+    ('rms_baseq_pp', 'i4'),
+    ('rms_baseq_matches', 'i4'),
+    ('rms_baseq_matches_pp', 'i4'),
+    ('rms_baseq_mismatches', 'i4'),
+    ('rms_baseq_mismatches_pp', 'i4'),
+]
+
+
+fields_baseq_ext = [t[0] for t in dtype_baseq_ext]
+
+
+cpdef dict construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
+                                   PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2336,7 +2424,7 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
             if is_proper_pair:
                 reads_pp_nodel += 1
                 baseq_pp_squared_sum += baseq_squared
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = _get_seq_base(aln, read.qpos)
             if alnbase == refbase:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
@@ -2351,12 +2439,12 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
                     baseq_mismatches_pp_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_pp': reads_pp,
@@ -2373,7 +2461,8 @@ cpdef object construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
             }
 
 
-cpdef object construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
+                                       bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -2391,39 +2480,38 @@ cpdef object construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos, bint one_
             }
 
 
-def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
-    return stat_pileup_withref(construct_rec_baseq_ext, construct_rec_baseq_ext_pad,
-                               samfile, fafile,
-                               chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None,
+                   end=None, one_based=False, truncate=False, pad=False,
+                   max_depth=8000, **kwargs):
+    """Generate extended base quality statistics.
+
+    :param samfile: SAM or BAM file
+    :param fafile: FASTA file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup_withref(construct_rec_baseq_ext,
+                                construct_rec_baseq_ext_pad,
+                                samfile, fafile,
+                                chrom=chrom, start=start, end=end,
+                                one_based=one_based, truncate=truncate,
+                                pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_baseq_ext(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 
-                  'ref', 
-                  'reads_all', 'reads_pp',
-                  'matches', 'matches_pp',
-                  'mismatches', 'mismatches_pp',
-                  'rms_baseq', 'rms_baseq_pp',
-                  'rms_baseq_matches', 'rms_baseq_matches_pp',
-                  'rms_baseq_mismatches', 'rms_baseq_mismatches_pp',
-                  )
-    write_stats(stat_baseq_ext, fieldnames, *args, **kwargs)
+    _write_stats(stat_baseq_ext, fields_baseq_ext, *args, **kwargs)
     
     
 def load_baseq_ext(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('ref', 'a1'), 
-                     ('reads_all', 'i4'), ('reads_pp', 'i4'),
-                     ('matches', 'i4'), ('matches_pp', 'i4'),
-                     ('mismatches', 'i4'), ('mismatches_pp', 'i4'),
-                     ('rms_baseq', 'i4'), ('rms_baseq_pp', 'i4'),
-                     ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_pp', 'i4'),
-                     ('rms_baseq_mismatches', 'i4'), ('rms_baseq_mismatches_pp', 'i4'),
-                    ]
-    return load_stats(stat_baseq_ext, default_dtype, *args, **kwargs)
+    return _load_stats(stat_baseq_ext, dtype_baseq_ext, *args, **kwargs)
         
     
 ##############################################
@@ -2431,7 +2519,53 @@ def load_baseq_ext(*args, **kwargs):
 ##############################################
 
 
-cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile, 
+dtype_baseq_ext_strand = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('ref', 'a1'),
+    ('reads_all', 'i4'),
+    ('reads_fwd', 'i4'),
+    ('reads_rev', 'i4'),
+    ('reads_pp', 'i4'),
+    ('reads_pp_fwd', 'i4'),
+    ('reads_pp_rev', 'i4'),
+    ('matches', 'i4'),
+    ('matches_fwd', 'i4'),
+    ('matches_rev', 'i4'),
+    ('matches_pp', 'i4'),
+    ('matches_pp_fwd', 'i4'),
+    ('matches_pp_rev', 'i4'),
+    ('mismatches', 'i4'),
+    ('mismatches_fwd', 'i4'),
+    ('mismatches_rev', 'i4'),
+    ('mismatches_pp', 'i4'),
+    ('mismatches_pp_fwd', 'i4'),
+    ('mismatches_pp_rev', 'i4'),
+    ('rms_baseq', 'i4'),
+    ('rms_baseq_fwd', 'i4'),
+    ('rms_baseq_rev', 'i4'),
+    ('rms_baseq_pp', 'i4'),
+    ('rms_baseq_pp_fwd', 'i4'),
+    ('rms_baseq_pp_rev', 'i4'),
+    ('rms_baseq_matches', 'i4'),
+    ('rms_baseq_matches_fwd', 'i4'),
+    ('rms_baseq_matches_rev', 'i4'),
+    ('rms_baseq_matches_pp', 'i4'),
+    ('rms_baseq_matches_pp_fwd', 'i4'),
+    ('rms_baseq_matches_pp_rev', 'i4'),
+    ('rms_baseq_mismatches', 'i4'),
+    ('rms_baseq_mismatches_fwd', 'i4'),
+    ('rms_baseq_mismatches_rev', 'i4'),
+    ('rms_baseq_mismatches_pp', 'i4'),
+    ('rms_baseq_mismatches_pp_fwd', 'i4'),
+    ('rms_baseq_mismatches_pp_rev', 'i4')
+]
+
+
+fields_baseq_ext_strand = [t[0] for t in dtype_baseq_ext_strand]
+
+
+cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
                                             PileupProxy col, bint one_based=False):
 
     # statically typed variables
@@ -2541,7 +2675,7 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
                 else:
                     reads_pp_fwd_nodel += 1
                     baseq_pp_fwd_squared_sum += baseq_squared
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = _get_seq_base(aln, read.qpos)
             if alnbase == refbase:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
@@ -2582,24 +2716,24 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
                         baseq_mismatches_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
-    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_fwd = rootmean(baseq_matches_fwd_squared_sum, matches_fwd)
-    rms_baseq_matches_rev = rootmean(baseq_matches_rev_squared_sum, matches_rev)
-    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_matches_pp_fwd = rootmean(baseq_matches_pp_fwd_squared_sum, matches_pp_fwd)
-    rms_baseq_matches_pp_rev = rootmean(baseq_matches_pp_rev_squared_sum, matches_pp_rev)
-    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_fwd = rootmean(baseq_mismatches_fwd_squared_sum, mismatches_fwd)
-    rms_baseq_mismatches_rev = rootmean(baseq_mismatches_rev_squared_sum, mismatches_rev)
-    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
-    rms_baseq_mismatches_pp_fwd = rootmean(baseq_mismatches_pp_fwd_squared_sum, mismatches_pp_fwd)
-    rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum, matches_fwd)
+    rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum, matches_rev)
+    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum, matches_pp_fwd)
+    rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum, matches_pp_rev)
+    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum, mismatches_fwd)
+    rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum, mismatches_rev)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
+    rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum, mismatches_pp_fwd)
+    rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
@@ -2636,50 +2770,40 @@ cpdef object construct_rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos, bi
             }
 
 
-def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None, start=None, end=None,
-                   one_based=False, truncate=False, pad=False, max_depth=8000, **kwargs):
-    return stat_pileup_withref(construct_rec_baseq_ext_strand, construct_rec_baseq_ext_strand_pad,
-                               samfile, fafile,
-                               chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None,
+                          start=None, end=None, one_based=False,
+                          truncate=False, pad=False, max_depth=8000, **kwargs):
+    """Generate extended base quality statistics by strand.
+
+    :param samfile: SAM or BAM file
+    :param fafile: FASTA file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+    return _stat_pileup_withref(construct_rec_baseq_ext_strand,
+                                construct_rec_baseq_ext_strand_pad,
+                                samfile, fafile,
+                                chrom=chrom, start=start, end=end,
+                                one_based=one_based, truncate=truncate,
+                                pad=pad, max_depth=max_depth, **kwargs)
 
 
 def write_baseq_ext_strand(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'ref', 
-                  'reads_all', 'reads_fwd', 'reads_rev', 
-                  'reads_pp', 'reads_pp_fwd', 'reads_pp_rev',
-                  'matches', 'matches_fwd', 'matches_rev', 
-                  'matches_pp', 'matches_pp_fwd', 'matches_pp_rev',
-                  'mismatches', 'mismatches_fwd', 'mismatches_rev', 
-                  'mismatches_pp', 'mismatches_pp_fwd', 'mismatches_pp_rev', 
-                  'rms_baseq', 'rms_baseq_fwd', 'rms_baseq_rev', 
-                  'rms_baseq_pp', 'rms_baseq_pp_fwd', 'rms_baseq_pp_rev',
-                  'rms_baseq_matches', 'rms_baseq_matches_fwd', 'rms_baseq_matches_rev', 
-                  'rms_baseq_matches_pp', 'rms_baseq_matches_pp_fwd', 'rms_baseq_matches_pp_rev',
-                  'rms_baseq_mismatches', 'rms_baseq_mismatches_fwd', 'rms_baseq_mismatches_rev', 
-                  'rms_baseq_mismatches_pp', 'rms_baseq_mismatches_pp_fwd', 'rms_baseq_mismatches_pp_rev',
-                  )
-    write_stats(stat_baseq_ext_strand, fieldnames, *args, **kwargs)
+    _write_stats(stat_baseq_ext_strand, fields_baseq_ext_strand,
+                 *args, **kwargs)
     
     
 def load_baseq_ext_strand(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('ref', 'a1'), 
-                     ('reads_all', 'i4'), ('reads_fwd', 'i4'), ('reads_rev', 'i4'),
-                     ('reads_pp', 'i4'), ('reads_pp_fwd', 'i4'), ('reads_pp_rev', 'i4'),
-                     ('matches', 'i4'), ('matches_fwd', 'i4'), ('matches_rev', 'i4'),
-                     ('matches_pp', 'i4'), ('matches_pp_fwd', 'i4'), ('matches_pp_rev', 'i4'),
-                     ('mismatches', 'i4'), ('mismatches_fwd', 'i4'), ('mismatches_rev', 'i4'),
-                     ('mismatches_pp', 'i4'), ('mismatches_pp_fwd', 'i4'), ('mismatches_pp_rev', 'i4'),
-                     ('rms_baseq', 'i4'), ('rms_baseq_fwd', 'i4'), ('rms_baseq_rev', 'i4'),
-                     ('rms_baseq_pp', 'i4'), ('rms_baseq_pp_fwd', 'i4'), ('rms_baseq_pp_rev', 'i4'),
-                     ('rms_baseq_matches', 'i4'), ('rms_baseq_matches_fwd', 'i4'), ('rms_baseq_matches_rev', 'i4'),
-                     ('rms_baseq_matches_pp', 'i4'), ('rms_baseq_matches_pp_fwd', 'i4'), ('rms_baseq_matches_pp_rev', 'i4'),
-                     ('rms_baseq_mismatches', 'i4'), ('rms_baseq_mismatches_fwd', 'i4'), ('rms_baseq_mismatches_rev', 'i4'),
-                     ('rms_baseq_mismatches_pp', 'i4'), ('rms_baseq_mismatches_pp_fwd', 'i4'), ('rms_baseq_mismatches_pp_rev', 'i4'),
-                    ]
-    return load_stats(stat_baseq_ext_strand, default_dtype, *args, **kwargs)
+    return _load_stats(stat_baseq_ext_strand, dtype_baseq_ext_strand,
+                       *args, **kwargs)
 
     
 #################################################
@@ -2687,27 +2811,60 @@ def load_baseq_ext_strand(*args, **kwargs):
 #################################################
 
 
+dtype_coverage_gc = [('chrom', 'a12'),
+                     ('pos', 'i4'),
+                     ('gc', 'u1'),
+                     ('reads_all', 'i4'),
+                     ('reads_pp', 'i4')]
+
+
+fields_coverage_gc = [t[0] for t in dtype_coverage_gc]
+
+
 from collections import Counter
 
 
 def stat_coverage_gc(Samfile samfile, Fastafile fafile,
-                     chrom=None, start=None, end=None, one_based=False, truncate=False, pad=False, max_depth=8000,
+                     chrom=None, start=None, end=None, one_based=False,
+                     truncate=False, pad=False, max_depth=8000,
                      window_size=300, window_offset=None, **kwargs):
-    cdef Py_ssize_t i # loop index
-    cdef char* seq # sequence window
+    """Generate coverage statistics with reference genome %GC composition in
+    surrounding window.
+
+    :param samfile: SAM or BAM file
+    :param fafile: FASTA file
+    :param chrom: chromosome/contig
+    :param start: start position
+    :param end: end position
+    :param one_based: coordinate system
+    :param truncate: if True, truncate output to selected region
+    :param pad: emit records for every position, even if no reads are aligned
+    :param max_depth: maximum depth to allow in pileup column
+    :param window_size: size of surrounding window in base pairs
+    :param window_offset: distance from window start to current position
+    :param kwargs: additional keyword arguments are passed through
+    :return: record generator
+    """
+
+
+    cdef Py_ssize_t i  # loop index
+    cdef char* seq  # sequence window
     cdef int gc_count 
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     if window_offset is None:
         window_offset = window_size / 2
         
-    def construct_rec_coverage_gc(Samfile samfile, Fastafile fafile, PileupProxy col, bint one_based):
+    def construct_rec_coverage_gc(Samfile samfile, Fastafile fafile,
+                                  PileupProxy col, bint one_based):
         chrom = samfile.getrname(col.tid)
 
         ref_window_start = col.pos - window_offset
         ref_window_end = ref_window_start + window_size
         if ref_window_start < 0:
             ref_window_start = 0
-        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
+        ref_window = fafile\
+            .fetch(chrom, ref_window_start, ref_window_end)\
+            .lower()
         if len(ref_window) == 0:
             gc_percent = -1
         else:
@@ -2717,12 +2874,15 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         rec['gc'] = gc_percent
         return rec
 
-    def construct_rec_coverage_gc_pad(Fastafile fafile, chrom, pos, bint one_based):
+    def construct_rec_coverage_gc_pad(Fastafile fafile, chrom, pos,
+                                      bint one_based):
         ref_window_start = pos - window_offset
         ref_window_end = ref_window_start + window_size
         if ref_window_start < 0:
             ref_window_start = 0
-        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
+        ref_window = fafile\
+            .fetch(chrom, ref_window_start, ref_window_end)\
+            .lower()
         if len(ref_window) == 0:
             gc_percent = -1
         else:
@@ -2731,24 +2891,20 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         rec['gc'] = gc_percent
         return rec
 
-    return stat_pileup_withref(construct_rec_coverage_gc, construct_rec_coverage_gc_pad,
-                               samfile, fafile, chrom=chrom, start=start, end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth, **kwargs)
+    return _stat_pileup_withref(construct_rec_coverage_gc,
+                               construct_rec_coverage_gc_pad,
+                               samfile, fafile, chrom=chrom, start=start,
+                               end=end, one_based=one_based,
+                               truncate=truncate, pad=pad, max_depth=max_depth,
+                               **kwargs)
 
         
 def write_coverage_gc(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
-    write_stats(stat_coverage_gc, fieldnames, *args, **kwargs)
-    
+    _write_stats(stat_coverage_gc, fields_coverage_gc, *args, **kwargs)
+
 
 def load_coverage_gc(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('gc', 'u1'),
-                     ('reads_all', 'i4'), 
-                     ('reads_pp', 'i4'), 
-                    ]
-    return load_stats(stat_coverage_gc, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_gc, dtype_coverage_gc, *args, **kwargs)
 
 
 ###################
@@ -2756,7 +2912,17 @@ def load_coverage_gc(*args, **kwargs):
 ###################
 
 
-def stat_coverage_binned(Samfile samfile, Fastafile fastafile, 
+dtype_coverage_binned = [('chrom', 'a12'),
+                         ('pos', 'i4'),
+                         ('gc', 'u1'),
+                         ('reads_all', 'i4'),
+                         ('reads_pp', 'i4')]
+
+
+fields_coverage_binned = [t[0] for t in dtype_coverage_binned]
+
+
+def stat_coverage_binned(Samfile samfile, Fastafile fastafile,
                          chrom=None, start=None, end=None, one_based=False,
                          window_size=300, window_offset=None, **kwargs):
     if window_offset is None:
@@ -2764,13 +2930,17 @@ def stat_coverage_binned(Samfile samfile, Fastafile fastafile,
     if chrom is None:
         its = list()
         for chrom in samfile.references:
-            itc = _iter_coverage_binned(samfile, fastafile, chrom, start=None, end=None, one_based=one_based,
-                                        window_size=window_size, window_offset=window_offset)
+            itc = _iter_coverage_binned(samfile, fastafile, chrom, start=None,
+                                        end=None, one_based=one_based,
+                                        window_size=window_size,
+                                        window_offset=window_offset)
             its.append(itc)
         it = itertools.chain(*its)
     else:
-        it = _iter_coverage_binned(samfile, fastafile, chrom, start=start, end=end, one_based=one_based,
-                                   window_size=window_size, window_offset=window_offset)
+        it = _iter_coverage_binned(samfile, fastafile, chrom, start=start,
+                                   end=end, one_based=one_based,
+                                   window_size=window_size,
+                                   window_offset=window_offset)
     return it
 
 
@@ -2792,7 +2962,7 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, chrom,
                           int window_size=300, int window_offset=150):
     assert chrom is not None, 'chromosome is None'
     assert chrom in fastafile.references, 'chromosome not in FASTA references: %s' % chrom
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all, reads_pp
     cdef bam1_t * b
@@ -2819,8 +2989,9 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, chrom,
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+            rec = {'chrom': chrom, 'pos': pos, 'gc': gc_percent,
+                   'reads_all': reads_all,
+                   'reads_pp': reads_pp}
             yield rec
             # start new bin
             bin_start = bin_end
@@ -2866,18 +3037,12 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, chrom,
 
     
 def write_coverage_binned(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'gc', 'reads_all', 'reads_pp')
-    write_stats(stat_coverage_binned, fieldnames, *args, **kwargs)
-    
+    _write_stats(stat_coverage_binned, fields_coverage_binned, *args, **kwargs)
+
 
 def load_coverage_binned(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('gc', 'u1'),
-                     ('reads_all', 'i4'), 
-                     ('reads_pp', 'i4'),
-                    ]
-    return load_stats(stat_coverage_binned, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_binned, dtype_coverage_binned,
+                       *args, **kwargs)
         
     
 ############################################
@@ -2885,16 +3050,43 @@ def load_coverage_binned(*args, **kwargs):
 ############################################
 
 
-def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile, 
-                         chrom=None, start=None, end=None, one_based=False,
-                         window_size=300, window_offset=None, **kwargs):
+dtype_coverage_ext_binned = [('chrom', 'a12'),
+                             ('pos', 'i4'),
+                             ('gc', 'u1'),
+                             ('reads_all', 'i4'),
+                             ('reads_pp', 'i4'),
+                             ('reads_mate_unmapped', 'i4'),
+                             ('reads_mate_other_chr', 'i4'),
+                             ('reads_mate_same_strand', 'i4'),
+                             ('reads_faceaway', 'i4'),
+                             ('reads_softclipped', 'i4'),
+                             ('reads_duplicate', 'i4')]
+
+
+fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
+
+
+def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
+                             chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=None, **kwargs):
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = itertools.chain(*[_iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based, window_size, window_offset)
-                               for chrom in samfile.references])
+        its = list()
+        for chrom in samfile.references:
+            itc = _iter_coverage_ext_binned(samfile, fastafile,
+                                            chrom=chrom, start=None, end=None,
+                                            one_based=one_based,
+                                            window_size=window_size,
+                                            window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
     else:
-        it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size, window_offset)
+        it = _iter_coverage_ext_binned(samfile, fastafile, chrom=chrom,
+                                       start=start, end=end,
+                                       one_based=one_based,
+                                       window_size=window_size,
+                                       window_offset=window_offset)
     return it
         
         
@@ -2903,7 +3095,9 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
                           int window_size, int window_offset):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, reads_mate_same_strand, reads_faceaway, reads_softclipped, reads_duplicate
+    cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
+        reads_mate_same_strand, reads_faceaway, reads_softclipped, \
+        reads_duplicate
     cdef bam1_t * b
     cdef uint32_t flag
     cdef bint is_unmapped
@@ -2914,7 +3108,7 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     cdef bint mate_is_reverse
     cdef int tlen
     cdef IteratorRowRegion it
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
@@ -2922,12 +3116,14 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
-    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr \
+        = reads_mate_same_strand = reads_faceaway = reads_softclipped \
+        = reads_duplicate = 0
 
     # iterate over reads
     it.cnext()
     while it.retval > 0:
-        while b.core.pos > bin_end: # end of bin, yield record
+        while b.core.pos > bin_end:  # end of bin, yield record
             # determine %GC
             ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
             gc_percent = gc_content(ref_window)
@@ -2936,7 +3132,9 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
+                   'gc': gc_percent,
+                   'reads_all': reads_all,
+                   'reads_pp': reads_pp,
                    'reads_mate_unmapped': reads_mate_unmapped,
                    'reads_mate_other_chr': reads_mate_other_chr,
                    'reads_mate_same_strand': reads_mate_same_strand,
@@ -2947,7 +3145,9 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
             # start new bin
             bin_start = bin_end
             bin_end = bin_start + window_size
-            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = reads_mate_same_strand = reads_faceaway = reads_softclipped = reads_duplicate = 0
+            reads_all = reads_pp = reads_mate_unmapped = \
+                reads_mate_other_chr = reads_mate_same_strand = \
+                reads_faceaway = reads_softclipped = reads_duplicate = 0
         # increment counters
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
@@ -2967,11 +3167,12 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
                 reads_mate_unmapped += 1
             elif b.core.tid != b.core.mtid:
                 reads_mate_other_chr += 1
-            elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+            elif (is_reverse and mate_is_reverse) \
+                    or (not is_reverse and not mate_is_reverse):
                 reads_mate_same_strand += 1
             elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
                 reads_faceaway += 1
-            if is_softclipped(b):
+            if _is_softclipped(b):
                 reads_softclipped += 1
         # move iterator on
         it.cnext()
@@ -3017,37 +3218,30 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
 
 
 def write_coverage_ext_binned(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'gc', 
-                  'reads_all', 
-                  'reads_pp', 
-                  'reads_mate_unmapped', 
-                  'reads_mate_other_chr',
-                  'reads_mate_same_strand',
-                  'reads_faceaway', 
-                  'reads_softclipped',
-                  'reads_duplicate')
-    write_stats(stat_coverage_ext_binned, fieldnames, *args, **kwargs)
-    
+    _write_stats(stat_coverage_ext_binned, fields_coverage_ext_binned,
+                 *args, **kwargs)
+
 
 def load_coverage_ext_binned(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('gc', 'u1'),
-                     ('reads_all', 'i4'), 
-                     ('reads_pp', 'i4'),
-                     ('reads_mate_unmapped', 'i4'), 
-                     ('reads_mate_other_chr', 'i4'),
-                     ('reads_mate_same_strand', 'i4'),
-                     ('reads_faceaway', 'i4'), 
-                     ('reads_softclipped', 'i4'),
-                     ('reads_duplicate', 'i4')
-                    ]
-    return load_stats(stat_coverage_ext_binned, default_dtype, *args, **kwargs)
+    return _load_stats(stat_coverage_ext_binned, dtype_coverage_ext_binned,
+                       *args, **kwargs)
         
     
 ###############
 # BINNED MAPQ #
 ###############
+
+
+dtype_mapq_binned = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_mapq0', 'i4'),
+    ('rms_mapq', 'i4'),
+]
+
+
+fields_mapq_binned = [t[0] for t in dtype_mapq_binned]
 
 
 def stat_mapq_binned(Samfile samfile, 
@@ -3056,16 +3250,25 @@ def stat_mapq_binned(Samfile samfile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = itertools.chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
-                               for chrom in samfile.references])
+        its = list()
+        for chrom in samfile.references:
+            itc = _iter_mapq_binned(samfile, chrom=chrom, start=None,
+                                    end=None,
+                                    one_based=one_based,
+                                    window_size=window_size,
+                                    window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
     else:
-        it = _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+        it = _iter_mapq_binned(samfile, chrom=chrom, start=start, end=end,
+                               one_based=one_based, window_size=window_size,
+                               window_offset=window_offset)
     return it
         
         
 def _iter_mapq_binned(Samfile samfile,  
-                          chrom, start, end, one_based, 
-                          int window_size, int window_offset):
+                      chrom, start, end, one_based,
+                      int window_size, int window_offset):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all, reads_mapq0
@@ -3076,7 +3279,7 @@ def _iter_mapq_binned(Samfile samfile,
     cdef uint64_t mapq
     cdef uint64_t mapq_squared
     cdef uint64_t mapq_squared_sum = 0
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
@@ -3097,7 +3300,7 @@ def _iter_mapq_binned(Samfile samfile,
             rec = {'chrom': chrom, 'pos': pos,
                    'reads_all': reads_all,
                    'reads_mapq0': reads_mapq0,
-                   'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
+                   'rms_mapq': _rootmean(mapq_squared_sum, reads_all)}
             yield rec
             # start new bin
             bin_start = bin_end
@@ -3123,7 +3326,7 @@ def _iter_mapq_binned(Samfile samfile,
     rec = {'chrom': chrom, 'pos': pos,
            'reads_all': reads_all,
            'reads_mapq0': reads_mapq0,
-           'rms_mapq': rootmean(mapq_squared_sum, reads_all)}
+           'rms_mapq': _rootmean(mapq_squared_sum, reads_all)}
     yield rec
 
     # deal with empty bins up to explicit end
@@ -3143,18 +3346,11 @@ def _iter_mapq_binned(Samfile samfile,
 
 
 def write_mapq_binned(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'reads_all', 'reads_mapq0', 'rms_mapq')
-    write_stats(stat_mapq_binned, fieldnames, *args, **kwargs)
+    _write_stats(stat_mapq_binned, fields_mapq_binned, *args, **kwargs)
     
 
 def load_mapq_binned(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), 
-                     ('reads_mapq0', 'i4'),
-                     ('rms_mapq', 'i4'),
-                    ]
-    return load_stats(stat_mapq_binned, default_dtype, *args, **kwargs)
+    return _load_stats(stat_mapq_binned, dtype_mapq_binned, *args, **kwargs)
         
     
 ################
@@ -3162,16 +3358,45 @@ def load_mapq_binned(*args, **kwargs):
 ################
 
 
+dtype_alignment_binned = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('bases_all', 'i4'),
+    ('M', 'i4'),
+    ('I', 'i4'),
+    ('D', 'i4'),
+    ('N', 'i4'),
+    ('S', 'i4'),
+    ('H', 'i4'),
+    ('P', 'i4'),
+    ('=', 'i4'),
+    ('X', 'i4')
+]
+
+
+fields_alignment_binned = [t[0] for t in dtype_alignment_binned]
+
+
 def stat_alignment_binned(Samfile samfile, 
-                      chrom=None, start=None, end=None, one_based=False,
-                      window_size=300, window_offset=None, **kwargs):
+                          chrom=None, start=None, end=None, one_based=False,
+                          window_size=300, window_offset=None, **kwargs):
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = itertools.chain(*[_iter_alignment_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
-                               for chrom in samfile.references])
+        its = list()
+        for chrom in samfile.references:
+            itc = _iter_alignment_binned(samfile, chrom=chrom, start=None,
+                                         end=None, one_based=one_based,
+                                         window_size=window_size,
+                                         window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
     else:
-        it = _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+        it = _iter_alignment_binned(samfile, chrom=chrom, start=start, end=end,
+                                    one_based=one_based,
+                                    window_size=window_size,
+                                    window_offset=window_offset)
     return it
         
         
@@ -3189,7 +3414,7 @@ def _iter_alignment_binned(Samfile samfile,
     cdef int reads_all, k, op, l
     cdef int M, I, D, N, S, H, P, EQ, X
     reads_all = M = I = D = N = S = H = P = EQ = X = 0
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
@@ -3277,31 +3502,33 @@ def _iter_alignment_binned(Samfile samfile,
 
     
 def write_alignment_binned(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'reads_all', 'bases_all', 'M', 'I', 'D', 'N', 'S', 'H', 'P', '=', 'X')
-    write_stats(stat_alignment_binned, fieldnames, *args, **kwargs)
+    _write_stats(stat_alignment_binned, fields_alignment_binned,
+                 *args, **kwargs)
     
 
 def load_alignment_binned(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'), 
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'), 
-                     ('bases_all', 'i4'), 
-                     ('M', 'i4'), 
-                     ('I', 'i4'), 
-                     ('D', 'i4'), 
-                     ('N', 'i4'), 
-                     ('S', 'i4'), 
-                     ('H', 'i4'), 
-                     ('P', 'i4'), 
-                     ('=', 'i4'), 
-                     ('X', 'i4')
-                    ]
-    return load_stats(stat_alignment_binned, default_dtype, *args, **kwargs)
+    return _load_stats(stat_alignment_binned, dtype_alignment_binned,
+                       *args, **kwargs)
         
     
 ###############
 # BINNED TLEN #
 ###############
+
+
+dtype_tlen_binned = [
+    ('chrom', 'a12'),
+    ('pos', 'i4'),
+    ('reads_all', 'i4'),
+    ('reads_pp', 'i4'),
+    ('mean_tlen', 'i4'),
+    ('mean_tlen_pp', 'i4'),
+    ('rms_tlen', 'i4'),
+    ('rms_tlen_pp', 'i4'),
+]
+
+
+fields_tlen_binned = [t[0] for t in dtype_tlen_binned]
 
 
 def stat_tlen_binned(Samfile samfile,
@@ -3310,10 +3537,19 @@ def stat_tlen_binned(Samfile samfile,
     if window_offset is None:
         window_offset = window_size / 2
     if chrom is None:
-        it = itertools.chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based, window_size, window_offset)
-                               for chrom in samfile.references])
+        its = list()
+        for chrom in samfile.references:
+            itc = _iter_tlen_binned(samfile, chrom=chrom, start=None,
+                                    end=None, one_based=one_based,
+                                    window_size=window_size,
+                                    window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
     else:
-        it = _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset)
+        it = _iter_tlen_binned(samfile, chrom=chrom, start=start, end=end,
+                               one_based=one_based,
+                               window_size=window_size,
+                               window_offset=window_offset)
     return it
 
 
@@ -3335,7 +3571,7 @@ def _iter_tlen_binned(Samfile samfile,
     cdef int64_t tlen_pp_sum = 0
     cdef int64_t tlen_squared_sum = 0
     cdef int64_t tlen_pp_squared_sum = 0
-    start, end = normalise_coords(samfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
@@ -3356,8 +3592,8 @@ def _iter_tlen_binned(Samfile samfile,
                    'reads_all': reads_all, 'reads_pp': reads_pp,
                    'mean_tlen': _mean(tlen_sum, reads_all),
                    'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-                   'rms_tlen': rootmean(tlen_squared_sum, reads_all),
-                   'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+                   'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
+                   'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
             yield rec
             # start new bin
             bin_start = bin_end
@@ -3388,8 +3624,8 @@ def _iter_tlen_binned(Samfile samfile,
            'reads_all': reads_all, 'reads_pp': reads_pp,
            'mean_tlen': _mean(tlen_sum, reads_all),
            'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-           'rms_tlen': rootmean(tlen_squared_sum, reads_all),
-           'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+           'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
+           'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
     yield rec
 
     # deal with empty bins up to explicit end
@@ -3406,35 +3642,216 @@ def _iter_tlen_binned(Samfile samfile,
                    'reads_all': reads_all, 'reads_pp': reads_pp,
                    'mean_tlen': _mean(tlen_sum, reads_all),
                    'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-                   'rms_tlen': rootmean(tlen_squared_sum, reads_all),
-                   'rms_tlen_pp': rootmean(tlen_pp_squared_sum, reads_pp)}
+                   'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
+                   'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
             yield rec
 
 
 def write_tlen_binned(*args, **kwargs):
-    fieldnames = ('chrom', 'pos', 'reads_all', 'reads_pp', 'mean_tlen', 'mean_tlen_pp', 'rms_tlen', 'rms_tlen_pp')
-    write_stats(stat_tlen_binned, fieldnames, *args, **kwargs)
+    _write_stats(stat_tlen_binned, fields_tlen_binned, *args, **kwargs)
 
 
 def load_tlen_binned(*args, **kwargs):
-    default_dtype = [('chrom', 'a12'),
-                     ('pos', 'i4'),
-                     ('reads_all', 'i4'),
-                     ('reads_pp', 'i4'),
-                     ('mean_tlen', 'i4'),
-                     ('mean_tlen_pp', 'i4'),
-                     ('rms_tlen', 'i4'),
-                     ('rms_tlen_pp', 'i4'),
-                    ]
-    return load_stats(stat_tlen_binned, default_dtype, *args, **kwargs)
+    return _load_stats(stat_tlen_binned, dtype_tlen_binned, *args, **kwargs)
 
 
-#####################
-# UTILITY FUNCTIONS #
-#####################  
+############################
+# PILEUP UTILITY FUNCTIONS #
+############################
 
 
-def normalise_coords(Samfile samfile, chrom, start, end, one_based):
+def _stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None,
+                 one_based=False, truncate=False, pad=False, max_depth=8000,
+                 **kwargs):
+    """General purpose function to generate statistics, where one record is
+    generated for each genome position in the selected range, based on a
+    pileup column.
+
+    """
+
+    if pad:
+        return _stat_pileup_padded(frec, fpad, samfile, chrom=chrom,
+                                   start=start, end=end, one_based=one_based,
+                                   truncate=truncate, max_depth=max_depth,
+                                   **kwargs)
+    else:
+        return _stat_pileup_default(frec, samfile, chrom=chrom, start=start,
+                                    end=end, one_based=one_based,
+                                    truncate=truncate, max_depth=max_depth,
+                                    **kwargs)
+
+
+def _stat_pileup_default(frec, Samfile samfile, chrom=None, start=None,
+                         end=None, one_based=False, truncate=False,
+                         max_depth=8000, **kwargs):
+    """Default function to generate statistics from pileup columns. Emits one
+    record per covered genome position.
+
+    """
+
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
+    for col in it:
+        yield frec(samfile, col, one_based)
+
+
+def _stat_pileup_padded(frec, fpad, Samfile samfile, chrom=None, start=None,
+                       end=None, one_based=False, truncate=False,
+                       max_depth=8000, **kwargs):
+    """Function to generate statistics from pileup columns, padding to emit a
+    record for every genome position even if not covered.
+
+    """
+
+    if chrom is not None:
+        # iterator for a single chromosome
+        it = _stat_pileup_padded_chrom(frec, fpad, samfile, chrom, start=start,
+                                       end=end, one_based=one_based,
+                                       truncate=truncate, max_depth=max_depth,
+                                       **kwargs)
+    else:
+        # chain together iterators for all chromosomes
+        its = list()
+        for chrom in samfile.references:
+            itc = _stat_pileup_padded_chrom(frec, fpad, samfile, chrom,
+                                            start=None, end=None,
+                                            one_based=one_based,
+                                            truncate=truncate,
+                                            max_depth=max_depth, **kwargs)
+            its.append(itc)
+        it = itertools.chain(*its)
+    return it
+
+
+def _stat_pileup_padded_chrom(frec, fpad, Samfile samfile, chrom, start=None,
+                              end=None, one_based=False, truncate=False,
+                              max_depth=8000, **kwargs):
+    """Function to generate statistics from pileup columns from a single
+    chromosome, padding to emit a record for every genome position even if
+    not covered.
+
+    """
+
+    cdef PileupProxy col
+    cdef int curpos
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+
+    # obtain an iterator
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
+
+    # keep track of current position to ensure we emit records for all
+    # positions in the request range
+    curpos = start
+
+    for col in it:
+
+        # pad up to first pileup column
+        while curpos < col.pos:
+            yield fpad(chrom, curpos, one_based)
+            curpos += 1
+
+        # emit a record for the current column
+        yield frec(samfile, col, one_based)
+        curpos = col.pos + 1
+
+    # pad from last pileup column to end of range
+    while curpos < end:
+        yield fpad(chrom, curpos, one_based)
+        curpos += 1
+
+
+def _stat_pileup_withref(frec, fpad, Samfile samfile, Fastafile fafile,
+                         chrom=None, start=None, end=None, one_based=False,
+                         truncate=False, pad=False, max_depth=8000, **kwargs):
+    """General purpose function to generate statistics, where one record is
+    generated for each genome position in the selected range, based on a pileup
+    column and a reference sequence.
+
+    """
+
+    if pad:
+        return _stat_pileup_withref_padded(frec, fpad, samfile, fafile,
+                                           chrom=chrom, start=start, end=end,
+                                           one_based=one_based,
+                                           truncate=truncate,
+                                           max_depth=max_depth, **kwargs)
+    else:
+        return _stat_pileup_withref_default(frec, samfile, fafile, chrom=chrom,
+                                            start=start, end=end,
+                                            one_based=one_based,
+                                            truncate=truncate,
+                                            max_depth=max_depth, **kwargs)
+
+
+def _stat_pileup_withref_default(frec, Samfile samfile, Fastafile fafile,
+                                 chrom=None, start=None, end=None,
+                                 one_based=False, truncate=False,
+                                 max_depth=8000, **kwargs):
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
+    for col in it:
+        yield frec(samfile, fafile, col, one_based)
+
+
+def _stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile,
+                               chrom=None, start=None, end=None,
+                               one_based=False, truncate=False, max_depth=8000,
+                               **kwargs):
+
+    if chrom is not None:
+        it = _stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
+                                               chrom, start=start, end=end,
+                                               one_based=one_based,
+                                               truncate=truncate,
+                                               max_depth=max_depth, **kwargs)
+    else:
+        its = list()
+        for chrom in samfile.references:
+            itc = _stat_pileup_withref_padded_chrom(frec, fpad, samfile, fafile,
+                                                    chrom, start=None,
+                                                    end=None,
+                                                    one_based=one_based,
+                                                    truncate=truncate,
+                                                    max_depth=max_depth,
+                                                    **kwargs)
+            its.append(itc)
+        it = itertools.chain(*its)
+    return it
+
+
+def _stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
+                                     Fastafile fafile, chrom, start=None,
+                                     end=None, one_based=False,
+                                     truncate=False, max_depth=8000, **kwargs):
+    cdef PileupProxy col
+    cdef int curpos
+    assert chrom is not None, 'chromosome is None'
+    assert chrom in fafile.references, \
+        'chromosome not in FASTA references: %s' % chrom
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+    it = samfile.pileup(reference=chrom, start=start, end=end,
+                        truncate=truncate, max_depth=max_depth)
+    curpos = start
+    for col in it:
+        while curpos < col.pos:
+            yield fpad(fafile, chrom, curpos, one_based)
+            curpos += 1
+        yield frec(samfile, fafile, col, one_based)
+        curpos = col.pos + 1
+    while curpos < end:
+        yield fpad(fafile, chrom, curpos, one_based)
+        curpos += 1
+
+
+###########################
+# OTHER UTILITY FUNCTIONS #
+###########################
+
+
+def _normalise_coords(Samfile samfile, chrom, start, end, one_based):
     """Convert to zero-based coordinates and deal with unspecified start
     and/or end.
 
@@ -3462,7 +3879,7 @@ def normalise_coords(Samfile samfile, chrom, start, end, one_based):
         return start, end
 
     
-def write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
+def _write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
                 dialect=csv.excel_tab, write_header=True, 
                 chrom=None, start=None, end=None, 
                 one_based=False, progress=None, **kwargs):
@@ -3513,7 +3930,7 @@ def flatten(recs, *fields):
     return it
 
 
-def load_stats(statfun, default_dtype, *args, **kwargs):
+def _load_stats(statfun, default_dtype, *args, **kwargs):
 
     # determine fields to load
     fields = kwargs.pop('fields', None)
@@ -3547,7 +3964,7 @@ def load_stats(statfun, default_dtype, *args, **kwargs):
     return a
     
                 
-cdef inline bint is_softclipped(bam1_t * aln):
+cdef inline bint _is_softclipped(bam1_t * aln):
     cdef int k
     cigar_p = pysam_bam_get_cigar(aln);
     for k in range(aln.core.n_cigar):
@@ -3557,7 +3974,7 @@ cdef inline bint is_softclipped(bam1_t * aln):
     return 0
 
 
-cdef inline object get_seq_base(bam1_t *src, uint32_t k):
+cdef inline object _get_seq_base(bam1_t *src, uint32_t k):
     cdef uint8_t * p
     cdef char * s
 
@@ -3573,7 +3990,7 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
-cdef inline int rootmean(uint64_t sqsum, int count):
+cdef inline int _rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum * 1. / count)))
     else:
