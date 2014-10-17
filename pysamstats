@@ -41,7 +41,9 @@ if __name__ == '__main__':
                                    'coverage_binned',
                                    'coverage_ext_binned')
     usage = 'usage: %prog [options] FILE'
-    description = "Calculate statistics against genome positions based on sequence alignments from a SAM or BAM file and print them to stdout."
+    description = "Calculate statistics against genome positions based on " \
+                  "sequence alignments from a SAM or BAM file and print them " \
+                  "to stdout."
     epilog = """
 Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
@@ -85,23 +87,66 @@ Version: {version} (pysam {pysamversion})
 
     OptionParser.format_epilog = lambda self, formatter: self.epilog
     parser = OptionParser(usage=usage, description=description, epilog=epilog)
-    parser.add_option('-t', '--type', dest='type', help='Type of statistics to print, one of: %s.' % ', '.join(stats_types), default='coverage')
-    parser.add_option('-c', '--chromosome', dest='chromosome', help='Chromosome name.', default=None)
-    parser.add_option('-s', '--start', dest='start', type='int', help='Start position (1-based).', default=None)
-    parser.add_option('-e', '--end', dest='end', type='int', help='End position (1-based).', default=None)
-    parser.add_option('-z', '--zero-based', dest='zero_based', help='Use zero-based coordinates (default is false, i.e., use one-based coords).', action='store_true', default=False)
-    parser.add_option('-u', '--truncate', dest='truncate', help='Truncate pileup-based stats so no records are emitted outside the specified position range.', action='store_true', default=False)
-    parser.add_option('-d', '--pad', dest='pad', help='Pad pileup-based stats so a record is emitted for every position (default is only covered positions).', action='store_true', default=False)
-    parser.add_option('-D', '--max-depth', dest='max_depth', type=int, default=8000, help='Maximum read depth permitted in pileup-based statistics. The default limit is 8000.')
-    parser.add_option('-f', '--fasta', dest='fasta', help='Reference sequence file, only required for some statistics.', default=None)
-    parser.add_option('-o', '--omit-header', dest='omit_header', help='Omit header row from output.', action='store_true')
-    parser.add_option('-p', '--progress', dest='progress', type='int', help='Report progress every N rows.', metavar='N', default=None)
-    parser.add_option('--window-size', dest='window_size', type='int', help='Size of window for binned statistics (default is 300).', metavar='N', default=300)
-    parser.add_option('--window-offset', dest='window_offset', type=int, help='Window offset to use for deciding which genome position to report binned statistics against. The default is 150, i.e., the middle of 300bp window.', default=None, metavar='N')
+
+    parser.add_option('-t', '--type', dest='type', default='coverage',
+                      help='Type of statistics to print, one of: %s.' % ', '.join(stats_types))
+
+    parser.add_option('-c', '--chromosome', dest='chromosome', default=None,
+                      help='Chromosome name.')
+
+    parser.add_option('-s', '--start', dest='start', type='int', default=None,
+                      help='Start position (1-based).')
+
+    parser.add_option('-e', '--end', dest='end', type='int', default=None,
+                      help='End position (1-based).')
+
+    parser.add_option('-z', '--zero-based', dest='zero_based',
+                      action='store_true', default=False,
+                      help='Use zero-based coordinates (default is false, i.e.,'
+                           ' use one-based coords).')
+
+    parser.add_option('-u', '--truncate', dest='truncate', action='store_true',
+                      default=False,
+                      help='Truncate pileup-based stats so no records are '
+                           'emitted outside the specified position range.')
+
+    parser.add_option('-d', '--pad', dest='pad', action='store_true',
+                      default=False,
+                      help='Pad pileup-based stats so a record is emitted for '
+                           'every position (default is only covered positions).')
+
+    parser.add_option('-D', '--max-depth', dest='max_depth', type=int,
+                      default=8000,
+                      help='Maximum read depth permitted in pileup-based '
+                           'statistics. The default limit is 8000.')
+
+    parser.add_option('-f', '--fasta', dest='fasta', default=None,
+                      help='Reference sequence file, only required for some '
+                           'statistics.')
+
+    parser.add_option('-o', '--omit-header', dest='omit_header', default=False,
+                      action='store_true', help='Omit header row from output.')
+
+    parser.add_option('-p', '--progress', dest='progress', type='int',
+                      metavar='N', default=None,
+                      help='Report progress every N rows.')
+
+    parser.add_option('--window-size', dest='window_size', type='int',
+                      metavar='N', default=300,
+                      help='Size of window for binned statistics (default is '
+                           '300).')
+
+    parser.add_option('--window-offset', dest='window_offset', type=int,
+                      default=None, metavar='N',
+                      help='Window offset to use for deciding which genome '
+                           'position to report binned statistics against. The '
+                           'default is 150, i.e., the middle of 300bp window.')
+
     options, args = parser.parse_args()
     
     if len(args) != 1:
-        parser.error('missing file operand\n\nTry "pysamstats --help" for more information.')
+        parser.error('missing SAM or BAM file operand\n\nTry "pysamstats '
+                     '--help" for more information.')
     
     samfile = Samfile(args[0])
     one_based = not options.zero_based
@@ -112,7 +157,8 @@ Version: {version} (pysam {pysamversion})
         if options.type in stats_types_requiring_fasta:
             
             if options.fasta is None:
-                parser.error('missing --fasta option\n\nTry "pysamstats --help" for more information.')
+                parser.error('missing --fasta option\n\nTry "pysamstats --help"'
+                             ' for more information.')
             else:
                 fafile = Fastafile(options.fasta)
                 fname = 'write_' + options.type
@@ -144,7 +190,9 @@ Version: {version} (pysam {pysamversion})
               window_offset=options.window_offset)
                 
         else:
-            parser.error('unsupported statistics type: "%s"\nTry one of %s or "pysamstats --help" for more information.' % (options.type, stats_types))
+            parser.error('unsupported statistics type: "%s"\nTry one of %s or '
+                         '"pysamstats --help" for more information.'
+                         % (options.type, stats_types))
         
     except IOError as e:
         if e.errno == errno.EPIPE:

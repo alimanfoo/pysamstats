@@ -2830,10 +2830,6 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
     """
 
 
-    cdef Py_ssize_t i  # loop index
-    cdef char* seq  # sequence window
-    cdef int gc_count 
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
     if window_offset is None:
         window_offset = window_size / 2
         
