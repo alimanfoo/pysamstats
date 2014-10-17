@@ -13,33 +13,30 @@ import pysamstats
 
 if __name__ == '__main__':
     
-    stats_types = ('coverage', 
-                   'coverage_strand', 
-                   'coverage_ext', 
-                   'coverage_ext_strand',
-                   'coverage_gc',
-                   'variation', 
-                   'variation_strand',
-                   'tlen',
-                   'tlen_strand',
-                   'mapq',
-                   'mapq_strand',
-                   'baseq',
-                   'baseq_strand',
-                   'baseq_ext',
-                   'baseq_ext_strand',
-                   'coverage_binned',
-                   'coverage_ext_binned',
-                   'mapq_binned',
-                   'alignment_binned',
-                   'tlen_binned')
-    stats_types_requiring_fasta = ('variation', 
-                                   'variation_strand', 
-                                   'baseq_ext', 
-                                   'baseq_ext_strand', 
-                                   'coverage_gc',
-                                   'coverage_binned',
-                                   'coverage_ext_binned')
+    stats_types_noref = ('coverage',
+                         'coverage_strand',
+                         'coverage_ext',
+                         'coverage_ext_strand',
+                         'tlen',
+                         'tlen_strand',
+                         'mapq',
+                         'mapq_strand',
+                         'baseq',
+                         'baseq_strand',
+                         'mapq_binned',
+                         'alignment_binned',
+                         'tlen_binned')
+
+    stats_types_withref = ('variation',
+                           'variation_strand',
+                           'baseq_ext',
+                           'baseq_ext_strand',
+                           'coverage_gc',
+                           'coverage_binned',
+                           'coverage_ext_binned')
+
+    stats_types = sorted(stats_types_noref + stats_types_withref)
+
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics against genome positions based on " \
                   "sequence alignments from a SAM or BAM file and print them " \
@@ -148,52 +145,38 @@ Version: {version} (pysam {pysamversion})
         parser.error('missing SAM or BAM file operand\n\nTry "pysamstats '
                      '--help" for more information.')
     
-    samfile = Samfile(args[0])
+    samfile = args[0]
     one_based = not options.zero_based
     write_header = not options.omit_header
     
     try:
 
-        if options.type in stats_types_requiring_fasta:
-            
-            if options.fasta is None:
-                parser.error('missing --fasta option\n\nTry "pysamstats --help"'
-                             ' for more information.')
-            else:
-                fafile = Fastafile(options.fasta)
-                fname = 'write_' + options.type
-                f = getattr(pysamstats, fname)
-                f(sys.stdout, samfile, fafile,
-                  write_header=write_header, 
-                  chrom=options.chromosome, start=options.start, end=options.end, 
-                  one_based=one_based,
-                  truncate=options.truncate,
-                  pad=options.pad,
-                  max_depth=options.max_depth,
-                  progress=options.progress,
-                  window_size=options.window_size,
-                  window_offset=options.window_offset)
-            
-        elif options.type in stats_types:
-            
+        if options.type not in stats_types:
+            parser.error('unsupported statistics type: "%s"\nTry one of %s or '
+                         '"pysamstats --help" for more information.'
+                         % (options.type, stats_types))
+
+        elif options.type in stats_types_withref \
+                and options.fasta is None:
+            parser.error('missing --fasta option\n\nTry "pysamstats --help"'
+                         ' for more information.')
+
+        else:
+            fafile = options.fasta
             fname = 'write_' + options.type
             f = getattr(pysamstats, fname)
             f(sys.stdout, samfile,
-              write_header=write_header, 
-              chrom=options.chromosome, start=options.start, end=options.end, 
-              one_based=one_based, 
+              fafile=options.fasta,
+              write_header=write_header,
+              chrom=options.chromosome, start=options.start, end=options.end,
+              one_based=one_based,
               truncate=options.truncate,
               pad=options.pad,
               max_depth=options.max_depth,
               progress=options.progress,
               window_size=options.window_size,
               window_offset=options.window_offset)
-                
-        else:
-            parser.error('unsupported statistics type: "%s"\nTry one of %s or '
-                         '"pysamstats --help" for more information.'
-                         % (options.type, stats_types))
-        
+            
     except IOError as e:
         if e.errno == errno.EPIPE:
             pass # ignore broken pipe

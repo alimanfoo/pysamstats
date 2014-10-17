@@ -123,9 +123,7 @@ cpdef dict _rec_coverage_pad(Fastafile fafile, chrom, pos,
             'reads_pp': 0}
 
 
-def stat_coverage(Samfile samfile, chrom=None, start=None, end=None,
-                  one_based=False, truncate=False, pad=False, max_depth=8000,
-                  **kwargs):
+def stat_coverage(samfile, **kwargs):
     """Generate coverage statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -141,9 +139,7 @@ def stat_coverage(Samfile samfile, chrom=None, start=None, end=None,
     """
 
     return _iter_pileup(_rec_coverage, _rec_coverage_pad,
-                        samfile, chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate, pad=pad,
-                        max_depth=max_depth, **kwargs)
+                        samfile, **kwargs)
 
 
 def write_coverage(*args, **kwargs):
@@ -241,9 +237,7 @@ cpdef dict _rec_coverage_strand_pad(Fastafile fafile, chrom, pos,
             'reads_pp_rev': 0}
 
 
-def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None,
-                         one_based=False, truncate=False, pad=False,
-                         max_depth=8000, **kwargs):
+def stat_coverage_strand(samfile, **kwargs):
     """Generate coverage statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -260,10 +254,7 @@ def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None,
 
     return _iter_pileup(_rec_coverage_strand,
                         _rec_coverage_strand_pad,
-                        samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
-                        **kwargs)
+                        samfile, **kwargs)
 
 
 def write_coverage_strand(*args, **kwargs):
@@ -383,9 +374,7 @@ cpdef dict _rec_coverage_ext_pad(Fastafile fafile, chrom, pos,
             'reads_duplicate': 0}
 
 
-def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None,
-                      one_based=False, truncate=False, pad=False,
-                      max_depth=8000, **kwargs):
+def stat_coverage_ext(samfile, **kwargs):
     """Generate extended coverage statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -401,8 +390,6 @@ def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None,
     """
 
     return _iter_pileup(_rec_coverage_ext, _rec_coverage_ext_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
 
 
@@ -618,9 +605,7 @@ cpdef dict _rec_coverage_ext_strand_pad(Fastafile fafile, chrom, pos,
            }
 
 
-def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None,
-                             one_based=False, truncate=False, pad=False,
-                             max_depth=8000, **kwargs):
+def stat_coverage_ext_strand(samfile, **kwargs):
     """Generate extended coverage statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -636,10 +621,7 @@ def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None,
     """
 
     return _iter_pileup(_rec_coverage_ext_strand,
-                        _rec_coverage_ext_strand_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
-                        **kwargs)
+                        _rec_coverage_ext_strand_pad, samfile, **kwargs)
 
 
 def write_coverage_ext_strand(*args, **kwargs):
@@ -821,9 +803,7 @@ cpdef dict _rec_variation_pad(Fastafile fafile, chrom, pos,
             'N': 0, 'N_pp': 0}
 
 
-def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None,
-                   end=None, one_based=False, truncate=False, pad=False,
-                   max_depth=8000, **kwargs):
+def stat_variation(samfile, fafile, **kwargs):
     """Generate variation statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -838,12 +818,8 @@ def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_variation,
-                        _rec_variation_pad,
-                        samfile, fafile,
-                        chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate,
-                        pad=pad, max_depth=max_depth, **kwargs)
+    return _iter_pileup(_rec_variation, _rec_variation_pad,
+                        samfile, fafile=fafile, **kwargs)
 
 
 def write_variation(*args, **kwargs):
@@ -1047,9 +1023,7 @@ cpdef dict _rec_variation_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None,
-                          start=None, end=None, one_based=False,
-                          truncate=False, pad=False, max_depth=8000, **kwargs):
+def stat_variation_strand(samfile, fafile, **kwargs):
     """Generate variation statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -1067,10 +1041,7 @@ def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None,
 
     return _iter_pileup(_rec_variation_strand,
                         _rec_variation_strand_pad,
-                        samfile, fafile,
-                        chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate,
-                        pad=pad, max_depth=max_depth, **kwargs)
+                        samfile, fafile=fafile, **kwargs)
 
 
 def write_variation_strand(*args, **kwargs):
@@ -1136,11 +1107,11 @@ cpdef dict _rec_tlen(Samfile samfile, Fastafile fafile, PileupProxy col,
     cdef double tlen_pp_dev_squared
     cdef double tlen_pp_dev_squared_sum = 0
     cdef int64_t tlen_pp_squared_sum = 0
-    
+
     # initialise variables
     n = col.n
     plp = col.plp
-    
+
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
@@ -1157,7 +1128,7 @@ cpdef dict _rec_tlen(Samfile samfile, Fastafile fafile, PileupProxy col,
 
         # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we 
         # follow their naming convention
-        tlen = aln.core.isize 
+        tlen = aln.core.isize
         tlen_squared = tlen**2
 
         # N.B. insert size is only meaningful if mate is mapped to same chromosome
@@ -1202,7 +1173,7 @@ cpdef dict _rec_tlen(Samfile samfile, Fastafile fafile, PileupProxy col,
         variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
-        rms_tlen = std_tlen = mean_tlen = 0
+        rms_tlen = std_tlen = mean_tlen = median_tlen = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
         rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
@@ -1240,9 +1211,7 @@ cpdef dict _rec_tlen_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen(Samfile samfile, chrom=None, start=None, end=None,
-              one_based=False, truncate=False, pad=False, max_depth=8000,
-              **kwargs):
+def stat_tlen(samfile, **kwargs):
     """Generate insert size statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -1257,10 +1226,7 @@ def stat_tlen(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_tlen, _rec_tlen_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
-                        **kwargs)
+    return _iter_pileup(_rec_tlen, _rec_tlen_pad, samfile, **kwargs)
 
 
 def write_tlen(*args, **kwargs):
@@ -1589,9 +1555,7 @@ cpdef dict _rec_tlen_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None,
-                     one_based=False, truncate=False, pad=False,
-                     max_depth=8000, **kwargs):
+def stat_tlen_strand(samfile, **kwargs):
     """Generate insert size statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -1606,11 +1570,8 @@ def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_tlen_strand,
-                        _rec_tlen_strand_pad,
-                        samfile, chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate, pad=pad,
-                        max_depth=max_depth, **kwargs)
+    return _iter_pileup(_rec_tlen_strand, _rec_tlen_strand_pad, samfile,
+                        **kwargs)
 
 
 def write_tlen_strand(*args, **kwargs):
@@ -1729,9 +1690,7 @@ cpdef dict _rec_mapq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq(Samfile samfile, chrom=None, start=None, end=None,
-              one_based=False, truncate=False, pad=False,
-              max_depth=8000, **kwargs):
+def stat_mapq(samfile, **kwargs):
     """Generate mapping quality statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -1746,10 +1705,7 @@ def stat_mapq(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_mapq, _rec_mapq_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
-                        **kwargs)
+    return _iter_pileup(_rec_mapq, _rec_mapq_pad, samfile, **kwargs)
 
 
 def write_mapq(*args, **kwargs):
@@ -1990,9 +1946,7 @@ cpdef dict _rec_mapq_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None,
-                     one_based=False, truncate=False, pad=False,
-                     max_depth=8000, **kwargs):
+def stat_mapq_strand(samfile, **kwargs):
     """Generate mapping quality statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -2007,10 +1961,7 @@ def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_mapq_strand,
-                        _rec_mapq_strand_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
+    return _iter_pileup(_rec_mapq_strand, _rec_mapq_strand_pad, samfile,
                         **kwargs)
 
 
@@ -2108,9 +2059,7 @@ cpdef dict _rec_baseq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq(Samfile samfile, chrom=None, start=None, end=None,
-               one_based=False, truncate=False, pad=False, max_depth=8000,
-               **kwargs):
+def stat_baseq(samfile, **kwargs):
     """Generate base quality statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -2125,10 +2074,7 @@ def stat_baseq(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_baseq, _rec_baseq_pad, samfile,
-                        chrom=chrom, start=start, end=end, one_based=one_based,
-                        truncate=truncate, pad=pad, max_depth=max_depth,
-                        **kwargs)
+    return _iter_pileup(_rec_baseq, _rec_baseq_pad, samfile, **kwargs)
 
 
 def write_baseq(*args, **kwargs):
@@ -2294,9 +2240,7 @@ cpdef dict _rec_baseq_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None,
-                      one_based=False, truncate=False, pad=False,
-                      max_depth=8000, **kwargs):
+def stat_baseq_strand(samfile, **kwargs):
     """Generate base quality statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -2311,11 +2255,8 @@ def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _iter_pileup(_rec_baseq_strand,
-                        _rec_baseq_strand_pad,
-                        samfile, chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate, pad=pad,
-                        max_depth=max_depth, **kwargs)
+    return _iter_pileup(_rec_baseq_strand, _rec_baseq_strand_pad,
+                        samfile, **kwargs)
 
 
 def write_baseq_strand(*args, **kwargs):
@@ -2468,9 +2409,7 @@ cpdef dict _rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None,
-                   end=None, one_based=False, truncate=False, pad=False,
-                   max_depth=8000, **kwargs):
+def stat_baseq_ext(samfile, fafile, **kwargs):
     """Generate extended base quality statistics per genome position.
 
     :param samfile: SAM or BAM file
@@ -2487,9 +2426,7 @@ def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None,
     """
 
     return _iter_pileup(_rec_baseq_ext, _rec_baseq_ext_pad, samfile,
-                        fafile=fafile, chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate,
-                        pad=pad, max_depth=max_depth, **kwargs)
+                        fafile=fafile, **kwargs)
 
 
 def write_baseq_ext(*args, **kwargs):
@@ -2757,9 +2694,7 @@ cpdef dict _rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None,
-                          start=None, end=None, one_based=False,
-                          truncate=False, pad=False, max_depth=8000, **kwargs):
+def stat_baseq_ext_strand(samfile, fafile, **kwargs):
     """Generate extended base quality statistics by strand per genome position.
 
     :param samfile: SAM or BAM file
@@ -2776,10 +2711,7 @@ def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None,
     """
 
     return _iter_pileup(_rec_baseq_ext_strand, _rec_baseq_ext_strand_pad,
-                        samfile, fafile=fafile,
-                        chrom=chrom, start=start, end=end,
-                        one_based=one_based, truncate=truncate,
-                        pad=pad, max_depth=max_depth, **kwargs)
+                        samfile, fafile=fafile, **kwargs)
 
 
 def write_baseq_ext_strand(*args, **kwargs):
@@ -2807,9 +2739,8 @@ dtype_coverage_gc = [('chrom', 'a12'),
 fields_coverage_gc = [t[0] for t in dtype_coverage_gc]
 
 
-def stat_coverage_gc(Samfile samfile, Fastafile fafile,
-                     chrom=None, start=None, end=None, one_based=False,
-                     truncate=False, pad=False, max_depth=8000,
+def stat_coverage_gc(samfile, fafile, chrom=None, start=None, end=None,
+                     one_based=False, truncate=False, pad=False, max_depth=8000,
                      window_size=300, window_offset=None, **kwargs):
     """Generate coverage statistics per genome position with reference genome
     %GC composition in surrounding window.
@@ -3415,6 +3346,12 @@ def _iter_pileup(frec, fpad, samfile, fafile=None, chrom=None, start=None,
 
     """
 
+    if isinstance(samfile, basestring):
+        samfile = Samfile(samfile)
+
+    if isinstance(fafile, basestring):
+        fafile = Fastafile(fafile)
+
     if pad:
         return _iter_pileup_padded(frec, fpad, samfile,
                                    fafile=fafile, chrom=chrom,
@@ -3485,9 +3422,15 @@ def _iter_pileup_padded_chrom(frec, fpad, samfile, fafile, chrom, start=None,
         curpos += 1
 
 
-def _iter_binned(stat, samfile, chrom=None, start=None, end=None,
+def _iter_binned(stat, samfile, fafile=None, chrom=None, start=None, end=None,
                  one_based=False, window_size=300, window_offset=None,
                  **kwargs):
+
+    if isinstance(samfile, basestring):
+        samfile = Samfile(samfile)
+
+    if isinstance(fafile, basestring):
+        fafile = Fastafile(fafile)
 
     if window_offset is None:
         window_offset = window_size / 2
@@ -3623,12 +3566,8 @@ def _write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
     if write_header:
         writer.writeheader()
 
-    if fafile is None:
-        recs = statfun(samfile, chrom=chrom, start=start, end=end,
-                       one_based=one_based, **kwargs)
-    else:
-        recs = statfun(samfile, fafile, chrom=chrom, start=start, end=end,
-                       one_based=one_based, **kwargs)
+    recs = statfun(samfile, fafile=fafile, chrom=chrom, start=start,
+                   end=end, one_based=one_based, **kwargs)
 
     if progress is None:
         # N.B., don't use writer.writerows(recs)!
@@ -3664,6 +3603,32 @@ def flatten(recs, *fields):
     getter = itemgetter(*fields)
     it = (getter(rec) for rec in recs)
     return it
+
+
+def tabulate(stat, *args, **kwargs):
+    return _StatsTable(stat, *args, **kwargs)
+
+
+class _StatsTable(object):
+
+    def __init__(self, stats_type, *args, **kwargs):
+        try:
+            self.stats_function = globals()['stat_' + stats_type]
+            self.fields = kwargs.pop('fields', None)
+            if self.fields is None:
+                self.fields = globals()['fields_' + stats_type]
+            self.args = args
+            self.kwargs = kwargs
+        except KeyError:
+            raise Exception('statistics type not found: %r' % stats_type)
+
+    def __iter__(self):
+        recs = self.stats_function(*self.args, **self.kwargs)
+        fields = tuple(self.fields)
+        rows = flatten(recs, *fields)
+        yield fields
+        for row in rows:
+            yield row
 
 
 def _load_stats(statfun, default_dtype, *args, **kwargs):
