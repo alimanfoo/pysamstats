@@ -47,13 +47,12 @@ from a SAM or BAM file and print them to stdout.
 
 Options:
   -h, --help            show this help message and exit
-  -t TYPE, --type=TYPE  Type of statistics to print, one of: coverage,
-                        coverage_strand, coverage_ext, coverage_ext_strand,
-                        coverage_gc, variation, variation_strand, tlen,
-                        tlen_strand, mapq, mapq_strand, baseq, baseq_strand,
-                        baseq_ext, baseq_ext_strand, coverage_binned,
-                        coverage_ext_binned, mapq_binned, alignment_binned,
-                        tlen_binned.
+  -t TYPE, --type=TYPE  Type of statistics to print, one of: alignment_binned,
+                        baseq, baseq_ext, baseq_ext_strand, baseq_strand,
+                        coverage, coverage_binned, coverage_ext,
+                        coverage_ext_binned, coverage_ext_strand, coverage_gc,
+                        coverage_strand, mapq, mapq_binned, mapq_strand, tlen,
+                        tlen_binned, tlen_strand, variation, variation_strand.
   -c CHROMOSOME, --chromosome=CHROMOSOME
                         Chromosome name.
   -s START, --start=START
@@ -114,7 +113,8 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.16 (pysam 0.8.0)
+Version: 0.17 (pysam 0.8.0)
+
 ```
 
 From Python:
