@@ -2990,184 +2990,6 @@ cdef class CoverageBinned(StatBinned):
                 self.reads_pp += 1
 
 
-def _iter_binned(stat, samfile, chrom=None, start=None, end=None,
-                 one_based=False, window_size=300, window_offset=None,
-                 **kwargs):
-
-    if window_offset is None:
-        window_offset = window_size / 2
-
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
-                                     start=None, end=None, one_based=one_based,
-                                     window_size=window_size,
-                                     window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-
-    else:
-        it = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
-                                start=start, end=end, one_based=one_based,
-                                window_size=window_size,
-                                window_offset=window_offset)
-
-    return it
-
-
-def _iter_binned_chrom(StatBinned stat, Samfile samfile, chrom, start=None,
-                       end=None, one_based=False, int window_size=300,
-                       int window_offset=150, **kwargs):
-
-    # setup
-
-    assert chrom is not None, 'chromosome is None'
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    has_coord, rtid, rstart, rend = \
-        samfile._parseRegion(chrom, start, end, None)
-
-    cdef IteratorRowRegion it
-    cdef bam1_t * b
-    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-    b = it.b
-
-    # setup first bin
-    bin_start = rstart
-    bin_end = bin_start + window_size
-
-    # iterate over reads
-    it.cnext()
-    while it.retval > 0:
-        while b.core.pos > bin_end:  # end of bin
-
-            # yield record for bin
-            rec = stat.rec(chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec['chrom'] = chrom
-            rec['pos'] = pos
-            yield rec
-
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-
-        # process current read
-        stat.recv(b)
-
-        # move iterator on
-        it.cnext()
-
-    # deal with last non-empty bin
-    rec = stat.rec(chrom, bin_start, bin_end)
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec['chrom'] = chrom
-    rec['pos'] = pos
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-
-            # yield record
-            rec = stat.rec(chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec['chrom'] = chrom
-            rec['pos'] = pos
-            yield rec
-
-
-# def _iter_coverage_binned(Samfile samfile, Fastafile fafile, chrom,
-#                           start=None, end=None, one_based=False,
-#                           int window_size=300, int window_offset=150,
-#                           **kwargs):
-#     assert chrom is not None, 'chromosome is None'
-#     assert chrom in fafile.references, 'chromosome not in FASTA references: %s' % chrom
-#     start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-#     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-#     cdef int reads_all, reads_pp
-#     cdef bam1_t * b
-#     cdef uint32_t flag
-#     cdef bint is_unmapped
-#     cdef bint is_proper_pair
-#     cdef IteratorRowRegion it
-#     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
-#     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-#     b = it.b
-#     # setup first bin
-#     bin_start = rstart
-#     bin_end = bin_start + window_size
-#     reads_all = reads_pp = 0
-#
-#     # iterate over reads
-#     it.cnext()
-#     while it.retval > 0:
-#         while b.core.pos > bin_end: # end of bin, yield record
-#             # determine %GC
-#             ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-#             gc_percent = _gc_content(ref_window)
-#             # yield record for bin
-#             pos = bin_start + window_offset
-#             if one_based:
-#                 pos += 1
-#             rec = {'chrom': chrom, 'pos': pos, 'gc': gc_percent,
-#                    'reads_all': reads_all,
-#                    'reads_pp': reads_pp}
-#             reads_all = reads_pp = 0
-#             yield rec
-#             # start new bin
-#             bin_start = bin_end
-#             bin_end = bin_start + window_size
-#         # increment counters
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             reads_all += 1
-#             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#             if is_proper_pair:
-#                 reads_pp += 1
-#         # move iterator on
-#         it.cnext()
-#
-#     # deal with last non-empty bin
-#     ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-#     gc_percent = _gc_content(ref_window)
-#     # yield record for bin
-#     pos = bin_start + window_offset
-#     if one_based:
-#         pos += 1
-#     rec = {'chrom': chrom, 'pos': pos,
-#            'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
-#     yield rec
-#
-#     # deal with empty bins up to explicit end
-#     if end is not None:
-#         while bin_end < end:
-#             # start new bin
-#             bin_start = bin_end
-#             bin_end = bin_start + window_size
-#             ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-#             gc_percent = _gc_content(ref_window)
-#             # yield record for bin
-#             pos = bin_start + window_offset
-#             if one_based:
-#                 pos += 1
-#             rec = {'chrom': chrom, 'pos': pos,
-#                    'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0}
-#             yield rec
-
-    
 def write_coverage_binned(*args, **kwargs):
     _write_stats(stat_coverage_binned, fields_coverage_binned, *args, **kwargs)
 
@@ -3199,74 +3021,66 @@ fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
 
 
 def stat_coverage_ext_binned(samfile, fafile, **kwargs):
-    return _stat_binned(_iter_coverage_ext_binned, samfile=samfile,
-                        fafile=fafile, **kwargs)
+    """TODO
 
-        
-def _iter_coverage_ext_binned(Samfile samfile, Fastafile fafile, chrom,
-                              start=None, end=None, one_based=False,
-                              int window_size=300, int window_offset=150,
-                              **kwargs):
-    assert chrom is not None, 'chromosome is None'
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    """
+
+    stat = CoverageExtBinned(fafile)
+    return _iter_binned(stat, samfile=samfile, **kwargs)
+
+
+cdef class CoverageExtBinned(StatBinned):
+
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
         reads_mate_same_strand, reads_faceaway, reads_softclipped, \
         reads_duplicate
-    cdef bam1_t * b
-    cdef uint32_t flag
-    cdef bint is_unmapped
-    cdef bint is_reverse
-    cdef bint is_proper_pair 
-    cdef bint is_duplicate
-    cdef bint mate_is_unmappped 
-    cdef bint mate_is_reverse
-    cdef int tlen
-    cdef IteratorRowRegion it
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
-    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-    b = it.b
+    cdef Fastafile fafile
 
-    # setup first bin
-    bin_start = rstart
-    bin_end = bin_start + window_size
-    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr \
-        = reads_mate_same_strand = reads_faceaway = reads_softclipped \
-        = reads_duplicate = 0
+    def __cinit__(self, fafile):
+        self.reads_all = self.reads_pp = self.reads_mate_unmapped \
+            = self.reads_mate_other_chr = self.reads_mate_same_strand\
+            = self.reads_faceaway = self.reads_softclipped \
+            = self.reads_duplicate = 0
+        self.fafile = fafile
 
-    # iterate over reads
-    it.cnext()
-    while it.retval > 0:
-        while b.core.pos > bin_end:  # end of bin, yield record
-            # determine %GC
-            ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = _gc_content(ref_window)
-            # yield record for bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp,
-                   'reads_mate_unmapped': reads_mate_unmapped,
-                   'reads_mate_other_chr': reads_mate_other_chr,
-                   'reads_mate_same_strand': reads_mate_same_strand,
-                   'reads_faceaway': reads_faceaway,
-                   'reads_softclipped': reads_softclipped,
-                   'reads_duplicate': reads_duplicate}
-            yield rec
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            reads_all = reads_pp = reads_mate_unmapped = \
-                reads_mate_other_chr = reads_mate_same_strand = \
-                reads_faceaway = reads_softclipped = reads_duplicate = 0
-        # increment counters
+    cdef dict rec(self, chrom, bin_start, bin_end):
+
+        # determine %GC
+        ref_window = self.fafile.fetch(chrom, bin_start, bin_end).lower()
+        gc_percent = _gc_content(ref_window)
+
+        # make record for bin
+        rec = {'gc': gc_percent,
+               'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'reads_mate_unmapped': self.reads_mate_unmapped,
+               'reads_mate_other_chr': self.reads_mate_other_chr,
+               'reads_mate_same_strand': self.reads_mate_same_strand,
+               'reads_faceaway': self.reads_faceaway,
+               'reads_softclipped': self.reads_softclipped,
+               'reads_duplicate': self.reads_duplicate}
+
+        # reset counters
+        self.reads_all = self.reads_pp = self.reads_mate_unmapped \
+            = self.reads_mate_other_chr = self.reads_mate_same_strand\
+            = self.reads_faceaway = self.reads_softclipped \
+            = self.reads_duplicate = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_reverse
+        cdef bint is_proper_pair
+        cdef bint is_duplicate
+        cdef bint mate_is_unmappped
+        cdef bint mate_is_reverse
+        cdef int tlen
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
-            reads_all += 1
+            self.reads_all += 1
             is_reverse = <bint>(flag & BAM_FREVERSE)
             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
             is_duplicate = <bint>(flag & BAM_FDUP)
@@ -3274,61 +3088,20 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fafile, chrom,
             mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
             tlen = b.core.isize
             if is_duplicate:
-                reads_duplicate += 1
+                self.reads_duplicate += 1
             if is_proper_pair:
-                reads_pp += 1
+                self.reads_pp += 1
             if mate_is_unmapped:
-                reads_mate_unmapped += 1
+                self.reads_mate_unmapped += 1
             elif b.core.tid != b.core.mtid:
-                reads_mate_other_chr += 1
+                self.reads_mate_other_chr += 1
             elif (is_reverse and mate_is_reverse) \
                     or (not is_reverse and not mate_is_reverse):
-                reads_mate_same_strand += 1
+                self.reads_mate_same_strand += 1
             elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-                reads_faceaway += 1
+                self.reads_faceaway += 1
             if _is_softclipped(b):
-                reads_softclipped += 1
-        # move iterator on
-        it.cnext()
-
-    # deal with last non-empty bin
-    ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-    gc_percent = _gc_content(ref_window)
-    # yield record for bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp,
-           'reads_mate_unmapped': reads_mate_unmapped,
-           'reads_mate_other_chr': reads_mate_other_chr,
-           'reads_mate_same_strand': reads_mate_same_strand,
-           'reads_faceaway': reads_faceaway,
-           'reads_softclipped': reads_softclipped,
-           'reads_duplicate': reads_duplicate}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = _gc_content(ref_window)
-            # yield record for bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0,
-                   'reads_mate_unmapped': 0,
-                   'reads_mate_other_chr': 0,
-                   'reads_mate_same_strand': 0,
-                   'reads_faceaway': 0,
-                   'reads_softclipped': 0,
-                   'reads_duplicate': 0}
-            yield rec
+                self.reads_softclipped += 1
 
 
 def write_coverage_ext_binned(*args, **kwargs):
@@ -3363,87 +3136,44 @@ def stat_mapq_binned(samfile, **kwargs):
 
     """
 
-    return _stat_binned(_iter_mapq_binned, samfile=samfile, **kwargs)
+    stat = MapqBinned()
+    return _iter_binned(stat, samfile=samfile, **kwargs)
 
-        
-def _iter_mapq_binned(Samfile samfile, chrom,
-                      start=None, end=None, one_based=False,
-                      int window_size=300, int window_offset=150,
-                      **kwargs):
-    assert chrom is not None, 'chromosome is None'
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+
+cdef class MapqBinned(StatBinned):
+
     cdef int reads_all, reads_mapq0
-    cdef bam1_t * b
-    cdef uint32_t flag
-    cdef bint is_unmapped
-    cdef IteratorRowRegion it
-    cdef uint64_t mapq
-    cdef uint64_t mapq_squared
-    cdef uint64_t mapq_squared_sum = 0
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
-    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-    b = it.b
+    cdef uint64_t mapq, mapq_squared_sum
 
-    # setup first bin
-    bin_start = rstart
-    bin_end = bin_start + window_size
-    reads_all = reads_mapq0 = mapq_squared_sum = 0
+    def __cinit__(self):
+        self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
 
-    # iterate over reads
-    it.cnext()
-    while it.retval > 0:
-        while b.core.pos > bin_end: # end of bin, yield record
-            # yield record for bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all,
-                   'reads_mapq0': reads_mapq0,
-                   'rms_mapq': _rootmean(mapq_squared_sum, reads_all)}
-            yield rec
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            reads_all = reads_mapq0 = mapq_squared_sum = 0
-        # increment counters
+    cdef dict rec(self, chrom, bin_start, bin_end):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all,
+               'reads_mapq0': self.reads_mapq0,
+               'rms_mapq': _rootmean(self.mapq_squared_sum, self.reads_all)}
+
+        # reset counters
+        self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef uint64_t mapq
+        cdef uint64_t mapq_squared
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
-            reads_all += 1
+            self.reads_all += 1
             mapq = b.core.qual
             mapq_squared = mapq**2
-            mapq_squared_sum += mapq_squared
+            self.mapq_squared_sum += mapq_squared
             if mapq == 0:
-                reads_mapq0 += 1
-        # move iterator on
-        it.cnext()
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'reads_all': reads_all,
-           'reads_mapq0': reads_mapq0,
-           'rms_mapq': _rootmean(mapq_squared_sum, reads_all)}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': 0,
-                   'reads_mapq0': 0,
-                   'rms_mapq': 0}
-            yield rec
+                self.reads_mapq0 += 1
 
 
 def write_mapq_binned(*args, **kwargs):
@@ -3484,51 +3214,36 @@ def stat_alignment_binned(samfile, **kwargs):
 
     """
 
-    return _stat_binned(_iter_alignment_binned, samfile=samfile, **kwargs)
+    stat = AlignmentBinned()
+    return _iter_binned(stat, samfile=samfile, **kwargs)
 
-        
-def _iter_alignment_binned(Samfile samfile, chrom,
-                           start=None, end=None, one_based=False,
-                           int window_size=300, int window_offset=150,
-                           **kwargs):
-    assert chrom is not None, 'chromosome is None'
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    cdef bam1_t * b
-    cdef uint32_t flag
-    cdef bint is_unmapped
-    cdef bint is_proper_pair
-    cdef IteratorRowRegion it
-    cdef Py_ssize_t i # loop index
-    cdef int reads_all, k, op, l
-    cdef int M, I, D, N, S, H, P, EQ, X
-    reads_all = M = I = D = N = S = H = P = EQ = X = 0
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
-    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-    b = it.b
 
-    # setup first bin
-    bin_start = rstart
-    bin_end = bin_start + window_size
-    c = Counter()
+cdef class AlignmentBinned(StatBinned):
 
-    # iterate over reads
-    it.cnext()
-    while it.retval > 0:
-        while b.core.pos > bin_end:  # end of bin, yield record
-            # yield record for bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
-                   'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
-                   'bases_all': M + I + S + EQ + X}
-            yield rec
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            reads_all = M = I = D = N = S = H = P = EQ = X = 0
-        # increment counters
+    cdef int reads_all, M, I, D, N, S, H, P, EQ, X
+
+    def __cinit__(self):
+        self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
+            = self.P = self.EQ = self.X = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all,
+               'M': self.M, 'I': self.I, 'D': self.D, 'N': self.N, 'S': self.S,
+               'H': self.H, 'P': self.P, '=': self.EQ, 'X': self.X,
+               'bases_all': self.M + self.I + self.S + self.EQ + self.X}
+
+        # reset counters
+        self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
+            = self.P = self.EQ = self.X = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef int k, op, l
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
@@ -3539,54 +3254,24 @@ def _iter_alignment_binned(Samfile samfile, chrom,
                 l = cigar_p[k] >> BAM_CIGAR_SHIFT
                 cigar.append((op, l))
                 if op == BAM_CMATCH:
-                    M += l
+                    self.M += l
                 elif op == BAM_CINS:
-                    I += l
+                    self.I += l
                 elif op == BAM_CDEL:
-                    D += l
+                    self.D += l
                 elif op == BAM_CREF_SKIP:
-                    N += l
+                    self.N += l
                 elif op == BAM_CSOFT_CLIP:
-                    S += l
+                    self.S += l
                 elif op == BAM_CHARD_CLIP:
-                    H += l
+                    self.H += l
                 elif op == BAM_CPAD:
-                    P += l
+                    self.P += l
                 elif op == BAM_CEQUAL:
-                    EQ += l
+                    self.EQ += l
                 elif op == BAM_CDIFF:
-                    X += l
-            reads_all += 1
-        # move iterator on
-        it.cnext()
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
-           'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
-           'bases_all': M + I + S + EQ + X}
-    yield rec
-    # start new bin
-    bin_start = bin_end
-    bin_end = bin_start + window_size
-    reads_all = M = I = D = N = S = H = P = EQ = X = 0
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            reads_all = M = I = D = N = S = H = P = EQ = X = 0
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all,
-                   'M': M, 'I': I, 'D': D, 'N': N, 'S': S, 'H': H, 'P': P, '=': EQ, 'X': X,
-                   'bases_all': M + I + S + EQ + X}
-            yield rec
+                    self.X += l
+            self.reads_all += 1
 
     
 def write_alignment_binned(*args, **kwargs):
@@ -3624,102 +3309,58 @@ def stat_tlen_binned(samfile, **kwargs):
 
     """
 
-    return _stat_binned(_iter_tlen_binned, samfile=samfile, **kwargs)
+    stat = TlenBinned()
+    return _iter_binned(stat, samfile=samfile, **kwargs)
 
 
-def _iter_tlen_binned(Samfile samfile, chrom,
-                      start=None, end=None, one_based=False,
-                      int window_size=300, int window_offset=150,
-                      **kwargs):
-    assert chrom is not None, 'chromosome is None'
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    cdef int reads_all = 0
-    cdef int reads_pp = 0
-    cdef bam1_t * b
-    cdef uint32_t flag
-    cdef bint is_unmapped
-    cdef bint is_proper_pair
-    cdef IteratorRowRegion it
-    cdef int64_t tlen
-    cdef int64_t tlen_squared
-    cdef int64_t tlen_sum = 0
-    cdef int64_t tlen_pp_sum = 0
-    cdef int64_t tlen_squared_sum = 0
-    cdef int64_t tlen_pp_squared_sum = 0
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
-    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
-    b = it.b
+cdef class TlenBinned(StatBinned):
 
-    # setup first bin
-    bin_start = rstart
-    bin_end = bin_start + window_size
+    cdef int reads_all
+    cdef int reads_pp
+    cdef int64_t tlen_sum
+    cdef int64_t tlen_pp_sum
+    cdef int64_t tlen_squared_sum
+    cdef int64_t tlen_pp_squared_sum
 
-    # iterate over reads
-    it.cnext()
-    while it.retval > 0:
-        while b.core.pos > bin_end: # end of bin, yield record
-            # yield record for bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all, 'reads_pp': reads_pp,
-                   'mean_tlen': _mean(tlen_sum, reads_all),
-                   'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-                   'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
-                   'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
-            yield rec
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
-        # increment counters
+    def __cinit__(self):
+        self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
+            self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all, 'reads_pp': self.reads_pp,
+               'mean_tlen': _mean(self.tlen_sum, self.reads_all),
+               'mean_tlen_pp': _mean(self.tlen_pp_sum, self.reads_pp),
+               'rms_tlen': _rootmean(self.tlen_squared_sum, self.reads_all),
+               'rms_tlen_pp': _rootmean(self.tlen_pp_squared_sum,
+                                        self.reads_pp)}
+
+        # reset counters
+        self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
+            self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_proper_pair
+        cdef int64_t tlen
+        cdef int64_t tlen_squared
         flag = b.core.flag
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
-            reads_all += 1
+            self.reads_all += 1
             tlen = b.core.isize
-            tlen_sum += tlen
+            self.tlen_sum += tlen
             tlen_squared = tlen**2
-            tlen_squared_sum += tlen_squared
+            self.tlen_squared_sum += tlen_squared
             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
             if is_proper_pair:
-                reads_pp += 1
-                tlen_pp_sum += tlen
-                tlen_pp_squared_sum += tlen_squared
-        # move iterator on
-        it.cnext()
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'reads_all': reads_all, 'reads_pp': reads_pp,
-           'mean_tlen': _mean(tlen_sum, reads_all),
-           'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-           'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
-           'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            # start new bin
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            tlen_sum = tlen_squared_sum = tlen_pp_sum = tlen_pp_squared_sum = reads_all = reads_pp = 0
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all, 'reads_pp': reads_pp,
-                   'mean_tlen': _mean(tlen_sum, reads_all),
-                   'mean_tlen_pp': _mean(tlen_pp_sum, reads_pp),
-                   'rms_tlen': _rootmean(tlen_squared_sum, reads_all),
-                   'rms_tlen_pp': _rootmean(tlen_pp_squared_sum, reads_pp)}
-            yield rec
+                self.reads_pp += 1
+                self.tlen_pp_sum += tlen
+                self.tlen_pp_squared_sum += tlen_squared
 
 
 def write_tlen_binned(*args, **kwargs):
@@ -3922,9 +3563,9 @@ def _stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
         curpos += 1
 
 
-def _stat_binned(fiter, samfile, fafile=None, chrom=None, start=None,
-                 end=None, one_based=False, window_size=300,
-                 window_offset=None, **kwargs):
+def _iter_binned(stat, samfile, chrom=None, start=None, end=None,
+                 one_based=False, window_size=300, window_offset=None,
+                 **kwargs):
 
     if window_offset is None:
         window_offset = window_size / 2
@@ -3932,18 +3573,92 @@ def _stat_binned(fiter, samfile, fafile=None, chrom=None, start=None,
     if chrom is None:
         its = list()
         for chrom in samfile.references:
-            itc = fiter(samfile=samfile, fafile=fafile, chrom=chrom,
-                        start=None, end=None, one_based=one_based,
-                        window_size=window_size, window_offset=window_offset)
+            itc = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
+                                     start=None, end=None, one_based=one_based,
+                                     window_size=window_size,
+                                     window_offset=window_offset)
             its.append(itc)
         it = itertools.chain(*its)
 
     else:
-        it = fiter(samfile=samfile, fafile=fafile, chrom=chrom,
-                   start=start, end=end, one_based=one_based,
-                   window_size=window_size, window_offset=window_offset)
+        it = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
+                                start=start, end=end, one_based=one_based,
+                                window_size=window_size,
+                                window_offset=window_offset)
 
     return it
+
+
+def _iter_binned_chrom(StatBinned stat, Samfile samfile, chrom, start=None,
+                       end=None, one_based=False, int window_size=300,
+                       int window_offset=150, **kwargs):
+
+    # setup
+
+    assert chrom is not None, 'chromosome is None'
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    has_coord, rtid, rstart, rend = \
+        samfile._parseRegion(chrom, start, end, None)
+
+    cdef IteratorRowRegion it
+    cdef bam1_t * b
+    it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+    b = it.b
+
+    # setup first bin
+    bin_start = rstart
+    bin_end = bin_start + window_size
+
+    # iterate over reads
+    it.cnext()
+    while it.retval > 0:
+        while b.core.pos > bin_end:  # end of bin
+
+            # yield record for bin
+            rec = stat.rec(chrom, bin_start, bin_end)
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec['chrom'] = chrom
+            rec['pos'] = pos
+            yield rec
+
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+
+        # process current read
+        stat.recv(b)
+
+        # move iterator on
+        it.cnext()
+
+    # deal with last non-empty bin
+    rec = stat.rec(chrom, bin_start, bin_end)
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec['chrom'] = chrom
+    rec['pos'] = pos
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            # start new bin
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+
+            # yield record
+            rec = stat.rec(chrom, bin_start, bin_end)
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec['chrom'] = chrom
+            rec['pos'] = pos
+            yield rec
 
 
 def _normalise_coords(Samfile samfile, chrom, start, end, one_based):
