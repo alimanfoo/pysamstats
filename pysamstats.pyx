@@ -78,8 +78,8 @@ dtype_coverage = [('chrom', 'a12'),
 fields_coverage = [t[0] for t in dtype_coverage]
 
 
-cpdef dict construct_rec_coverage(Samfile samfile, PileupProxy col,
-                                  bint one_based=False):
+cpdef dict rec_coverage(Samfile samfile, PileupProxy col,
+                        bint one_based=False):
     """Construct a coverage record from a pileup column.
 
     :param samfile: SAM or BAM file
@@ -121,7 +121,7 @@ cpdef dict construct_rec_coverage(Samfile samfile, PileupProxy col,
             'reads_pp': reads_pp}
 
 
-cpdef dict construct_rec_coverage_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_coverage_pad(chrom, pos, bint one_based=False):
     """Construct an empty coverage record for a position with no aligned reads.
 
     :param chrom: chromosome/contig
@@ -154,7 +154,7 @@ def stat_coverage(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_coverage, construct_rec_coverage_pad,
+    return _stat_pileup(rec_coverage, rec_coverage_pad,
                         samfile, chrom=chrom, start=start, end=end,
                         one_based=one_based, truncate=truncate, pad=pad,
                         max_depth=max_depth, **kwargs)
@@ -188,8 +188,8 @@ dtype_coverage_strand = [
 fields_coverage_strand = [t[0] for t in dtype_coverage_strand]
 
 
-cpdef dict construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
-                                         bint one_based=False):
+cpdef dict rec_coverage_strand(Samfile samfile, PileupProxy col,
+                               bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -242,8 +242,8 @@ cpdef dict construct_rec_coverage_strand(Samfile samfile, PileupProxy col,
             'reads_pp_rev': reads_pp_rev}
 
 
-cpdef dict construct_rec_coverage_strand_pad(chrom, pos,
-                                             bint one_based=False):
+cpdef dict rec_coverage_strand_pad(chrom, pos,
+                                   bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
             'pos': pos,
@@ -272,8 +272,8 @@ def stat_coverage_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_coverage_strand,
-                        construct_rec_coverage_strand_pad,
+    return _stat_pileup(rec_coverage_strand,
+                        rec_coverage_strand_pad,
                         samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
@@ -312,8 +312,8 @@ dtype_coverage_ext = [
 fields_coverage_ext = [t[0] for t in dtype_coverage_ext]
 
 
-cpdef dict construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
-                                      bint one_based=False):
+cpdef dict rec_coverage_ext(Samfile samfile, PileupProxy col,
+                            bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -383,7 +383,7 @@ cpdef dict construct_rec_coverage_ext(Samfile samfile, PileupProxy col,
             'reads_duplicate': reads_duplicate}
 
 
-cpdef dict construct_rec_coverage_ext_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_coverage_ext_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
             'reads_all': 0,
@@ -413,8 +413,8 @@ def stat_coverage_ext(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_coverage_ext,
-                        construct_rec_coverage_ext_pad, samfile,
+    return _stat_pileup(rec_coverage_ext,
+                        rec_coverage_ext_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -466,8 +466,8 @@ dtype_coverage_ext_strand = [
 fields_coverage_ext_strand = [t[0] for t in dtype_coverage_ext_strand]
 
 
-cpdef dict construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
-                                             bint one_based=False):
+cpdef dict rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
+                                   bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -601,8 +601,8 @@ cpdef dict construct_rec_coverage_ext_strand(Samfile samfile, PileupProxy col,
            }
 
 
-cpdef dict construct_rec_coverage_ext_strand_pad(chrom, pos,
-                                                 bint one_based=False):
+cpdef dict rec_coverage_ext_strand_pad(chrom, pos,
+                                       bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
            'reads_all': 0,
@@ -649,8 +649,8 @@ def stat_coverage_ext_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_coverage_ext_strand,
-                        construct_rec_coverage_ext_strand_pad, samfile,
+    return _stat_pileup(rec_coverage_ext_strand,
+                        rec_coverage_ext_strand_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -701,8 +701,8 @@ dtype_variation = [
 fields_variation = [t[0] for t in dtype_variation]
 
 
-cpdef dict construct_rec_variation(Samfile samfile, Fastafile fafile,
-                                   PileupProxy col, bint one_based=False):
+cpdef dict rec_variation(Samfile samfile, Fastafile fafile,
+                         PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -814,8 +814,8 @@ cpdef dict construct_rec_variation(Samfile samfile, Fastafile fafile,
             'N': N, 'N_pp': N_pp}
 
 
-cpdef dict construct_rec_variation_pad(Fastafile fafile, chrom, pos,
-                                       bint one_based=False):
+cpdef dict rec_variation_pad(Fastafile fafile, chrom, pos,
+                             bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -852,8 +852,8 @@ def stat_variation(Samfile samfile, Fastafile fafile, chrom=None, start=None,
     :return: record generator
     """
 
-    return _stat_pileup_withref(construct_rec_variation,
-                                construct_rec_variation_pad,
+    return _stat_pileup_withref(rec_variation,
+                                rec_variation_pad,
                                 samfile, fafile,
                                 chrom=chrom, start=start, end=end,
                                 one_based=one_based, truncate=truncate,
@@ -923,15 +923,15 @@ dtype_variation_strand = [
 fields_variation_strand = [t[0] for t in dtype_variation_strand]
 
 
-cdef struct CountPpStrand:
+cdef struct _CountPpStrand:
     int all, pp, fwd, rev, pp_fwd, pp_rev
 
 
-cdef inline init_pp_strand(CountPpStrand* c):
+cdef inline _init_pp_strand(_CountPpStrand* c):
     c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0    
 
 
-cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
+cdef inline _incr_pp_strand(_CountPpStrand* c, bint is_reverse,
                            bint is_proper_pair):
     c.all += 1
     if is_reverse:
@@ -946,9 +946,8 @@ cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
             c.pp_fwd += 1
                 
 
-cpdef dict construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
-                                          PileupProxy col,
-                                          bint one_based=False):
+cpdef dict rec_variation_strand(Samfile samfile, Fastafile fafile,
+                                PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -959,22 +958,22 @@ cpdef dict construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
     cdef uint32_t flag
     cdef bint is_proper_pair, is_reverse
     # counting variables
-    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, \
+    cdef _CountPpStrand reads, matches, mismatches, deletions, insertions, \
         A, C, T, G, N
     
     # initialise variables
     n = col.n
     plp = col.plp
-    init_pp_strand(&reads)
-    init_pp_strand(&matches)
-    init_pp_strand(&mismatches)
-    init_pp_strand(&deletions)
-    init_pp_strand(&insertions)
-    init_pp_strand(&A)
-    init_pp_strand(&T)
-    init_pp_strand(&C)
-    init_pp_strand(&G)
-    init_pp_strand(&N)
+    _init_pp_strand(&reads)
+    _init_pp_strand(&matches)
+    _init_pp_strand(&mismatches)
+    _init_pp_strand(&deletions)
+    _init_pp_strand(&insertions)
+    _init_pp_strand(&A)
+    _init_pp_strand(&T)
+    _init_pp_strand(&C)
+    _init_pp_strand(&G)
+    _init_pp_strand(&N)
 
     # get chromosome name and position
     chrom = samfile.getrname(col.tid)
@@ -993,27 +992,27 @@ cpdef dict construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        incr_pp_strand(&reads, is_reverse, is_proper_pair)
+        _incr_pp_strand(&reads, is_reverse, is_proper_pair)
         if read.is_del:
-            incr_pp_strand(&deletions, is_reverse, is_proper_pair)
+            _incr_pp_strand(&deletions, is_reverse, is_proper_pair)
         else:
             alnbase = _get_seq_base(aln, read.qpos)
             if alnbase == 'A':
-                incr_pp_strand(&A, is_reverse, is_proper_pair)
+                _incr_pp_strand(&A, is_reverse, is_proper_pair)
             elif alnbase == 'T':
-                incr_pp_strand(&T, is_reverse, is_proper_pair)
+                _incr_pp_strand(&T, is_reverse, is_proper_pair)
             elif alnbase == 'C':
-                incr_pp_strand(&C, is_reverse, is_proper_pair)
+                _incr_pp_strand(&C, is_reverse, is_proper_pair)
             elif alnbase == 'G':
-                incr_pp_strand(&G, is_reverse, is_proper_pair)
+                _incr_pp_strand(&G, is_reverse, is_proper_pair)
             elif alnbase == 'N':
-                incr_pp_strand(&N, is_reverse, is_proper_pair)
+                _incr_pp_strand(&N, is_reverse, is_proper_pair)
             if read.indel > 0:
-                incr_pp_strand(&insertions, is_reverse, is_proper_pair)
+                _incr_pp_strand(&insertions, is_reverse, is_proper_pair)
             if alnbase == refbase:
-                incr_pp_strand(&matches, is_reverse, is_proper_pair)
+                _incr_pp_strand(&matches, is_reverse, is_proper_pair)
             else:
-                incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
+                _incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 
@@ -1034,8 +1033,8 @@ cpdef dict construct_rec_variation_strand(Samfile samfile, Fastafile fafile,
             }
 
 
-cpdef dict construct_rec_variation_strand_pad(Fastafile fafile, chrom, pos,
-                                              bint one_based=False):
+cpdef dict rec_variation_strand_pad(Fastafile fafile, chrom, pos,
+                                    bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -1080,8 +1079,8 @@ def stat_variation_strand(Samfile samfile, Fastafile fafile, chrom=None,
     :return: record generator
     """
 
-    return _stat_pileup_withref(construct_rec_variation_strand,
-                                construct_rec_variation_strand_pad,
+    return _stat_pileup_withref(rec_variation_strand,
+                                rec_variation_strand_pad,
                                 samfile, fafile,
                                 chrom=chrom, start=start, end=end,
                                 one_based=one_based, truncate=truncate,
@@ -1121,8 +1120,8 @@ dtype_tlen = [
 fields_tlen = [t[0] for t in dtype_tlen]
 
 
-cpdef dict construct_rec_tlen(Samfile samfile, PileupProxy col,
-                              bint one_based=False):
+cpdef dict rec_tlen(Samfile samfile, PileupProxy col,
+                    bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1239,7 +1238,7 @@ cpdef dict construct_rec_tlen(Samfile samfile, PileupProxy col,
             'std_tlen_pp': std_tlen_pp}
 
 
-cpdef object construct_rec_tlen_pad(chrom, pos, bint one_based=False):
+cpdef object rec_tlen_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1272,7 +1271,7 @@ def stat_tlen(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_tlen, construct_rec_tlen_pad, samfile,
+    return _stat_pileup(rec_tlen, rec_tlen_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -1327,8 +1326,8 @@ dtype_tlen_strand = [
 fields_tlen_strand = [t[0] for t in dtype_tlen_strand]
 
 
-cpdef dict construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
-                                     bint one_based=False):
+cpdef dict rec_tlen_strand(Samfile samfile, PileupProxy col,
+                           bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1569,7 +1568,7 @@ cpdef dict construct_rec_tlen_strand(Samfile samfile, PileupProxy col,
             'std_tlen_pp_rev': std_tlen_pp_rev}
 
 
-cpdef dict construct_rec_tlen_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_tlen_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1620,8 +1619,8 @@ def stat_tlen_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_tlen_strand,
-                        construct_rec_tlen_strand_pad,
+    return _stat_pileup(rec_tlen_strand,
+                        rec_tlen_strand_pad,
                         samfile, chrom=chrom, start=start, end=end,
                         one_based=one_based, truncate=truncate, pad=pad,
                         max_depth=max_depth, **kwargs)
@@ -1657,8 +1656,7 @@ dtype_mapq = [
 fields_mapq = [t[0] for t in dtype_mapq]
 
 
-cpdef dict construct_rec_mapq(Samfile samfile, PileupProxy col,
-                              bint one_based=False):
+cpdef dict rec_mapq(Samfile samfile, PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1728,7 +1726,7 @@ cpdef dict construct_rec_mapq(Samfile samfile, PileupProxy col,
             'max_mapq_pp': max_mapq_pp}
 
 
-cpdef dict construct_rec_mapq_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_mapq_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1760,7 +1758,7 @@ def stat_mapq(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_mapq, construct_rec_mapq_pad, samfile,
+    return _stat_pileup(rec_mapq, rec_mapq_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -1812,8 +1810,8 @@ dtype_mapq_strand = [
 fields_mapq_strand = [t[0] for t in dtype_mapq_strand]
 
 
-cpdef dict construct_rec_mapq_strand(Samfile samfile, PileupProxy col,
-                                     bint one_based=False):
+cpdef dict rec_mapq_strand(Samfile samfile, PileupProxy col,
+                           bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -1972,7 +1970,7 @@ cpdef dict construct_rec_mapq_strand(Samfile samfile, PileupProxy col,
             }
 
 
-cpdef dict construct_rec_mapq_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_mapq_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2020,8 +2018,8 @@ def stat_mapq_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_mapq_strand,
-                        construct_rec_mapq_strand_pad, samfile,
+    return _stat_pileup(rec_mapq_strand,
+                        rec_mapq_strand_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -2053,8 +2051,7 @@ dtype_baseq = [
 fields_baseq = [t[0] for t in dtype_baseq]
 
 
-cpdef dict construct_rec_baseq(Samfile samfile, PileupProxy col,
-                               bint one_based=False):
+cpdef dict rec_baseq(Samfile samfile, PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2110,7 +2107,7 @@ cpdef dict construct_rec_baseq(Samfile samfile, PileupProxy col,
             'rms_baseq_pp': rms_baseq_pp}
 
 
-cpdef dict construct_rec_baseq_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_baseq_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2138,7 +2135,7 @@ def stat_baseq(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_baseq, construct_rec_baseq_pad, samfile,
+    return _stat_pileup(rec_baseq, rec_baseq_pad, samfile,
                         chrom=chrom, start=start, end=end, one_based=one_based,
                         truncate=truncate, pad=pad, max_depth=max_depth,
                         **kwargs)
@@ -2178,8 +2175,8 @@ dtype_baseq_strand = [
 fields_baseq_strand = [t[0] for t in dtype_baseq_strand]
 
 
-cpdef dict construct_rec_baseq_strand(Samfile samfile, PileupProxy col,
-                                      bint one_based=False):
+cpdef dict rec_baseq_strand(Samfile samfile, PileupProxy col,
+                            bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2287,7 +2284,7 @@ cpdef dict construct_rec_baseq_strand(Samfile samfile, PileupProxy col,
             }
 
 
-cpdef dict construct_rec_baseq_strand_pad(chrom, pos, bint one_based=False):
+cpdef dict rec_baseq_strand_pad(chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2323,8 +2320,8 @@ def stat_baseq_strand(Samfile samfile, chrom=None, start=None, end=None,
     :return: record generator
     """
 
-    return _stat_pileup(construct_rec_baseq_strand,
-                        construct_rec_baseq_strand_pad,
+    return _stat_pileup(rec_baseq_strand,
+                        rec_baseq_strand_pad,
                         samfile, chrom=chrom, start=start, end=end,
                         one_based=one_based, truncate=truncate, pad=pad,
                         max_depth=max_depth, **kwargs)
@@ -2367,8 +2364,8 @@ dtype_baseq_ext = [
 fields_baseq_ext = [t[0] for t in dtype_baseq_ext]
 
 
-cpdef dict construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
-                                   PileupProxy col, bint one_based=False):
+cpdef dict rec_baseq_ext(Samfile samfile, Fastafile fafile,
+                         PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2461,8 +2458,8 @@ cpdef dict construct_rec_baseq_ext(Samfile samfile, Fastafile fafile,
             }
 
 
-cpdef dict construct_rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
-                                       bint one_based=False):
+cpdef dict rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
+                             bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -2498,8 +2495,8 @@ def stat_baseq_ext(Samfile samfile, Fastafile fafile, chrom=None, start=None,
     :return: record generator
     """
 
-    return _stat_pileup_withref(construct_rec_baseq_ext,
-                                construct_rec_baseq_ext_pad,
+    return _stat_pileup_withref(rec_baseq_ext,
+                                rec_baseq_ext_pad,
                                 samfile, fafile,
                                 chrom=chrom, start=start, end=end,
                                 one_based=one_based, truncate=truncate,
@@ -2565,8 +2562,8 @@ dtype_baseq_ext_strand = [
 fields_baseq_ext_strand = [t[0] for t in dtype_baseq_ext_strand]
 
 
-cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
-                                            PileupProxy col, bint one_based=False):
+cpdef dict rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
+                                PileupProxy col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
@@ -2751,7 +2748,8 @@ cpdef object construct_rec_baseq_ext_strand(Samfile samfile, Fastafile fafile,
             }
 
 
-cpdef object construct_rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos,
+                                    bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
@@ -2788,8 +2786,8 @@ def stat_baseq_ext_strand(Samfile samfile, Fastafile fafile, chrom=None,
     :return: record generator
     """
 
-    return _stat_pileup_withref(construct_rec_baseq_ext_strand,
-                                construct_rec_baseq_ext_strand_pad,
+    return _stat_pileup_withref(rec_baseq_ext_strand,
+                                rec_baseq_ext_strand_pad,
                                 samfile, fafile,
                                 chrom=chrom, start=start, end=end,
                                 one_based=one_based, truncate=truncate,
@@ -2854,8 +2852,8 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
     if window_offset is None:
         window_offset = window_size / 2
         
-    def construct_rec_coverage_gc(Samfile samfile, Fastafile fafile,
-                                  PileupProxy col, bint one_based):
+    def rec_coverage_gc(Samfile samfile, Fastafile fafile,
+                        PileupProxy col, bint one_based):
         chrom = samfile.getrname(col.tid)
 
         ref_window_start = col.pos - window_offset
@@ -2868,14 +2866,14 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         if len(ref_window) == 0:
             gc_percent = -1
         else:
-            gc_percent = gc_content(ref_window)
+            gc_percent = _gc_content(ref_window)
 
-        rec = construct_rec_coverage(samfile, col, one_based)
+        rec = rec_coverage(samfile, col, one_based)
         rec['gc'] = gc_percent
         return rec
 
-    def construct_rec_coverage_gc_pad(Fastafile fafile, chrom, pos,
-                                      bint one_based):
+    def rec_coverage_gc_pad(Fastafile fafile, chrom, pos,
+                            bint one_based):
         ref_window_start = pos - window_offset
         ref_window_end = ref_window_start + window_size
         if ref_window_start < 0:
@@ -2886,17 +2884,18 @@ def stat_coverage_gc(Samfile samfile, Fastafile fafile,
         if len(ref_window) == 0:
             gc_percent = -1
         else:
-            gc_percent = gc_content(ref_window)
-        rec = construct_rec_coverage_pad(chrom, pos, one_based)
+            gc_percent = _gc_content(ref_window)
+        rec = rec_coverage_pad(chrom, pos, one_based)
         rec['gc'] = gc_percent
         return rec
 
-    return _stat_pileup_withref(construct_rec_coverage_gc,
-                               construct_rec_coverage_gc_pad,
-                               samfile, fafile, chrom=chrom, start=start,
-                               end=end, one_based=one_based,
-                               truncate=truncate, pad=pad, max_depth=max_depth,
-                               **kwargs)
+    return _stat_pileup_withref(rec_coverage_gc,
+                                rec_coverage_gc_pad,
+                                samfile, fafile, chrom=chrom, start=start,
+                                end=end, one_based=one_based,
+                                truncate=truncate, pad=pad,
+                                max_depth=max_depth,
+                                **kwargs)
 
         
 def write_coverage_gc(*args, **kwargs):
@@ -2922,29 +2921,16 @@ dtype_coverage_binned = [('chrom', 'a12'),
 fields_coverage_binned = [t[0] for t in dtype_coverage_binned]
 
 
-def stat_coverage_binned(Samfile samfile, Fastafile fastafile,
-                         chrom=None, start=None, end=None, one_based=False,
-                         window_size=300, window_offset=None, **kwargs):
-    if window_offset is None:
-        window_offset = window_size / 2
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_coverage_binned(samfile, fastafile, chrom, start=None,
-                                        end=None, one_based=one_based,
-                                        window_size=window_size,
-                                        window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-    else:
-        it = _iter_coverage_binned(samfile, fastafile, chrom, start=start,
-                                   end=end, one_based=one_based,
-                                   window_size=window_size,
-                                   window_offset=window_offset)
-    return it
+def stat_coverage_binned(samfile, fafile, **kwargs):
+    """TODO
+
+    """
+
+    stat = CoverageBinned(fafile)
+    return _iter_binned(stat, samfile=samfile, **kwargs)
 
 
-cdef inline int gc_content(ref_window):
+cdef inline int _gc_content(ref_window):
     cdef Py_ssize_t i, n
     cdef char* seq
     cdef int gc_count = 0
@@ -2956,67 +2942,133 @@ cdef inline int gc_content(ref_window):
     gc_percent = int(round(gc_count * 100. / n))
     return gc_percent
 
-        
-def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, chrom,
-                          start=None, end=None, one_based=False,
-                          int window_size=300, int window_offset=150):
-    assert chrom is not None, 'chromosome is None'
-    assert chrom in fastafile.references, 'chromosome not in FASTA references: %s' % chrom
-    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
-    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+
+cdef class StatBinned(object):
+
+    cdef dict rec(self, chrom, bin_start, bin_end):
+        return dict()
+
+    cdef recv(self, bam1_t * b):
+        pass
+
+
+cdef class CoverageBinned(StatBinned):
+
     cdef int reads_all, reads_pp
-    cdef bam1_t * b
-    cdef uint32_t flag
-    cdef bint is_unmapped
-    cdef bint is_proper_pair
+    cdef Fastafile fafile
+
+    def __cinit__(self, fafile):
+        self.reads_all = self.reads_pp = 0
+        self.fafile = fafile
+
+    cdef dict rec(self, chrom, bin_start, bin_end):
+
+        # determine %GC
+        ref_window = self.fafile.fetch(chrom, bin_start, bin_end).lower()
+        gc_percent = _gc_content(ref_window)
+
+        # make record for bin
+        rec = {'gc': gc_percent,
+               'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp}
+
+        # reset counters
+        self.reads_all = self.reads_pp = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_proper_pair
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            self.reads_all += 1
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                self.reads_pp += 1
+
+
+def _iter_binned(stat, samfile, chrom=None, start=None, end=None,
+                 one_based=False, window_size=300, window_offset=None,
+                 **kwargs):
+
+    if window_offset is None:
+        window_offset = window_size / 2
+
+    if chrom is None:
+        its = list()
+        for chrom in samfile.references:
+            itc = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
+                                     start=None, end=None, one_based=one_based,
+                                     window_size=window_size,
+                                     window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
+
+    else:
+        it = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
+                                start=start, end=end, one_based=one_based,
+                                window_size=window_size,
+                                window_offset=window_offset)
+
+    return it
+
+
+def _iter_binned_chrom(StatBinned stat, Samfile samfile, chrom, start=None,
+                       end=None, one_based=False, int window_size=300,
+                       int window_offset=150, **kwargs):
+
+    # setup
+
+    assert chrom is not None, 'chromosome is None'
+    start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+
+    cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+    has_coord, rtid, rstart, rend = \
+        samfile._parseRegion(chrom, start, end, None)
+
     cdef IteratorRowRegion it
-    has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+    cdef bam1_t * b
     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
     b = it.b
+
     # setup first bin
     bin_start = rstart
     bin_end = bin_start + window_size
-    reads_all = reads_pp = 0
 
     # iterate over reads
     it.cnext()
     while it.retval > 0:
-        while b.core.pos > bin_end: # end of bin, yield record
-            # determine %GC
-            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = gc_content(ref_window)
+        while b.core.pos > bin_end:  # end of bin
+
             # yield record for bin
+            rec = stat.rec(chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
-            rec = {'chrom': chrom, 'pos': pos, 'gc': gc_percent,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp}
+            rec['chrom'] = chrom
+            rec['pos'] = pos
             yield rec
+
             # start new bin
             bin_start = bin_end
             bin_end = bin_start + window_size
-            reads_all = reads_pp = 0
-        # increment counters
-        flag = b.core.flag
-        is_unmapped = <bint>(flag & BAM_FUNMAP)
-        if not is_unmapped:
-            reads_all += 1
-            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-            if is_proper_pair:
-                reads_pp += 1
+
+        # process current read
+        stat.recv(b)
+
         # move iterator on
         it.cnext()
 
     # deal with last non-empty bin
-    ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-    gc_percent = gc_content(ref_window)
-    # yield record for bin
+    rec = stat.rec(chrom, bin_start, bin_end)
     pos = bin_start + window_offset
     if one_based:
         pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+    rec['chrom'] = chrom
+    rec['pos'] = pos
     yield rec
 
     # deal with empty bins up to explicit end
@@ -3025,15 +3077,95 @@ def _iter_coverage_binned(Samfile samfile, Fastafile fastafile, chrom,
             # start new bin
             bin_start = bin_end
             bin_end = bin_start + window_size
-            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = gc_content(ref_window)
-            # yield record for bin
+
+            # yield record
+            rec = stat.rec(chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0}
+            rec['chrom'] = chrom
+            rec['pos'] = pos
             yield rec
+
+
+# def _iter_coverage_binned(Samfile samfile, Fastafile fafile, chrom,
+#                           start=None, end=None, one_based=False,
+#                           int window_size=300, int window_offset=150,
+#                           **kwargs):
+#     assert chrom is not None, 'chromosome is None'
+#     assert chrom in fafile.references, 'chromosome not in FASTA references: %s' % chrom
+#     start, end = _normalise_coords(samfile, chrom, start, end, one_based)
+#     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
+#     cdef int reads_all, reads_pp
+#     cdef bam1_t * b
+#     cdef uint32_t flag
+#     cdef bint is_unmapped
+#     cdef bint is_proper_pair
+#     cdef IteratorRowRegion it
+#     has_coord, rtid, rstart, rend = samfile._parseRegion(chrom, start, end, None)
+#     it = IteratorRowRegion(samfile, rtid, rstart, rend, reopen=False)
+#     b = it.b
+#     # setup first bin
+#     bin_start = rstart
+#     bin_end = bin_start + window_size
+#     reads_all = reads_pp = 0
+#
+#     # iterate over reads
+#     it.cnext()
+#     while it.retval > 0:
+#         while b.core.pos > bin_end: # end of bin, yield record
+#             # determine %GC
+#             ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+#             gc_percent = _gc_content(ref_window)
+#             # yield record for bin
+#             pos = bin_start + window_offset
+#             if one_based:
+#                 pos += 1
+#             rec = {'chrom': chrom, 'pos': pos, 'gc': gc_percent,
+#                    'reads_all': reads_all,
+#                    'reads_pp': reads_pp}
+#             reads_all = reads_pp = 0
+#             yield rec
+#             # start new bin
+#             bin_start = bin_end
+#             bin_end = bin_start + window_size
+#         # increment counters
+#         flag = b.core.flag
+#         is_unmapped = <bint>(flag & BAM_FUNMAP)
+#         if not is_unmapped:
+#             reads_all += 1
+#             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+#             if is_proper_pair:
+#                 reads_pp += 1
+#         # move iterator on
+#         it.cnext()
+#
+#     # deal with last non-empty bin
+#     ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+#     gc_percent = _gc_content(ref_window)
+#     # yield record for bin
+#     pos = bin_start + window_offset
+#     if one_based:
+#         pos += 1
+#     rec = {'chrom': chrom, 'pos': pos,
+#            'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+#     yield rec
+#
+#     # deal with empty bins up to explicit end
+#     if end is not None:
+#         while bin_end < end:
+#             # start new bin
+#             bin_start = bin_end
+#             bin_end = bin_start + window_size
+#             ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+#             gc_percent = _gc_content(ref_window)
+#             # yield record for bin
+#             pos = bin_start + window_offset
+#             if one_based:
+#                 pos += 1
+#             rec = {'chrom': chrom, 'pos': pos,
+#                    'gc': gc_percent, 'reads_all': 0, 'reads_pp': 0}
+#             yield rec
 
     
 def write_coverage_binned(*args, **kwargs):
@@ -3066,33 +3198,15 @@ dtype_coverage_ext_binned = [('chrom', 'a12'),
 fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
 
 
-def stat_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
-                             chrom=None, start=None, end=None, one_based=False,
-                             window_size=300, window_offset=None, **kwargs):
-    if window_offset is None:
-        window_offset = window_size / 2
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_coverage_ext_binned(samfile, fastafile,
-                                            chrom=chrom, start=None, end=None,
-                                            one_based=one_based,
-                                            window_size=window_size,
-                                            window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-    else:
-        it = _iter_coverage_ext_binned(samfile, fastafile, chrom=chrom,
-                                       start=start, end=end,
-                                       one_based=one_based,
-                                       window_size=window_size,
-                                       window_offset=window_offset)
-    return it
+def stat_coverage_ext_binned(samfile, fafile, **kwargs):
+    return _stat_binned(_iter_coverage_ext_binned, samfile=samfile,
+                        fafile=fafile, **kwargs)
+
         
-        
-def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile, 
-                          chrom, start, end, one_based, 
-                          int window_size, int window_offset):
+def _iter_coverage_ext_binned(Samfile samfile, Fastafile fafile, chrom,
+                              start=None, end=None, one_based=False,
+                              int window_size=300, int window_offset=150,
+                              **kwargs):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
@@ -3125,8 +3239,8 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
     while it.retval > 0:
         while b.core.pos > bin_end:  # end of bin, yield record
             # determine %GC
-            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = gc_content(ref_window)
+            ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+            gc_percent = _gc_content(ref_window)
             # yield record for bin
             pos = bin_start + window_offset
             if one_based:
@@ -3178,8 +3292,8 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
         it.cnext()
 
     # deal with last non-empty bin
-    ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-    gc_percent = gc_content(ref_window)
+    ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+    gc_percent = _gc_content(ref_window)
     # yield record for bin
     pos = bin_start + window_offset
     if one_based:
@@ -3200,8 +3314,8 @@ def _iter_coverage_ext_binned(Samfile samfile, Fastafile fastafile,
             # start new bin
             bin_start = bin_end
             bin_end = bin_start + window_size
-            ref_window = fastafile.fetch(chrom, bin_start, bin_end).lower()
-            gc_percent = gc_content(ref_window)
+            ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+            gc_percent = _gc_content(ref_window)
             # yield record for bin
             pos = bin_start + window_offset
             if one_based:
@@ -3244,31 +3358,18 @@ dtype_mapq_binned = [
 fields_mapq_binned = [t[0] for t in dtype_mapq_binned]
 
 
-def stat_mapq_binned(Samfile samfile, 
-                     chrom=None, start=None, end=None, one_based=False,
-                     window_size=300, window_offset=None, **kwargs):
-    if window_offset is None:
-        window_offset = window_size / 2
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_mapq_binned(samfile, chrom=chrom, start=None,
-                                    end=None,
-                                    one_based=one_based,
-                                    window_size=window_size,
-                                    window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-    else:
-        it = _iter_mapq_binned(samfile, chrom=chrom, start=start, end=end,
-                               one_based=one_based, window_size=window_size,
-                               window_offset=window_offset)
-    return it
+def stat_mapq_binned(samfile, **kwargs):
+    """TODO
+
+    """
+
+    return _stat_binned(_iter_mapq_binned, samfile=samfile, **kwargs)
+
         
-        
-def _iter_mapq_binned(Samfile samfile,  
-                      chrom, start, end, one_based,
-                      int window_size, int window_offset):
+def _iter_mapq_binned(Samfile samfile, chrom,
+                      start=None, end=None, one_based=False,
+                      int window_size=300, int window_offset=150,
+                      **kwargs):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all, reads_mapq0
@@ -3378,31 +3479,18 @@ dtype_alignment_binned = [
 fields_alignment_binned = [t[0] for t in dtype_alignment_binned]
 
 
-def stat_alignment_binned(Samfile samfile, 
-                          chrom=None, start=None, end=None, one_based=False,
-                          window_size=300, window_offset=None, **kwargs):
-    if window_offset is None:
-        window_offset = window_size / 2
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_alignment_binned(samfile, chrom=chrom, start=None,
-                                         end=None, one_based=one_based,
-                                         window_size=window_size,
-                                         window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-    else:
-        it = _iter_alignment_binned(samfile, chrom=chrom, start=start, end=end,
-                                    one_based=one_based,
-                                    window_size=window_size,
-                                    window_offset=window_offset)
-    return it
+def stat_alignment_binned(samfile, **kwargs):
+    """TODO
+
+    """
+
+    return _stat_binned(_iter_alignment_binned, samfile=samfile, **kwargs)
+
         
-        
-def _iter_alignment_binned(Samfile samfile,  
-                       chrom, start, end, one_based, 
-                       int window_size, int window_offset):
+def _iter_alignment_binned(Samfile samfile, chrom,
+                           start=None, end=None, one_based=False,
+                           int window_size=300, int window_offset=150,
+                           **kwargs):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef bam1_t * b
@@ -3531,31 +3619,18 @@ dtype_tlen_binned = [
 fields_tlen_binned = [t[0] for t in dtype_tlen_binned]
 
 
-def stat_tlen_binned(Samfile samfile,
-                     chrom=None, start=None, end=None, one_based=False,
-                     window_size=300, window_offset=None, **kwargs):
-    if window_offset is None:
-        window_offset = window_size / 2
-    if chrom is None:
-        its = list()
-        for chrom in samfile.references:
-            itc = _iter_tlen_binned(samfile, chrom=chrom, start=None,
-                                    end=None, one_based=one_based,
-                                    window_size=window_size,
-                                    window_offset=window_offset)
-            its.append(itc)
-        it = itertools.chain(*its)
-    else:
-        it = _iter_tlen_binned(samfile, chrom=chrom, start=start, end=end,
-                               one_based=one_based,
-                               window_size=window_size,
-                               window_offset=window_offset)
-    return it
+def stat_tlen_binned(samfile, **kwargs):
+    """TODO
+
+    """
+
+    return _stat_binned(_iter_tlen_binned, samfile=samfile, **kwargs)
 
 
-def _iter_tlen_binned(Samfile samfile,
-                      chrom, start, end, one_based,
-                      int window_size, int window_offset):
+def _iter_tlen_binned(Samfile samfile, chrom,
+                      start=None, end=None, one_based=False,
+                      int window_size=300, int window_offset=150,
+                      **kwargs):
     assert chrom is not None, 'chromosome is None'
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     cdef int reads_all = 0
@@ -3655,9 +3730,9 @@ def load_tlen_binned(*args, **kwargs):
     return _load_stats(stat_tlen_binned, dtype_tlen_binned, *args, **kwargs)
 
 
-############################
-# PILEUP UTILITY FUNCTIONS #
-############################
+#####################
+# UTILITY FUNCTIONS #
+#####################
 
 
 def _stat_pileup(frec, fpad, Samfile samfile, chrom=None, start=None, end=None,
@@ -3823,9 +3898,10 @@ def _stat_pileup_withref_padded(frec, fpad, Samfile samfile, Fastafile fafile,
 
 
 def _stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
-                                     Fastafile fafile, chrom, start=None,
-                                     end=None, one_based=False,
-                                     truncate=False, max_depth=8000, **kwargs):
+                                      Fastafile fafile, chrom, start=None,
+                                      end=None, one_based=False,
+                                      truncate=False, max_depth=8000,
+                                      **kwargs):
     cdef PileupProxy col
     cdef int curpos
     assert chrom is not None, 'chromosome is None'
@@ -3846,9 +3922,28 @@ def _stat_pileup_withref_padded_chrom(frec, fpad, Samfile samfile,
         curpos += 1
 
 
-###########################
-# OTHER UTILITY FUNCTIONS #
-###########################
+def _stat_binned(fiter, samfile, fafile=None, chrom=None, start=None,
+                 end=None, one_based=False, window_size=300,
+                 window_offset=None, **kwargs):
+
+    if window_offset is None:
+        window_offset = window_size / 2
+
+    if chrom is None:
+        its = list()
+        for chrom in samfile.references:
+            itc = fiter(samfile=samfile, fafile=fafile, chrom=chrom,
+                        start=None, end=None, one_based=one_based,
+                        window_size=window_size, window_offset=window_offset)
+            its.append(itc)
+        it = itertools.chain(*its)
+
+    else:
+        it = fiter(samfile=samfile, fafile=fafile, chrom=chrom,
+                   start=start, end=end, one_based=one_based,
+                   window_size=window_size, window_offset=window_offset)
+
+    return it
 
 
 def _normalise_coords(Samfile samfile, chrom, start, end, one_based):
@@ -4019,8 +4114,3 @@ def count_reads(Samfile samfile, chrom=None, start=None, end=None):
         else:
             break
     return n
-    
-    
-    
-    
-    
