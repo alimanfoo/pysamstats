@@ -6,6 +6,7 @@ based on sequence alignments from a SAM or BAM file.
 
 * Source: https://github.com/alimanfoo/pysamstats
 * Download: http://pypi.python.org/pypi/pysamstats
+* Release notes: https://github.com/alimanfoo/pysamstats/releases
 
 Installation
 ------------
@@ -40,8 +41,6 @@ From the command line:
 
 ```
 $ pysamstats --help
-Usage: pysamstats [options] FILE
-
 Calculate statistics against genome positions based on sequence alignments
 from a SAM or BAM file and print them to stdout.
 
@@ -76,6 +75,22 @@ Options:
   --window-offset=N     Window offset to use for deciding which genome
                         position to report binned statistics against. The
                         default is 150, i.e., the middle of 300bp window.
+  --format=FORMAT       Output format, one of {tsv, csv, hdf5} (defaults to
+                        tsv). N.B., hdf5 requires PyTables to be installed.
+  --output=OUTPUT       Path to output file. If not provided, write to stdout.
+  --fields=FIELDS       Comma-separated list of fields to output (defaults to
+                        all fields).
+  --hdf5-group=HDF5_GROUP
+                        Name of HDF5 group to write to (defaults to the root
+                        group).
+  --hdf5-dataset=HDF5_DATASET
+                        Name of HDF5 dataset to create (defaults to "data").
+  --hdf5-complib=HDF5_COMPLIB
+                        HDF5 compression library (defaults to zlib).
+  --hdf5-complevel=HDF5_COMPLEVEL
+                        HDF5 compression level (defaults to 5).
+  --hdf5-chunksize=HDF5_CHUNKSIZE
+                        Size of chunks in number of bytes (defaults to 2**17).
 
 Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
@@ -83,7 +98,7 @@ Pileup-based statistics types (each row has statistics over reads in a pileup co
                             (total and properly paired).
     * coverage_strand     - As coverage but with forward/reverse strand counts.
     * coverage_ext        - Various additional coverage metrics, including
-                            coverage for reads not properly paired (mate
+                            coverage for reads not properly paired (mate 
                             unmapped, mate on other chromosome, ...).
     * coverage_ext_strand - As coverage_ext but with forward/reverse strand counts.
     * coverage_gc         - As coverage but also includes a column for %GC.
@@ -113,7 +128,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.17 (pysam 0.8.0)
+Version: 0.19 (pysam 0.8.0)
 
 ```
 
@@ -242,7 +257,3 @@ properly paired.
     the reference.
 
 
-Release notes
--------------
-
-Release notes are available from the github releases page: https://github.com/alimanfoo/pysamstats/releases
