@@ -126,16 +126,32 @@ cpdef dict _rec_coverage_pad(Fastafile fafile, chrom, pos,
 def stat_coverage(samfile, **kwargs):
     """Generate coverage statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_coverage, _rec_coverage_pad,
@@ -236,16 +252,32 @@ cpdef dict _rec_coverage_strand_pad(Fastafile fafile, chrom, pos,
 def stat_coverage_strand(samfile, **kwargs):
     """Generate coverage statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_coverage_strand,
@@ -368,16 +400,32 @@ cpdef dict _rec_coverage_ext_pad(Fastafile fafile, chrom, pos,
 def stat_coverage_ext(samfile, **kwargs):
     """Generate extended coverage statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_coverage_ext, _rec_coverage_ext_pad, samfile,
@@ -595,16 +643,32 @@ cpdef dict _rec_coverage_ext_strand_pad(Fastafile fafile, chrom, pos,
 def stat_coverage_ext_strand(samfile, **kwargs):
     """Generate extended coverage statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_coverage_ext_strand,
@@ -788,16 +852,34 @@ cpdef dict _rec_variation_pad(Fastafile fafile, chrom, pos,
 def stat_variation(samfile, fafile, **kwargs):
     """Generate variation statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_variation, _rec_variation_pad,
@@ -1004,17 +1086,34 @@ cpdef dict _rec_variation_strand_pad(Fastafile fafile, chrom, pos,
 def stat_variation_strand(samfile, fafile, **kwargs):
     """Generate variation statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_variation_strand,
@@ -1187,16 +1286,32 @@ cpdef dict _rec_tlen_pad(Fastafile fafile, chrom, pos, bint one_based=False):
 def stat_tlen(samfile, **kwargs):
     """Generate insert size statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_tlen, _rec_tlen_pad, samfile, **kwargs)
@@ -1527,16 +1642,32 @@ cpdef dict _rec_tlen_strand_pad(Fastafile fafile, chrom, pos,
 def stat_tlen_strand(samfile, **kwargs):
     """Generate insert size statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_tlen_strand, _rec_tlen_strand_pad, samfile,
@@ -1658,16 +1789,32 @@ cpdef dict _rec_mapq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
 def stat_mapq(samfile, **kwargs):
     """Generate mapping quality statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_mapq, _rec_mapq_pad, samfile, **kwargs)
@@ -1910,16 +2057,32 @@ cpdef dict _rec_mapq_strand_pad(Fastafile fafile, chrom, pos,
 def stat_mapq_strand(samfile, **kwargs):
     """Generate mapping quality statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_mapq_strand, _rec_mapq_strand_pad, samfile,
@@ -2019,16 +2182,32 @@ cpdef dict _rec_baseq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
 def stat_baseq(samfile, **kwargs):
     """Generate base quality statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_baseq, _rec_baseq_pad, samfile, **kwargs)
@@ -2196,16 +2375,32 @@ cpdef dict _rec_baseq_strand_pad(Fastafile fafile, chrom, pos,
 def stat_baseq_strand(samfile, **kwargs):
     """Generate base quality statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_baseq_strand, _rec_baseq_strand_pad,
@@ -2360,17 +2555,34 @@ cpdef dict _rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
 def stat_baseq_ext(samfile, fafile, **kwargs):
     """Generate extended base quality statistics per genome position.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_baseq_ext, _rec_baseq_ext_pad, samfile,
@@ -2641,17 +2853,34 @@ cpdef dict _rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos,
 def stat_baseq_ext_strand(samfile, fafile, **kwargs):
     """Generate extended base quality statistics by strand per genome position.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param kwargs: additional keyword arguments are passed through
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     return _iter_pileup(_rec_baseq_ext_strand, _rec_baseq_ext_strand_pad,
@@ -2684,19 +2913,38 @@ def stat_coverage_gc(samfile, fafile, chrom=None, start=None, end=None,
     """Generate coverage statistics per genome position with reference genome
     %GC composition in surrounding window.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param truncate: if True, truncate output to selected region
-    :param pad: emit records for every position, even if no reads are aligned
-    :param max_depth: maximum depth to allow in pileup column
-    :param window_size: size of surrounding window in base pairs
-    :param window_offset: distance from window start to current position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
 
@@ -2771,16 +3019,38 @@ fields_coverage_binned = [t[0] for t in dtype_coverage_binned]
 def stat_coverage_binned(samfile, fafile, **kwargs):
     """Generate binned coverage statistics.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param window_size: size of window in base pairs
-    :param window_offset: distance from window start to reported position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     stat = _CoverageBinned(fafile)
@@ -2874,16 +3144,38 @@ fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
 def stat_coverage_ext_binned(samfile, fafile, **kwargs):
     """Generate binned extended coverage statistics.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param window_size: size of window in base pairs
-    :param window_offset: distance from window start to reported position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     stat = _CoverageExtBinned(fafile)
@@ -2988,15 +3280,36 @@ fields_mapq_binned = [t[0] for t in dtype_mapq_binned]
 def stat_mapq_binned(samfile, **kwargs):
     """Generate binned mapping quality statistics.
 
-    :param samfile: SAM or BAM file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param window_size: size of window in base pairs
-    :param window_offset: distance from window start to reported position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     stat = _MapqBinned()
@@ -3071,16 +3384,38 @@ fields_alignment_binned = [t[0] for t in dtype_alignment_binned]
 def stat_alignment_binned(samfile, **kwargs):
     """Generate binned alignment statistics.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param window_size: size of window in base pairs
-    :param window_offset: distance from window start to reported position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    fafile : pysam.Fastafile or string
+        FASTA file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     stat = _AlignmentBinned()
@@ -3171,16 +3506,36 @@ fields_tlen_binned = [t[0] for t in dtype_tlen_binned]
 def stat_tlen_binned(samfile, **kwargs):
     """Generate binned insert size statistics.
 
-    :param samfile: SAM or BAM file
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: start position
-    :param end: end position
-    :param one_based: coordinate system
-    :param window_size: size of window in base pairs
-    :param window_offset: distance from window start to reported position
-    :param kwargs: additional keyword arguments
-    :return: record generator
+    Parameters
+    ----------
+
+    samfile : pysam.Samfile or string
+        SAM or BAM file or file path
+    chrom : string
+        chromosome/contig
+    start : int
+        start position
+    end : int
+        end position
+    one_based : bool
+        coordinate system
+    truncate : bool
+        if True, truncate output to selected region
+    pad : bool
+        if True, emit records for every position, even if no reads are aligned
+    max_depth : int
+        maximum depth to allow in pileup column
+    window_size : int
+        size of surrounding window in base pairs
+    window_offset :
+        distance from window start to record position
+
+    Returns
+    -------
+
+    recs : iterator
+        record generator
+
     """
 
     stat = _TlenBinned()
@@ -3464,26 +3819,30 @@ def _normalise_coords(Samfile samfile, chrom, start, end, one_based):
         return start, end
 
     
-def write_csv(stats_type, outfile, samfile, fields=None, fafile=None,
-              dialect='excel_tab', write_header=True,
-              chrom=None, start=None, end=None,
-              one_based=False, progress=None, **kwargs):
+def write_csv(stats_type, outfile, samfile, fields=None, dialect='excel-tab',
+              write_header=True, progress=None, **kwargs):
     """Write statistics output to a CSV file.
 
-    :param stats_type: statistics type, one of 'coverage', 'coverage_ext', ...
-    :param outfile: path or file-like
-    :param samfile: input BAM or SAM file
-    :param fields: list of fields to output (all by default)
-    :param fafile: FASTA file
-    :param dialect: CSV dialect
-    :param write_header: if True write a header row
-    :param chrom: chromosome/contig
-    :param start: region start
-    :param end: region end
-    :param one_based: coordinate system
-    :param progress: log progress every n rows
-    :param kwargs: addition keyword arguments passed through to the stats
-    function
+    Parameters
+    ----------
+
+    stats_type : string
+        statistics type, one of 'coverage', 'coverage_ext', ...
+    outfile : file-like
+        output file to write to
+    samfile : pysam.Samfile or string
+        input BAM or SAM file or file path
+    fields : list of strings
+        list of field names to output (all by default)
+    dialect : string
+        CSV dialect
+    write_header : bool
+        if True write a header row
+    progress : int
+        log progress to stderr every N rows
+    **kwargs
+        passed through to the statistics function
+
     """
 
     cdef long long counter = 0
@@ -3497,8 +3856,7 @@ def write_csv(stats_type, outfile, samfile, fields=None, fafile=None,
         fields = globals()['fields_' + stats_type]
 
     # setup record generator
-    recs = stats_function(samfile, fafile=fafile, chrom=chrom, start=start,
-                          end=end, one_based=one_based, **kwargs)
+    recs = stats_function(samfile, **kwargs)
 
     # initialise writer
     writer = csv.DictWriter(outfile, fields, dialect=dialect)
@@ -3535,33 +3893,47 @@ def write_csv(stats_type, outfile, samfile, fields=None, fafile=None,
                             % (counter, elapsed_all, counter/elapsed_all)
     
 
-def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
-               chrom=None, start=None, end=None,
-               one_based=False, progress=None, hdf5_group='/',
-               hdf5_dataset='data', hdf5_complevel=5,
+def write_hdf5(stats_type, outfile, samfile, fields=None, progress=None,
+               hdf5_group='/', hdf5_dataset='data', hdf5_complevel=5,
                hdf5_complib='zlib', hdf5_shuffle=True,
                hdf5_fletcher32=False, hdf5_chunksize=2**17, **kwargs):
     """Write statistics output to an HDF5 file. Requires PyTables.
 
-    :param stats_type: statistics type, one of 'coverage', 'coverage_ext', ...
-    :param outfile: path or file-like
-    :param samfile: input BAM or SAM file
-    :param fields: list of fields to output (all by default)
-    :param fafile: FASTA file
-    :param chrom: chromosome/contig
-    :param start: region start
-    :param end: region end
-    :param one_based: coordinate system
-    :param progress: log progress every n rows
-    :param hdf5_group: group to write new dataset to
-    :param hdf5_dataset: name of dataset to create
-    :param hdf5_chunksize: size of chunks in number of bytes
-    :param dtype: override dtype
-    :param kwargs: addition keyword arguments passed through to the stats
-    function
+    Parameters
+    ----------
+
+    stats_type : string
+        statistics type, one of 'coverage', 'coverage_ext', ...
+    outfile : string
+        output file path
+    samfile : pysam.Samfile or string
+        input BAM or SAM file or file path
+    fields : list of strings
+        list of field names to output (all by default)
+    progress : int
+        log progress to stderr approximately every N rows
+    hdf5_group : string
+        group to write new dataset to
+    hdf5_dataset : string
+        name of dataset to create
+    hdf5_chunksize : int
+        size of chunks in number of bytes
+    dtype : dict
+        override dtype
+    **kwargs
+        passed through to the statistics function
+
+    Notes
+    -----
+
+    The length of the chunks in number of items is calculated by dividing the
+    chunk size in number of bytes by the size of each row in number of bytes as
+    determined from the dtype.
+
     """
 
     cdef long long counter = 0
+    cdef long long modulus
 
     import tables
     h5file = None
@@ -3587,8 +3959,7 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
     dtype = np.dtype(dtype)
 
     # setup record generator
-    recs = stats_function(samfile, fafile=fafile, chrom=chrom, start=start,
-                          end=end, one_based=one_based, **kwargs)
+    recs = stats_function(samfile, **kwargs)
 
     # flatten records to rows
     rows = flatten(recs, *fields)
@@ -3599,7 +3970,8 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
         h5file = tables.open_file(outfile, mode='a')
 
         # determine chunk shape
-        hdf5_chunkshape = (hdf5_chunksize/dtype.itemsize,)
+        hdf5_chunklen = hdf5_chunksize/dtype.itemsize
+        hdf5_chunkshape = (hdf5_chunklen,)
 
         # replace any existing node at that location
         try:
@@ -3618,42 +3990,43 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
             createparents=True,
             chunkshape=hdf5_chunkshape)
 
-        if progress is None:
+        # record initial time
+        counter_before = 0
+        before = time.time()
+        before_all = before
 
-            # load the data without reporting progress
-            for row in rows:
-                for f, v in itertools.izip(fields, row):
-                    h5table.row[f] = v
-                h5table.row.append()
+        # load data in batches of size `hdf5_chunklen`
+        chunk = list(itertools.islice(rows, hdf5_chunklen))
+
+        # load chunk at a time
+        while chunk:
+
+            # write chunk
+            h5table.append(chunk)
             h5table.flush()
 
-        else:
+            # keep track of number of records loaded
+            n = len(chunk)  # may be shorter than chunklen if final batch
+            counter += n
 
-            # load the data in blocks of size progress
-
-            # load first batch
-            before = time.time()
-            before_all = before
-            batch = list(itertools.islice(rows, progress))
-
-            # load batch at a time
-            while batch:
-                h5table.append(batch)
-                h5table.flush()
-                n = len(batch)
-                counter += n
+            # log progress
+            if progress and (counter % progress) < hdf5_chunklen:
                 after = time.time()
                 elapsed = after - before_all
                 batch_elapsed = after - before
+                batch_size = counter - counter_before
                 print >>sys.stderr, \
-                    '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
-                    '%.2fs (%d rows/s)' \
-                    % (counter, elapsed, counter/elapsed, batch_elapsed,
-                       n/batch_elapsed)
+                    '[pysamstats] %s rows in %.2fs (%d rows/s); last %s rows ' \
+                    'in %.2fs (%d rows/s)' \
+                    % (counter, elapsed, counter/elapsed,
+                       batch_size, batch_elapsed, batch_size/batch_elapsed)
                 before = after
-                # load next batch
-                batch = list(itertools.islice(rows, progress))
+                counter_before = counter
 
+            # load next batch
+            chunk = list(itertools.islice(rows, hdf5_chunklen))
+
+        if progress:
             after_all = time.time()
             elapsed_all = after_all - before_all
             print >>sys.stderr, '[pysamstats] %s rows in %.2fs (%d rows/s)' \
@@ -3668,12 +4041,51 @@ from operator import itemgetter
 
 
 def flatten(recs, *fields):
+    """Convert a record (dict) iterator to a row (tuple) iterator.
+
+    Parameters
+    ----------
+
+    recs : iterator of dicts
+        records generator
+    fields : list of strings
+        names of fields to select
+
+    Returns
+    -------
+
+    rows : iterator of tuples
+        rows generator
+
+    """
+
     getter = itemgetter(*fields)
     it = (getter(rec) for rec in recs)
     return it
 
 
 def tabulate(stat, *args, **kwargs):
+    """Tabulate statistics.
+
+    Parameters
+    ----------
+
+    stat : string
+        statistics type
+    *args
+        passed through to statistics function
+    fields : list of strings
+        names of fields to select
+    **args
+        passed through to statistics function
+
+    Returns
+    -------
+
+    table : row container
+
+    """
+
     return _StatsTable(stat, *args, **kwargs)
 
 
