@@ -2,7 +2,7 @@
 # cython: embedsignature=True
 
 
-__version__ = '0.18'
+__version__ = '0.19-SNAPSHOT'
 
 
 import sys
