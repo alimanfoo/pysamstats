@@ -15,8 +15,8 @@ Building pysamstats depends on [numpy](http://www.numpy.org/), please install
 that first. Then try:
 
 ```
-$ pip install pysam==0.8.0
-$ pip install pysamstats==0.16
+$ pip install -U pysam
+$ pip install -U pysamstats
 ```
 
 N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
