@@ -139,27 +139,37 @@ Version: {version} (pysam {pysamversion})
                            'default is 150, i.e., the middle of 300bp window.')
 
     parser.add_option('--format', dest='format', default='tsv',
-                      help='Output format, one of {tsv, csv, hdf5}. N.B., '
-                           'hdf5 requires PyTables to be installed.')
+                      help='Output format, one of {tsv, csv, hdf5} (defaults '
+                           'to tsv). N.B., hdf5 requires PyTables to be '
+                           'installed.')
 
     parser.add_option('--output', dest='output',
                       help='Path to output file. If not provided, write to '
                            'stdout.')
 
+    parser.add_option('--fields', dest='fields', default=None,
+                      help='Comma-separated list of fields to output ('
+                           'defaults to all fields).')
+
     parser.add_option('--hdf5-group', dest='hdf5_group', default='/',
-                      help='Name of HDF5 group to write to.')
+                      help='Name of HDF5 group to write to (defaults to the '
+                           'root group).')
 
     parser.add_option('--hdf5-dataset', dest='hdf5_dataset', default='data',
-                      help='Name of HDF5 dataset to create.')
+                      help='Name of HDF5 dataset to create (defaults to '
+                           '"data").')
 
     parser.add_option('--hdf5-complib', dest='hdf5_complib', default='zlib',
-                      help='HDF5 compression library.')
+                      help='HDF5 compression library (defaults to zlib).')
 
     parser.add_option('--hdf5-complevel', dest='hdf5_complevel', type=int,
-                      default=5, help='HDF5 compression level.')
+                      default=5,
+                      help='HDF5 compression level (defaults to 5).')
 
     parser.add_option('--hdf5-chunksize', dest='hdf5_chunksize', type=int,
-                      default=2**17, help='Size of chunks in number of bytes.')
+                      default=2**17,
+                      help='Size of chunks in number of bytes (defaults to '
+                           '2**17).')
 
     options, args = parser.parse_args()
     
@@ -170,6 +180,10 @@ Version: {version} (pysam {pysamversion})
     samfile = args[0]
     one_based = not options.zero_based
     write_header = not options.omit_header
+    if options.fields:
+        fields = options.fields.split(',')
+    else:
+        fields = None
     
     try:
 
@@ -214,6 +228,7 @@ Version: {version} (pysam {pysamversion})
                         window_size=options.window_size,
                         window_offset=options.window_offset,
                         progress=options.progress,
+                        fields=fields,
                     )
                 finally:
                     if needs_closing:
@@ -243,6 +258,7 @@ Version: {version} (pysam {pysamversion})
                     hdf5_complib=options.hdf5_complib,
                     hdf5_complevel=options.hdf5_complevel,
                     hdf5_chunksize=options.hdf5_chunksize,
+                    fields=fields,
                 )
 
     except IOError as e:

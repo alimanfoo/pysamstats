@@ -3845,9 +3845,8 @@ def write_csv(stats_type, outfile, samfile, fields=None, dialect='excel-tab',
 
     """
 
-    cdef long long counter = 0
-    cdef long long modulus
-    
+    cdef long counter, modulus
+
     # lookup stats function
     stats_function = globals()['stat_' + stats_type]
 
@@ -3858,25 +3857,29 @@ def write_csv(stats_type, outfile, samfile, fields=None, dialect='excel-tab',
     # setup record generator
     recs = stats_function(samfile, **kwargs)
 
+    # flatten records to rows
+    rows = flatten(recs, *fields)
+
     # initialise writer
-    writer = csv.DictWriter(outfile, fields, dialect=dialect)
+    writer = csv.writer(outfile, dialect=dialect)
 
     # write header row
     if write_header:
-        writer.writeheader()
+        writer.writerow(fields)
 
     if progress is None:
         # N.B., don't use writer.writerows(recs)!
-        for rec in recs:
-            writer.writerow(rec)
+        for row in rows:
+            writer.writerow(row)
 
     else:
+        counter = 0
         modulus = progress
         before = time.time()
         before_all = before
-        for rec in recs:
+        for row in rows:
             counter += 1
-            writer.writerow(rec)
+            writer.writerow(row)
             if counter % modulus == 0:
                 after = time.time()
                 elapsed = after - before_all
@@ -3931,9 +3934,6 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, progress=None,
     determined from the dtype.
 
     """
-
-    cdef long long counter = 0
-    cdef long long modulus
 
     import tables
     h5file = None
@@ -3991,6 +3991,7 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, progress=None,
             chunkshape=hdf5_chunkshape)
 
         # record initial time
+        counter = 0
         counter_before = 0
         before = time.time()
         before_all = before
