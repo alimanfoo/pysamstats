@@ -7,7 +7,6 @@ import errno
 
 
 import pysam
-from pysam import Samfile, Fastafile
 import pysamstats
 
 
@@ -139,6 +138,29 @@ Version: {version} (pysam {pysamversion})
                            'position to report binned statistics against. The '
                            'default is 150, i.e., the middle of 300bp window.')
 
+    parser.add_option('--format', dest='format', default='tsv',
+                      help='Output format, one of {tsv, csv, hdf5}. N.B., '
+                           'hdf5 requires PyTables to be installed.')
+
+    parser.add_option('--output', dest='output',
+                      help='Path to output file. If not provided, write to '
+                           'stdout.')
+
+    parser.add_option('--hdf5-group', dest='hdf5_group', default='/',
+                      help='Name of HDF5 group to write to.')
+
+    parser.add_option('--hdf5-dataset', dest='hdf5_dataset', default='data',
+                      help='Name of HDF5 dataset to create.')
+
+    parser.add_option('--hdf5-complib', dest='hdf5_complib', default='zlib',
+                      help='HDF5 compression library.')
+
+    parser.add_option('--hdf5-complevel', dest='hdf5_complevel', type=int,
+                      default=5, help='HDF5 compression level.')
+
+    parser.add_option('--hdf5-chunksize', dest='hdf5_chunksize', type=int,
+                      default=2**17, help='Size of chunks in number of bytes.')
+
     options, args = parser.parse_args()
     
     if len(args) != 1:
@@ -162,23 +184,68 @@ Version: {version} (pysam {pysamversion})
                          ' for more information.')
 
         else:
-            fafile = options.fasta
-            fname = 'write_' + options.type
-            f = getattr(pysamstats, fname)
-            f(sys.stdout, samfile,
-              fafile=options.fasta,
-              write_header=write_header,
-              chrom=options.chromosome, start=options.start, end=options.end,
-              one_based=one_based,
-              truncate=options.truncate,
-              pad=options.pad,
-              max_depth=options.max_depth,
-              progress=options.progress,
-              window_size=options.window_size,
-              window_offset=options.window_offset)
-            
+
+            if options.format.lower() in ['tsv', 'csv']:
+
+                # setup
+                dialect = {'tsv': 'excel_tab', 'csv': 'excel'}[options.format]
+                if options.output is None:
+                    output = sys.stdout
+                else:
+                    output = open(options.output, 'wb')
+                    needs_closing = True
+
+                try:
+                    pysamstats.write_csv(
+                        options.type,
+                        output,
+                        samfile,
+                        fafile=options.fasta,
+                        write_header=write_header,
+                        dialect=dialect,
+                        chrom=options.chromosome,
+                        start=options.start,
+                        end=options.end,
+                        one_based=one_based,
+                        truncate=options.truncate,
+                        pad=options.pad,
+                        max_depth=options.max_depth,
+                        window_size=options.window_size,
+                        window_offset=options.window_offset,
+                        progress=options.progress,
+                    )
+                finally:
+                    if needs_closing:
+                        output.close()
+
+            elif options.format.lower() == 'hdf5':
+
+                assert options.output is not None, '--output must be specified'
+
+                pysamstats.write_hdf5(
+                    options.type,
+                    options.output,
+                    samfile,
+                    fafile=options.fasta,
+                    chrom=options.chromosome,
+                    start=options.start,
+                    end=options.end,
+                    one_based=one_based,
+                    truncate=options.truncate,
+                    pad=options.pad,
+                    max_depth=options.max_depth,
+                    window_size=options.window_size,
+                    window_offset=options.window_offset,
+                    progress=options.progress,
+                    hdf5_group=options.hdf5_group,
+                    hdf5_dataset=options.hdf5_dataset,
+                    hdf5_complib=options.hdf5_complib,
+                    hdf5_complevel=options.hdf5_complevel,
+                    hdf5_chunksize=options.hdf5_chunksize,
+                )
+
     except IOError as e:
         if e.errno == errno.EPIPE:
-            pass # ignore broken pipe
+            pass  # ignore broken pipe
         else:
             raise

@@ -142,10 +142,6 @@ def stat_coverage(samfile, **kwargs):
                         samfile, **kwargs)
 
 
-def write_coverage(*args, **kwargs):
-    _write_stats(stat_coverage, fields_coverage, *args, **kwargs)
-
-
 def load_coverage(*args, **kwargs):
     return _load_stats(stat_coverage, dtype_coverage, *args, **kwargs)
     
@@ -255,11 +251,6 @@ def stat_coverage_strand(samfile, **kwargs):
     return _iter_pileup(_rec_coverage_strand,
                         _rec_coverage_strand_pad,
                         samfile, **kwargs)
-
-
-def write_coverage_strand(*args, **kwargs):
-    _write_stats(stat_coverage_strand, fields_coverage_strand,
-                *args, **kwargs)
 
 
 def load_coverage_strand(*args, **kwargs):
@@ -391,10 +382,6 @@ def stat_coverage_ext(samfile, **kwargs):
 
     return _iter_pileup(_rec_coverage_ext, _rec_coverage_ext_pad, samfile,
                         **kwargs)
-
-
-def write_coverage_ext(*args, **kwargs):
-    _write_stats(stat_coverage_ext, fields_coverage_ext, *args, **kwargs)
 
 
 def load_coverage_ext(*args, **kwargs):
@@ -624,11 +611,6 @@ def stat_coverage_ext_strand(samfile, **kwargs):
                         _rec_coverage_ext_strand_pad, samfile, **kwargs)
 
 
-def write_coverage_ext_strand(*args, **kwargs):
-    _write_stats(stat_coverage_ext_strand, fields_coverage_ext_strand,
-                 *args, **kwargs)
-
-
 def load_coverage_ext_strand(*args, **kwargs):
     return _load_stats(stat_coverage_ext_strand, dtype_coverage_ext_strand,
                        *args, **kwargs)
@@ -822,10 +804,6 @@ def stat_variation(samfile, fafile, **kwargs):
                         samfile, fafile=fafile, **kwargs)
 
 
-def write_variation(*args, **kwargs):
-    _write_stats(stat_variation, fields_variation, *args, **kwargs)
-    
-    
 def load_variation(*args, **kwargs):
     return _load_stats(stat_variation, dtype_variation, *args, **kwargs)
 
@@ -1044,11 +1022,6 @@ def stat_variation_strand(samfile, fafile, **kwargs):
                         samfile, fafile=fafile, **kwargs)
 
 
-def write_variation_strand(*args, **kwargs):
-    _write_stats(stat_variation_strand, fields_variation_strand,
-                 *args, **kwargs)
-    
-    
 def load_variation_strand(*args, **kwargs):
     return _load_stats(stat_variation_strand, dtype_variation_strand,
                        *args, **kwargs)
@@ -1228,10 +1201,6 @@ def stat_tlen(samfile, **kwargs):
 
     return _iter_pileup(_rec_tlen, _rec_tlen_pad, samfile, **kwargs)
 
-
-def write_tlen(*args, **kwargs):
-    _write_stats(stat_tlen, fields_tlen, *args, **kwargs)
-    
 
 def load_tlen(*args, **kwargs):
     return _load_stats(stat_tlen, dtype_tlen, *args, **kwargs)
@@ -1574,10 +1543,6 @@ def stat_tlen_strand(samfile, **kwargs):
                         **kwargs)
 
 
-def write_tlen_strand(*args, **kwargs):
-    _write_stats(stat_tlen_strand, fields_tlen_strand, *args, **kwargs)
-
-
 def load_tlen_strand(*args, **kwargs):
     return _load_stats(stat_tlen_strand, dtype_tlen_strand, *args, **kwargs)
         
@@ -1708,10 +1673,6 @@ def stat_mapq(samfile, **kwargs):
     return _iter_pileup(_rec_mapq, _rec_mapq_pad, samfile, **kwargs)
 
 
-def write_mapq(*args, **kwargs):
-    _write_stats(stat_mapq, fields_mapq, *args, **kwargs)
-    
-    
 def load_mapq(*args, **kwargs):
     return _load_stats(stat_mapq, dtype_mapq, *args, **kwargs)
         
@@ -1965,10 +1926,6 @@ def stat_mapq_strand(samfile, **kwargs):
                         **kwargs)
 
 
-def write_mapq_strand(*args, **kwargs):
-    _write_stats(stat_mapq_strand, fields_mapq_strand, *args, **kwargs)
-    
-    
 def load_mapq_strand(*args, **kwargs):
     return _load_stats(stat_mapq_strand, dtype_mapq_strand, *args, **kwargs)
         
@@ -2077,10 +2034,6 @@ def stat_baseq(samfile, **kwargs):
     return _iter_pileup(_rec_baseq, _rec_baseq_pad, samfile, **kwargs)
 
 
-def write_baseq(*args, **kwargs):
-    _write_stats(stat_baseq, fields_baseq, *args, **kwargs)
-    
-    
 def load_baseq(*args, **kwargs):
     return _load_stats(stat_baseq, dtype_baseq, *args, **kwargs)
         
@@ -2259,11 +2212,6 @@ def stat_baseq_strand(samfile, **kwargs):
                         samfile, **kwargs)
 
 
-def write_baseq_strand(*args, **kwargs):
-    _write_stats(stat_baseq_strand, fields_baseq_strand,
-                 *args, **kwargs)
-    
-    
 def load_baseq_strand(*args, **kwargs):
     return _load_stats(stat_baseq_strand, dtype_baseq_strand,
                        *args, **kwargs)
@@ -2429,10 +2377,6 @@ def stat_baseq_ext(samfile, fafile, **kwargs):
                         fafile=fafile, **kwargs)
 
 
-def write_baseq_ext(*args, **kwargs):
-    _write_stats(stat_baseq_ext, fields_baseq_ext, *args, **kwargs)
-    
-    
 def load_baseq_ext(*args, **kwargs):
     return _load_stats(stat_baseq_ext, dtype_baseq_ext, *args, **kwargs)
         
@@ -2714,11 +2658,6 @@ def stat_baseq_ext_strand(samfile, fafile, **kwargs):
                         samfile, fafile=fafile, **kwargs)
 
 
-def write_baseq_ext_strand(*args, **kwargs):
-    _write_stats(stat_baseq_ext_strand, fields_baseq_ext_strand,
-                 *args, **kwargs)
-    
-    
 def load_baseq_ext_strand(*args, **kwargs):
     return _load_stats(stat_baseq_ext_strand, dtype_baseq_ext_strand,
                        *args, **kwargs)
@@ -2810,10 +2749,6 @@ def stat_coverage_gc(samfile, fafile, chrom=None, start=None, end=None,
                         **kwargs)
 
         
-def write_coverage_gc(*args, **kwargs):
-    _write_stats(stat_coverage_gc, fields_coverage_gc, *args, **kwargs)
-
-
 def load_coverage_gc(*args, **kwargs):
     return _load_stats(stat_coverage_gc, dtype_coverage_gc, *args, **kwargs)
 
@@ -2910,10 +2845,6 @@ cdef class _CoverageBinned(_StatBinned):
             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
             if is_proper_pair:
                 self.reads_pp += 1
-
-
-def write_coverage_binned(*args, **kwargs):
-    _write_stats(stat_coverage_binned, fields_coverage_binned, *args, **kwargs)
 
 
 def load_coverage_binned(*args, **kwargs):
@@ -3036,11 +2967,6 @@ cdef class _CoverageExtBinned(_StatBinned):
                 self.reads_softclipped += 1
 
 
-def write_coverage_ext_binned(*args, **kwargs):
-    _write_stats(stat_coverage_ext_binned, fields_coverage_ext_binned,
-                 *args, **kwargs)
-
-
 def load_coverage_ext_binned(*args, **kwargs):
     return _load_stats(stat_coverage_ext_binned, dtype_coverage_ext_binned,
                        *args, **kwargs)
@@ -3116,10 +3042,6 @@ cdef class _MapqBinned(_StatBinned):
             if mapq == 0:
                 self.reads_mapq0 += 1
 
-
-def write_mapq_binned(*args, **kwargs):
-    _write_stats(stat_mapq_binned, fields_mapq_binned, *args, **kwargs)
-    
 
 def load_mapq_binned(*args, **kwargs):
     return _load_stats(stat_mapq_binned, dtype_mapq_binned, *args, **kwargs)
@@ -3225,11 +3147,6 @@ cdef class _AlignmentBinned(_StatBinned):
             self.reads_all += 1
 
     
-def write_alignment_binned(*args, **kwargs):
-    _write_stats(stat_alignment_binned, fields_alignment_binned,
-                 *args, **kwargs)
-    
-
 def load_alignment_binned(*args, **kwargs):
     return _load_stats(stat_alignment_binned, dtype_alignment_binned,
                        *args, **kwargs)
@@ -3322,10 +3239,6 @@ cdef class _TlenBinned(_StatBinned):
                 self.reads_pp += 1
                 self.tlen_pp_sum += tlen
                 self.tlen_pp_squared_sum += tlen_squared
-
-
-def write_tlen_binned(*args, **kwargs):
-    _write_stats(stat_tlen_binned, fields_tlen_binned, *args, **kwargs)
 
 
 def load_tlen_binned(*args, **kwargs):
@@ -3554,20 +3467,48 @@ def _normalise_coords(Samfile samfile, chrom, start, end, one_based):
         return start, end
 
     
-def _write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
-                 dialect=csv.excel_tab, write_header=True,
-                 chrom=None, start=None, end=None,
-                 one_based=False, progress=None, **kwargs):
+def write_csv(stats_type, outfile, samfile, fields=None, fafile=None,
+              dialect='excel_tab', write_header=True,
+              chrom=None, start=None, end=None,
+              one_based=False, progress=None, **kwargs):
+    """Write statistics output to a CSV file.
+
+    :param stats_type: statistics type, one of 'coverage', 'coverage_ext', ...
+    :param outfile: path or file-like
+    :param samfile: input BAM or SAM file
+    :param fields: list of fields to output (all by default)
+    :param fafile: FASTA file
+    :param dialect: CSV dialect
+    :param write_header: if True write a header row
+    :param chrom: chromosome/contig
+    :param start: region start
+    :param end: region end
+    :param one_based: coordinate system
+    :param progress: log progress every n rows
+    :param kwargs: addition keyword arguments passed through to the stats
+    function
+    """
+
     cdef long long counter = 0
     cdef long long modulus
     
-    writer = csv.DictWriter(outfile, fieldnames, dialect=dialect)
-    
+    # lookup stats function
+    stats_function = globals()['stat_' + stats_type]
+
+    # determine field names
+    if not fields:
+        fields = globals()['fields_' + stats_type]
+
+    # setup record generator
+    recs = stats_function(samfile, fafile=fafile, chrom=chrom, start=start,
+                          end=end, one_based=one_based, **kwargs)
+
+    # initialise writer
+    writer = csv.DictWriter(outfile, fields, dialect=dialect)
+
+    # write header row
     if write_header:
         writer.writeheader()
-
-    recs = statfun(samfile, fafile=fafile, chrom=chrom, start=start,
-                   end=end, one_based=one_based, **kwargs)
 
     if progress is None:
         # N.B., don't use writer.writerows(recs)!
@@ -3586,16 +3527,139 @@ def _write_stats(statfun, fieldnames, outfile, samfile, fafile=None,
                 elapsed = after - before_all
                 batch_elapsed = after - before
                 print >>sys.stderr, \
-                    '%s rows in %.2fs (%d rows/s); batch in %.2fs (%d rows/s)' \
+                    '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
+                    '%.2fs (%d rows/s)' \
                     % (counter, elapsed, counter/elapsed, batch_elapsed,
                        progress/batch_elapsed)
                 before = after
         after_all = time.time()
         elapsed_all = after_all - before_all
-        print >>sys.stderr, '%s rows in %.2fs (%d rows/s)' \
+        print >>sys.stderr, '[pysamstats] %s rows in %.2fs (%d rows/s)' \
                             % (counter, elapsed_all, counter/elapsed_all)
     
-    
+
+def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
+               chrom=None, start=None, end=None,
+               one_based=False, progress=None, hdf5_group='/',
+               hdf5_dataset='data', hdf5_complevel=5,
+               hdf5_complib='zlib', hdf5_shuffle=True,
+               hdf5_fletcher32=False, hdf5_chunksize=2**17, **kwargs):
+    """Write statistics output to an HDF5 file. Requires PyTables.
+
+    :param stats_type: statistics type, one of 'coverage', 'coverage_ext', ...
+    :param outfile: path or file-like
+    :param samfile: input BAM or SAM file
+    :param fields: list of fields to output (all by default)
+    :param fafile: FASTA file
+    :param chrom: chromosome/contig
+    :param start: region start
+    :param end: region end
+    :param one_based: coordinate system
+    :param progress: log progress every n rows
+    :param hdf5_group: group to write new dataset to
+    :param hdf5_dataset: name of dataset to create
+    :param hdf5_chunksize: size of chunks in number of bytes
+    :param dtype: override dtype
+    :param kwargs: addition keyword arguments passed through to the stats
+    function
+    """
+
+    cdef long long counter = 0
+
+    import tables
+    h5file = None
+
+    # lookup stats function
+    stats_function = globals()['stat_' + stats_type]
+
+    # determine field names
+    if not fields:
+        fields = globals()['fields_' + stats_type]
+
+    # determine dtype
+    default_dtype = globals()['fields_' + stats_type]
+    dtype = dict(default_dtype)
+    dtype_overrides = kwargs.pop('dtype', None)
+    if dtype_overrides:
+        # expect dict
+        dtype.update(dtype_overrides)
+    if len(fields) == 1:
+        dtype = dtype[fields[0]]
+    else:
+        dtype = [(f, dtype[f]) for f in fields]
+    dtype = np.dtype(dtype)
+
+    # setup record generator
+    recs = stats_function(samfile, fafile=fafile, chrom=chrom, start=start,
+                          end=end, one_based=one_based, **kwargs)
+
+    # flatten records to rows
+    rows = flatten(recs, *fields)
+
+    try:
+
+        # open output file
+        h5file = tables.open_file(outfile, mode='a')
+
+        # determine chunk shape
+        hdf5_chunkshape = (hdf5_chunksize/dtype.itemsize,)
+
+        # create dataset
+        h5table = h5file.create_table(
+            hdf5_group, hdf5_dataset, dtype,
+            title=stats_type,
+            filters=tables.Filters(complevel=hdf5_complevel,
+                                   complib=hdf5_complib,
+                                   shuffle=hdf5_shuffle,
+                                   fletcher32=hdf5_fletcher32),
+            createparents=True,
+            chunkshape=hdf5_chunkshape)
+
+        if progress is None:
+
+            # load the data without reporting progress
+            for row in rows:
+                for f, v in itertools.izip(fields, row):
+                    h5table.row[f] = v
+                h5table.row.append()
+            h5table.flush()
+
+        else:
+
+            # load the data in blocks of size progress
+
+            # load first batch
+            before = time.time()
+            before_all = before
+            batch = list(itertools.islice(rows, progress))
+
+            # load batch at a time
+            while batch:
+                h5table.append(batch)
+                h5table.flush()
+                counter += len(batch)
+                after = time.time()
+                elapsed = after - before_all
+                batch_elapsed = after - before
+                print >>sys.stderr, \
+                    '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
+                    '%.2fs (%d rows/s)' \
+                    % (counter, elapsed, counter/elapsed, batch_elapsed,
+                       progress/batch_elapsed)
+                before = after
+                # load next batch
+                batch = list(itertools.islice(rows, progress))
+
+            after_all = time.time()
+            elapsed_all = after_all - before_all
+            print >>sys.stderr, '[pysamstats] %s rows in %.2fs (%d rows/s)' \
+                                % (counter, elapsed_all, counter/elapsed_all)
+
+    finally:
+        if h5file is not None:
+            h5file.close()
+
+
 from operator import itemgetter
 
 
