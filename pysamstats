@@ -188,9 +188,10 @@ Version: {version} (pysam {pysamversion})
             if options.format.lower() in ['tsv', 'csv']:
 
                 # setup
-                dialect = {'tsv': 'excel_tab', 'csv': 'excel'}[options.format]
+                dialect = {'tsv': 'excel-tab', 'csv': 'excel'}[options.format]
                 if options.output is None:
                     output = sys.stdout
+                    needs_closing = False
                 else:
                     output = open(options.output, 'wb')
                     needs_closing = True

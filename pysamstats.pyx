@@ -2784,7 +2784,7 @@ def stat_coverage_binned(samfile, fafile, **kwargs):
     """
 
     stat = _CoverageBinned(fafile)
-    return _iter_binned(stat, samfile=samfile, **kwargs)
+    return _iter_binned(stat, samfile=samfile, fafile=fafile, **kwargs)
 
 
 cdef inline int _gc_content(ref_window):
@@ -2802,7 +2802,7 @@ cdef inline int _gc_content(ref_window):
 
 cdef class _StatBinned(object):
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
         return dict()
 
     cdef recv(self, bam1_t * b):
@@ -2812,16 +2812,14 @@ cdef class _StatBinned(object):
 cdef class _CoverageBinned(_StatBinned):
 
     cdef int reads_all, reads_pp
-    cdef Fastafile fafile
 
-    def __cinit__(self, fafile):
+    def __cinit__(self):
         self.reads_all = self.reads_pp = 0
-        self.fafile = fafile
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
 
         # determine %GC
-        ref_window = self.fafile.fetch(chrom, bin_start, bin_end).lower()
+        ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
         gc_percent = _gc_content(ref_window)
 
         # make record for bin
@@ -2889,7 +2887,7 @@ def stat_coverage_ext_binned(samfile, fafile, **kwargs):
     """
 
     stat = _CoverageExtBinned(fafile)
-    return _iter_binned(stat, samfile=samfile, **kwargs)
+    return _iter_binned(stat, samfile=samfile, fafile=fafile, **kwargs)
 
 
 cdef class _CoverageExtBinned(_StatBinned):
@@ -2897,19 +2895,17 @@ cdef class _CoverageExtBinned(_StatBinned):
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
         reads_mate_same_strand, reads_faceaway, reads_softclipped, \
         reads_duplicate
-    cdef Fastafile fafile
 
-    def __cinit__(self, fafile):
+    def __cinit__(self):
         self.reads_all = self.reads_pp = self.reads_mate_unmapped \
             = self.reads_mate_other_chr = self.reads_mate_same_strand\
             = self.reads_faceaway = self.reads_softclipped \
             = self.reads_duplicate = 0
-        self.fafile = fafile
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
 
         # determine %GC
-        ref_window = self.fafile.fetch(chrom, bin_start, bin_end).lower()
+        ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
         gc_percent = _gc_content(ref_window)
 
         # make record for bin
@@ -3015,7 +3011,7 @@ cdef class _MapqBinned(_StatBinned):
     def __cinit__(self):
         self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all,
@@ -3099,7 +3095,7 @@ cdef class _AlignmentBinned(_StatBinned):
         self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
             = self.P = self.EQ = self.X = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all,
@@ -3204,7 +3200,7 @@ cdef class _TlenBinned(_StatBinned):
         self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
             self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end):
+    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all, 'reads_pp': self.reads_pp,
@@ -3351,25 +3347,26 @@ def _iter_binned(stat, samfile, fafile=None, chrom=None, start=None, end=None,
     if chrom is None:
         its = list()
         for chrom in samfile.references:
-            itc = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
-                                     start=None, end=None, one_based=one_based,
+            itc = _iter_binned_chrom(stat, samfile=samfile,
+                                     fafile=fafile, chrom=chrom, start=None,
+                                     end=None, one_based=one_based,
                                      window_size=window_size,
                                      window_offset=window_offset)
             its.append(itc)
         it = itertools.chain(*its)
 
     else:
-        it = _iter_binned_chrom(stat, samfile=samfile, chrom=chrom,
-                                start=start, end=end, one_based=one_based,
-                                window_size=window_size,
+        it = _iter_binned_chrom(stat, samfile=samfile, fafile=fafile,
+                                chrom=chrom, start=start, end=end,
+                                one_based=one_based, window_size=window_size,
                                 window_offset=window_offset)
 
     return it
 
 
-def _iter_binned_chrom(_StatBinned stat, Samfile samfile, chrom, start=None,
-                       end=None, one_based=False, int window_size=300,
-                       int window_offset=150, **kwargs):
+def _iter_binned_chrom(_StatBinned stat, Samfile samfile, Fastafile fafile,
+                       chrom, start=None, end=None, one_based=False,
+                       int window_size=300, int window_offset=150, **kwargs):
 
     # setup
 
@@ -3395,7 +3392,7 @@ def _iter_binned_chrom(_StatBinned stat, Samfile samfile, chrom, start=None,
         while b.core.pos > bin_end:  # end of bin
 
             # yield record for bin
-            rec = stat.rec(chrom, bin_start, bin_end)
+            rec = stat.rec(chrom, bin_start, bin_end, fafile)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
@@ -3414,7 +3411,7 @@ def _iter_binned_chrom(_StatBinned stat, Samfile samfile, chrom, start=None,
         it.cnext()
 
     # deal with last non-empty bin
-    rec = stat.rec(chrom, bin_start, bin_end)
+    rec = stat.rec(chrom, bin_start, bin_end, fafile)
     pos = bin_start + window_offset
     if one_based:
         pos += 1
@@ -3430,7 +3427,7 @@ def _iter_binned_chrom(_StatBinned stat, Samfile samfile, chrom, start=None,
             bin_end = bin_start + window_size
 
             # yield record
-            rec = stat.rec(chrom, bin_start, bin_end)
+            rec = stat.rec(chrom, bin_start, bin_end, fafile)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
@@ -3577,7 +3574,7 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
         fields = globals()['fields_' + stats_type]
 
     # determine dtype
-    default_dtype = globals()['fields_' + stats_type]
+    default_dtype = globals()['dtype_' + stats_type]
     dtype = dict(default_dtype)
     dtype_overrides = kwargs.pop('dtype', None)
     if dtype_overrides:
@@ -3603,6 +3600,12 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
 
         # determine chunk shape
         hdf5_chunkshape = (hdf5_chunksize/dtype.itemsize,)
+
+        # replace any existing node at that location
+        try:
+            h5file.remove_node(hdf5_group, hdf5_dataset)
+        except tables.NoSuchNodeError:
+            pass
 
         # create dataset
         h5table = h5file.create_table(
@@ -3637,7 +3640,8 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
             while batch:
                 h5table.append(batch)
                 h5table.flush()
-                counter += len(batch)
+                n = len(batch)
+                counter += n
                 after = time.time()
                 elapsed = after - before_all
                 batch_elapsed = after - before
@@ -3645,7 +3649,7 @@ def write_hdf5(stats_type, outfile, samfile, fields=None, fafile=None,
                     '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
                     '%.2fs (%d rows/s)' \
                     % (counter, elapsed, counter/elapsed, batch_elapsed,
-                       progress/batch_elapsed)
+                       n/batch_elapsed)
                 before = after
                 # load next batch
                 batch = list(itertools.islice(rows, progress))
