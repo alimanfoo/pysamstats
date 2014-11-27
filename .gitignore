@@ -36,3 +36,5 @@ spike*
 MANIFEST
 
 .idea
+.project
+.pydevproject
