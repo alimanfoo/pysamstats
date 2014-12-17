@@ -24,7 +24,7 @@ which needs to be installed **before** attempting to install pysamstats. If you
 have problems installing pysam, email the
 [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-**Please note that pysamstats version 0.16 requires pysam version 0.8.0.**
+**Please note that pysamstats versions 0.16 and higher requires pysam version 0.8.0.**
 
 Alternatively, clone the git repo and build in-place:
 
