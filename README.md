@@ -138,7 +138,7 @@ From Python:
 import pysam
 import pysamstats
 
-mybam = pysam.Samfile('/path/to/your/bamfile.bam')
+mybam = pysam.AlignmentFile('/path/to/your/bamfile.bam')
 
 # iterate over statistics, one record at a time
 for rec in pysamstats.stat_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end=20000):
@@ -154,7 +154,7 @@ import pysam
 import pysamstats
 import matplotlib.pyplot as plt
 
-mybam = pysam.Samfile('/path/to/your/bamfile.bam')
+mybam = pysam.AlignmentFile('/path/to/your/bamfile.bam')
 a = pysamstats.load_coverage(mybam, chrom='Pf3D7_01_v3', start=10000, end=20000)
 plt.plot(a.pos, a.reads_all)
 plt.show()
