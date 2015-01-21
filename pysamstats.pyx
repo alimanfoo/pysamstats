@@ -1,28 +1,36 @@
-# cython: profile=False
+# cython: profile=True
 # cython: embedsignature=True
+from __future__ import print_function, division, absolute_import
 
 
-__version__ = '0.20-SNAPSHOT'
+__version__ = '0.20.dev0'
 
 
-import sys
-import itertools
-import numpy as np
-cimport numpy as np
-import time
-import csv
+import sys as _sys
+import itertools as _itertools
+import time as _time
+import csv as _csv
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from cpython cimport PyBytes_FromStringAndSize
-from pysam.chtslib cimport bam1_t, bam_pileup1_t
-from pysam.cfaidx cimport Fastafile
-from pysam.calignmentfile cimport AlignmentFile, PileupColumn, IteratorRowRegion, \
-    pysam_bam_get_cigar, pysam_bam_get_seq, pysam_bam_get_qual
+from pysam.cfaidx import FastaFile
+from pysam.calignmentfile import AlignmentFile, PileupColumn, \
+    IteratorRowRegion
+# see also cimports in pysamstats.pxd
+
+
+# PY2/3 compatibility
+PY2 = _sys.version_info[0] == 2
+if PY2:
+    _string_types = basestring,
+else:
+    _string_types = str,
 
 
 ## These are bits set in the flag.
 ## have to put these definitions here, in csamtools.pxd they got ignored
-## @abstract the read is paired in sequencing, no matter whether it is mapped in a pair */
+## @abstract the read is paired in sequencing, no matter whether it is mapped
+#  in a pair */
 DEF BAM_FPAIRED       =1
 ## @abstract the read is mapped in a proper pair */
 DEF BAM_FPROPER_PAIR  =2
@@ -78,15 +86,15 @@ dtype_coverage = [('chrom', 'a12'),
 fields_coverage = [t[0] for t in dtype_coverage]
 
 
-cpdef dict _rec_coverage(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
-                         bint one_based=False):
+cpdef dict _rec_coverage(AlignmentFile alignmentfile, FastaFile fafile,
+                         PileupColumn col, bint one_based=False):
 
     # statically typed variables
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i  # loop index
-    cdef int n  # total number of reads in column
+    cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef int reads_pp = 0
@@ -96,7 +104,7 @@ cpdef dict _rec_coverage(AlignmentFile aligmentfile, Fastafile fafile, PileupCol
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
 
     # loop over reads, extract what we need
@@ -108,13 +116,15 @@ cpdef dict _rec_coverage(AlignmentFile aligmentfile, Fastafile fafile, PileupCol
         if is_proper_pair:
             reads_pp += 1
 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos,
             'reads_all': n,
             'reads_pp': reads_pp}
 
 
-cpdef dict _rec_coverage_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_coverage_pad(FastaFile fafile, chrom, pos,
                              bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
@@ -123,13 +133,13 @@ cpdef dict _rec_coverage_pad(Fastafile fafile, chrom, pos,
             'reads_pp': 0}
 
 
-def stat_coverage(aligmentfile, **kwargs):
+def stat_coverage(alignmentfile, **kwargs):
     """Generate coverage statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -155,7 +165,7 @@ def stat_coverage(aligmentfile, **kwargs):
     """
 
     return _iter_pileup(_rec_coverage, _rec_coverage_pad,
-                        aligmentfile, **kwargs)
+                        alignmentfile, **kwargs)
 
 
 def load_coverage(*args, **kwargs):
@@ -182,7 +192,7 @@ dtype_coverage_strand = [
 fields_coverage_strand = [t[0] for t in dtype_coverage_strand]
 
 
-cpdef dict _rec_coverage_strand(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
                                 PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -190,7 +200,7 @@ cpdef dict _rec_coverage_strand(AlignmentFile aligmentfile, Fastafile fafile,
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_reverse 
     cdef bint is_proper_pair 
@@ -205,7 +215,7 @@ cpdef dict _rec_coverage_strand(AlignmentFile aligmentfile, Fastafile fafile,
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -226,7 +236,9 @@ cpdef dict _rec_coverage_strand(AlignmentFile aligmentfile, Fastafile fafile,
             else:
                 reads_pp_fwd += 1
 
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
             'reads_fwd': reads_fwd, 
@@ -236,7 +248,7 @@ cpdef dict _rec_coverage_strand(AlignmentFile aligmentfile, Fastafile fafile,
             'reads_pp_rev': reads_pp_rev}
 
 
-cpdef dict _rec_coverage_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_coverage_strand_pad(FastaFile fafile, chrom, pos,
                                     bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom,
@@ -249,13 +261,13 @@ cpdef dict _rec_coverage_strand_pad(Fastafile fafile, chrom, pos,
             'reads_pp_rev': 0}
 
 
-def stat_coverage_strand(aligmentfile, **kwargs):
+def stat_coverage_strand(alignmentfile, **kwargs):
     """Generate coverage statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -282,7 +294,7 @@ def stat_coverage_strand(aligmentfile, **kwargs):
 
     return _iter_pileup(_rec_coverage_strand,
                         _rec_coverage_strand_pad,
-                        aligmentfile, **kwargs)
+                        alignmentfile, **kwargs)
 
 
 def load_coverage_strand(*args, **kwargs):
@@ -312,7 +324,7 @@ dtype_coverage_ext = [
 fields_coverage_ext = [t[0] for t in dtype_coverage_ext]
 
 
-cpdef dict _rec_coverage_ext(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                              bint one_based=False):
 
     # statically typed variables
@@ -320,7 +332,7 @@ cpdef dict _rec_coverage_ext(AlignmentFile aligmentfile, Fastafile fafile, Pileu
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i  # loop index
-    cdef int n  # total number of reads in column
+    cdef int reads_all  # total number of reads in column
     cdef bint is_reverse 
     cdef bint is_proper_pair 
     cdef bint is_duplicate
@@ -342,7 +354,7 @@ cpdef dict _rec_coverage_ext(AlignmentFile aligmentfile, Fastafile fafile, Pileu
 
     # get chromosome name and position
     tid = col.tid
-    chrom = aligmentfile.getrname(tid)
+    chrom = alignmentfile.getrname(tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -372,7 +384,9 @@ cpdef dict _rec_coverage_ext(AlignmentFile aligmentfile, Fastafile fafile, Pileu
         if _is_softclipped(aln):
             reads_softclipped += 1
             
-    return {'chrom': chrom, 'pos': pos, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom, 'pos': pos,
             'reads_all': n,
             'reads_pp': reads_pp,
             'reads_mate_unmapped': reads_mate_unmapped,
@@ -383,7 +397,7 @@ cpdef dict _rec_coverage_ext(AlignmentFile aligmentfile, Fastafile fafile, Pileu
             'reads_duplicate': reads_duplicate}
 
 
-cpdef dict _rec_coverage_ext_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_coverage_ext_pad(FastaFile fafile, chrom, pos,
                                  bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
@@ -397,13 +411,13 @@ cpdef dict _rec_coverage_ext_pad(Fastafile fafile, chrom, pos,
             'reads_duplicate': 0}
 
 
-def stat_coverage_ext(aligmentfile, **kwargs):
+def stat_coverage_ext(alignmentfile, **kwargs):
     """Generate extended coverage statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -428,7 +442,7 @@ def stat_coverage_ext(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_coverage_ext, _rec_coverage_ext_pad, aligmentfile,
+    return _iter_pileup(_rec_coverage_ext, _rec_coverage_ext_pad, alignmentfile,
                         **kwargs)
 
 
@@ -474,7 +488,7 @@ dtype_coverage_ext_strand = [
 fields_coverage_ext_strand = [t[0] for t in dtype_coverage_ext_strand]
 
 
-cpdef dict _rec_coverage_ext_strand(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
                                     PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -482,7 +496,7 @@ cpdef dict _rec_coverage_ext_strand(AlignmentFile aligmentfile, Fastafile fafile
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef bint is_reverse 
     cdef bint is_proper_pair 
     cdef bint is_duplicate
@@ -520,7 +534,7 @@ cpdef dict _rec_coverage_ext_strand(AlignmentFile aligmentfile, Fastafile fafile
 
     # get chromosome name and position
     tid = col.tid
-    chrom = aligmentfile.getrname(tid)
+    chrom = alignmentfile.getrname(tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -581,7 +595,9 @@ cpdef dict _rec_coverage_ext_strand(AlignmentFile aligmentfile, Fastafile fafile
             else:
                 reads_duplicate_fwd += 1
             
-    return {'chrom': chrom, 'pos': pos, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom, 'pos': pos,
            'reads_all': n, 
            'reads_fwd': reads_fwd,
            'reads_rev': reads_rev,
@@ -609,7 +625,7 @@ cpdef dict _rec_coverage_ext_strand(AlignmentFile aligmentfile, Fastafile fafile
            }
 
 
-cpdef dict _rec_coverage_ext_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_coverage_ext_strand_pad(FastaFile fafile, chrom, pos,
                                         bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos,
@@ -640,13 +656,13 @@ cpdef dict _rec_coverage_ext_strand_pad(Fastafile fafile, chrom, pos,
            }
 
 
-def stat_coverage_ext_strand(aligmentfile, **kwargs):
+def stat_coverage_ext_strand(alignmentfile, **kwargs):
     """Generate extended coverage statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -672,7 +688,7 @@ def stat_coverage_ext_strand(aligmentfile, **kwargs):
     """
 
     return _iter_pileup(_rec_coverage_ext_strand,
-                        _rec_coverage_ext_strand_pad, aligmentfile, **kwargs)
+                        _rec_coverage_ext_strand_pad, alignmentfile, **kwargs)
 
 
 def load_coverage_ext_strand(*args, **kwargs):
@@ -715,7 +731,7 @@ dtype_variation = [
 fields_variation = [t[0] for t in dtype_variation]
 
 
-cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
                           PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -723,7 +739,7 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i  # loop index
-    cdef int n  # total number of reads in column
+    cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     # counting variables
@@ -736,23 +752,23 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
     cdef int deletions_pp = 0
     cdef int insertions = 0
     cdef int insertions_pp = 0
-    cdef int A = 0
-    cdef int A_pp = 0
-    cdef int C = 0
-    cdef int C_pp = 0
-    cdef int T = 0
-    cdef int T_pp = 0
-    cdef int G = 0
-    cdef int G_pp = 0
-    cdef int N = 0
-    cdef int N_pp = 0
+    cdef int a = 0
+    cdef int a_pp = 0
+    cdef int c = 0
+    cdef int c_pp = 0
+    cdef int t = 0
+    cdef int t_pp = 0
+    cdef int g = 0
+    cdef int g_pp = 0
+    cdef int n = 0
+    cdef int n_pp = 0
     
     # initialise variables
-    n = col.n
+    reads_all = col.n
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # reference base
@@ -761,7 +777,7 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
         .upper()
     
     # loop over reads, extract what we need
-    for i in range(n):
+    for i in range(reads_all):
         read = &(plp[0][i])
         # read.qpos
         # read.is_del
@@ -778,26 +794,26 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
         else:
 #            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
             alnbase = _get_seq_base(aln, read.qpos)
-            if alnbase == 'A':
-                A += 1
+            if alnbase == b'A':
+                a += 1
                 if is_proper_pair:
-                    A_pp += 1
-            elif alnbase == 'T':
-                T += 1
+                    a_pp += 1
+            elif alnbase == b'T':
+                t += 1
                 if is_proper_pair:
-                    T_pp += 1
-            elif alnbase == 'C':
-                C += 1
+                    t_pp += 1
+            elif alnbase == b'C':
+                c += 1
                 if is_proper_pair:
-                    C_pp += 1
-            elif alnbase == 'G':
-                G += 1
+                    c_pp += 1
+            elif alnbase == b'G':
+                g += 1
                 if is_proper_pair:
-                    G_pp += 1
-            elif alnbase == 'N':
-                N += 1
+                    g_pp += 1
+            elif alnbase == b'N':
+                n += 1
                 if is_proper_pair:
-                    N_pp += 1
+                    n_pp += 1
             if read.indel > 0:
                 insertions += 1
                 if is_proper_pair:
@@ -811,8 +827,11 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
                 if is_proper_pair:
                     mismatches_pp += 1
 
+    if not PY2:
+        refbase = str(refbase, 'ascii')
+        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_pp': reads_pp,
+            'reads_all': reads_all, 'reads_pp': reads_pp,
             'matches': matches,
             'matches_pp': matches_pp,
             'mismatches': mismatches,
@@ -821,16 +840,18 @@ cpdef dict _rec_variation(AlignmentFile aligmentfile, Fastafile fafile,
             'deletions_pp': deletions_pp,
             'insertions': insertions,
             'insertions_pp': insertions_pp,
-            'A': A, 'A_pp': A_pp,
-            'C': C, 'C_pp': C_pp,
-            'T': T, 'T_pp': T_pp,
-            'G': G, 'G_pp': G_pp,
-            'N': N, 'N_pp': N_pp}
+            'A': a, 'A_pp': a_pp,
+            'C': c, 'C_pp': c_pp,
+            'T': t, 'T_pp': t_pp,
+            'G': g, 'G_pp': g_pp,
+            'N': n, 'N_pp': n_pp}
 
 
-cpdef dict _rec_variation_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_variation_pad(FastaFile fafile, chrom, pos,
                               bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    if not PY2:
+        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_pp': 0,
@@ -849,15 +870,15 @@ cpdef dict _rec_variation_pad(Fastafile fafile, chrom, pos,
             'N': 0, 'N_pp': 0}
 
 
-def stat_variation(aligmentfile, fafile, **kwargs):
+def stat_variation(alignmentfile, fafile, **kwargs):
     """Generate variation statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -883,7 +904,7 @@ def stat_variation(aligmentfile, fafile, **kwargs):
     """
 
     return _iter_pileup(_rec_variation, _rec_variation_pad,
-                        aligmentfile, fafile=fafile, **kwargs)
+                        alignmentfile, fafile=fafile, **kwargs)
 
 
 def load_variation(*args, **kwargs):
@@ -968,7 +989,7 @@ cdef inline _incr_pp_strand(_CountPpStrand* c, bint is_reverse,
             c.pp_fwd += 1
                 
 
-cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
                                  PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -976,7 +997,7 @@ cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair, is_reverse
     # counting variables
@@ -998,7 +1019,7 @@ cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
     _init_pp_strand(&N)
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # reference base
@@ -1019,15 +1040,15 @@ cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
             _incr_pp_strand(&deletions, is_reverse, is_proper_pair)
         else:
             alnbase = _get_seq_base(aln, read.qpos)
-            if alnbase == 'A':
+            if alnbase == b'A':
                 _incr_pp_strand(&A, is_reverse, is_proper_pair)
-            elif alnbase == 'T':
+            elif alnbase == b'T':
                 _incr_pp_strand(&T, is_reverse, is_proper_pair)
-            elif alnbase == 'C':
+            elif alnbase == b'C':
                 _incr_pp_strand(&C, is_reverse, is_proper_pair)
-            elif alnbase == 'G':
+            elif alnbase == b'G':
                 _incr_pp_strand(&G, is_reverse, is_proper_pair)
-            elif alnbase == 'N':
+            elif alnbase == b'N':
                 _incr_pp_strand(&N, is_reverse, is_proper_pair)
             if read.indel > 0:
                 _incr_pp_strand(&insertions, is_reverse, is_proper_pair)
@@ -1036,6 +1057,9 @@ cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
             else:
                 _incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
+    if not PY2:
+        refbase = str(refbase, 'ascii')
+        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 
             'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
@@ -1055,9 +1079,11 @@ cpdef dict _rec_variation_strand(AlignmentFile aligmentfile, Fastafile fafile,
             }
 
 
-cpdef dict _rec_variation_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_variation_strand_pad(FastaFile fafile, chrom, pos,
                                      bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    if not PY2:
+        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
@@ -1083,15 +1109,15 @@ cpdef dict _rec_variation_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_variation_strand(aligmentfile, fafile, **kwargs):
+def stat_variation_strand(alignmentfile, fafile, **kwargs):
     """Generate variation statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -1118,7 +1144,7 @@ def stat_variation_strand(aligmentfile, fafile, **kwargs):
 
     return _iter_pileup(_rec_variation_strand,
                         _rec_variation_strand_pad,
-                        aligmentfile, fafile=fafile, **kwargs)
+                        alignmentfile, fafile=fafile, **kwargs)
 
 
 def load_variation_strand(*args, **kwargs):
@@ -1149,7 +1175,7 @@ dtype_tlen = [
 fields_tlen = [t[0] for t in dtype_tlen]
 
 
-cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                      bint one_based=False):
 
     # statically typed variables
@@ -1157,7 +1183,7 @@ cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i  # loop index
-    cdef int n  # total number of reads in column
+    cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef bint mate_is_unmappped 
@@ -1185,7 +1211,7 @@ cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads
@@ -1215,9 +1241,9 @@ cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
 
     # calculate intermediate variables
     if reads_p > 0:
-        tlen_p_mean = tlen_p_sum * 1. / reads_p
+        tlen_p_mean = tlen_p_sum / reads_p
     if reads_pp > 0:
-        tlen_pp_mean = tlen_pp_sum * 1. / reads_pp
+        tlen_pp_mean = tlen_pp_sum / reads_pp
         
     # loop over reads again to calculate variance (and hence std)
     for i in range(n):
@@ -1242,19 +1268,21 @@ cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
         rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
-        variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
+        variance_tlen = tlen_p_dev_squared_sum / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = median_tlen = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
         rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
-        variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
+        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
 
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
             'reads_paired': reads_p,
@@ -1267,7 +1295,7 @@ cpdef dict _rec_tlen(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
             'std_tlen_pp': std_tlen_pp}
 
 
-cpdef dict _rec_tlen_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict _rec_tlen_pad(FastaFile fafile, chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1283,13 +1311,13 @@ cpdef dict _rec_tlen_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_tlen(aligmentfile, **kwargs):
+def stat_tlen(alignmentfile, **kwargs):
     """Generate insert size statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -1314,7 +1342,7 @@ def stat_tlen(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_tlen, _rec_tlen_pad, aligmentfile, **kwargs)
+    return _iter_pileup(_rec_tlen, _rec_tlen_pad, alignmentfile, **kwargs)
 
 
 def load_tlen(*args, **kwargs):
@@ -1362,7 +1390,7 @@ dtype_tlen_strand = [
 fields_tlen_strand = [t[0] for t in dtype_tlen_strand]
 
 
-cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                             bint one_based=False):
 
     # statically typed variables
@@ -1370,7 +1398,7 @@ cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef bint mate_is_unmappped 
@@ -1429,7 +1457,7 @@ cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     plp = col.plp
     
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads
@@ -1484,17 +1512,17 @@ cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
 
     # calculate intermediate variables
     if reads_p > 0:
-        tlen_p_mean = tlen_p_sum * 1. / reads_p
+        tlen_p_mean = tlen_p_sum / reads_p
         if reads_p_rev > 0:
-            tlen_p_rev_mean = tlen_p_rev_sum * 1. / reads_p_rev
+            tlen_p_rev_mean = tlen_p_rev_sum / reads_p_rev
         if reads_p_fwd > 0:
-            tlen_p_fwd_mean = tlen_p_fwd_sum * 1. / reads_p_fwd
+            tlen_p_fwd_mean = tlen_p_fwd_sum / reads_p_fwd
     if reads_pp > 0:
-        tlen_pp_mean = tlen_pp_sum * 1. / reads_pp
+        tlen_pp_mean = tlen_pp_sum / reads_pp
         if reads_pp_rev > 0:
-            tlen_pp_rev_mean = tlen_pp_rev_sum * 1. / reads_pp_rev
+            tlen_pp_rev_mean = tlen_pp_rev_sum / reads_pp_rev
         if reads_pp_fwd > 0:
-            tlen_pp_fwd_mean = tlen_pp_fwd_sum * 1. / reads_pp_fwd
+            tlen_pp_fwd_mean = tlen_pp_fwd_sum / reads_pp_fwd
         
     # loop over reads again to calculate variance (and hence std)
     for i in range(n):
@@ -1533,47 +1561,49 @@ cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
         rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
-        variance_tlen = tlen_p_dev_squared_sum * 1. / reads_p
+        variance_tlen = tlen_p_dev_squared_sum / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 0
     if reads_p_rev > 0:
         mean_tlen_rev = int(round(tlen_p_rev_mean))
         rms_tlen_rev = _rootmean(tlen_p_rev_squared_sum, reads_p_rev)
-        variance_tlen_rev = tlen_p_rev_dev_squared_sum * 1. / reads_p_rev
+        variance_tlen_rev = tlen_p_rev_dev_squared_sum / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
         rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
     if reads_p_fwd > 0:
         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
         rms_tlen_fwd = _rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
-        variance_tlen_fwd = tlen_p_fwd_dev_squared_sum * 1. / reads_p_fwd
+        variance_tlen_fwd = tlen_p_fwd_dev_squared_sum / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
         rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
         rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
-        variance_tlen_pp = tlen_pp_dev_squared_sum * 1. / reads_pp
+        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
     if reads_pp_rev > 0:
         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
         rms_tlen_pp_rev = _rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
-        variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum * 1. / reads_pp_rev
+        variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
         rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
     if reads_pp_fwd > 0:
         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
         rms_tlen_pp_fwd = _rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
-        variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum * 1. / reads_pp_fwd
+        variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
         rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
 
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
             'reads_fwd': reads_fwd, 
@@ -1604,7 +1634,7 @@ cpdef dict _rec_tlen_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
             'std_tlen_pp_rev': std_tlen_pp_rev}
 
 
-cpdef dict _rec_tlen_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_tlen_strand_pad(FastaFile fafile, chrom, pos,
                                 bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
@@ -1639,13 +1669,13 @@ cpdef dict _rec_tlen_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_tlen_strand(aligmentfile, **kwargs):
+def stat_tlen_strand(alignmentfile, **kwargs):
     """Generate insert size statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -1670,7 +1700,7 @@ def stat_tlen_strand(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_tlen_strand, _rec_tlen_strand_pad, aligmentfile,
+    return _iter_pileup(_rec_tlen_strand, _rec_tlen_strand_pad, alignmentfile,
                         **kwargs)
 
 
@@ -1700,7 +1730,7 @@ dtype_mapq = [
 fields_mapq = [t[0] for t in dtype_mapq]
 
 
-cpdef dict _rec_mapq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                      bint one_based=False):
 
     # statically typed variables
@@ -1708,7 +1738,7 @@ cpdef dict _rec_mapq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef uint64_t mapq
     cdef uint64_t mapq_max = 0
@@ -1726,7 +1756,7 @@ cpdef dict _rec_mapq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -1759,7 +1789,9 @@ cpdef dict _rec_mapq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
     else:
         rms_mapq_pp = max_mapq_pp = 0
         
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
             'reads_pp': reads_pp,
@@ -1771,7 +1803,7 @@ cpdef dict _rec_mapq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn 
             'max_mapq_pp': max_mapq_pp}
 
 
-cpdef dict _rec_mapq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict _rec_mapq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -1786,13 +1818,13 @@ cpdef dict _rec_mapq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_mapq(aligmentfile, **kwargs):
+def stat_mapq(alignmentfile, **kwargs):
     """Generate mapping quality statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -1817,7 +1849,7 @@ def stat_mapq(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_mapq, _rec_mapq_pad, aligmentfile, **kwargs)
+    return _iter_pileup(_rec_mapq, _rec_mapq_pad, alignmentfile, **kwargs)
 
 
 def load_mapq(*args, **kwargs):
@@ -1862,7 +1894,7 @@ dtype_mapq_strand = [
 fields_mapq_strand = [t[0] for t in dtype_mapq_strand]
 
 
-cpdef dict _rec_mapq_strand(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                             bint one_based=False):
 
     # statically typed variables
@@ -1870,7 +1902,7 @@ cpdef dict _rec_mapq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i  # loop index
-    cdef int n  # total number of reads in column
+    cdef int reads_all  # total number of reads in column
 
     cdef uint32_t flag
     cdef uint64_t mapq
@@ -1908,7 +1940,7 @@ cpdef dict _rec_mapq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -1993,7 +2025,9 @@ cpdef dict _rec_mapq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
     else:
         rms_mapq_pp_rev = max_mapq_pp_rev = 0
         
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n,
             'reads_fwd': reads_fwd, 
@@ -2022,7 +2056,7 @@ cpdef dict _rec_mapq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileup
             }
 
 
-cpdef dict _rec_mapq_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_mapq_strand_pad(FastaFile fafile, chrom, pos,
                                 bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
@@ -2054,13 +2088,13 @@ cpdef dict _rec_mapq_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_mapq_strand(aligmentfile, **kwargs):
+def stat_mapq_strand(alignmentfile, **kwargs):
     """Generate mapping quality statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -2085,7 +2119,7 @@ def stat_mapq_strand(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_mapq_strand, _rec_mapq_strand_pad, aligmentfile,
+    return _iter_pileup(_rec_mapq_strand, _rec_mapq_strand_pad, alignmentfile,
                         **kwargs)
 
 
@@ -2111,7 +2145,7 @@ dtype_baseq = [
 fields_baseq = [t[0] for t in dtype_baseq]
 
 
-cpdef dict _rec_baseq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                       bint one_based=False):
 
     # statically typed variables
@@ -2119,7 +2153,7 @@ cpdef dict _rec_baseq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef int reads_nodel = 0
@@ -2134,7 +2168,7 @@ cpdef dict _rec_baseq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -2160,7 +2194,9 @@ cpdef dict _rec_baseq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn
     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
 
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
             'reads_pp': reads_pp,
@@ -2168,7 +2204,7 @@ cpdef dict _rec_baseq(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn
             'rms_baseq_pp': rms_baseq_pp}
 
 
-cpdef dict _rec_baseq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
+cpdef dict _rec_baseq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
             'pos': pos, 
@@ -2179,13 +2215,13 @@ cpdef dict _rec_baseq_pad(Fastafile fafile, chrom, pos, bint one_based=False):
             }
 
 
-def stat_baseq(aligmentfile, **kwargs):
+def stat_baseq(alignmentfile, **kwargs):
     """Generate base quality statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -2210,7 +2246,7 @@ def stat_baseq(aligmentfile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_baseq, _rec_baseq_pad, aligmentfile, **kwargs)
+    return _iter_pileup(_rec_baseq, _rec_baseq_pad, alignmentfile, **kwargs)
 
 
 def load_baseq(*args, **kwargs):
@@ -2243,7 +2279,7 @@ dtype_baseq_strand = [
 fields_baseq_strand = [t[0] for t in dtype_baseq_strand]
 
 
-cpdef dict _rec_baseq_strand(AlignmentFile aligmentfile, Fastafile fafile, PileupColumn col,
+cpdef dict _rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
                              bint one_based=False):
 
     # statically typed variables
@@ -2251,7 +2287,7 @@ cpdef dict _rec_baseq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileu
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
 
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -2283,7 +2319,7 @@ cpdef dict _rec_baseq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileu
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # loop over reads, extract what we need
@@ -2335,7 +2371,9 @@ cpdef dict _rec_baseq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileu
     rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
     rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
         
-    return {'chrom': chrom, 
+    # if not PY2:
+    #     chrom = str(chrom, 'ascii')
+    return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n,
             'reads_fwd': reads_fwd, 
@@ -2352,7 +2390,7 @@ cpdef dict _rec_baseq_strand(AlignmentFile aligmentfile, Fastafile fafile, Pileu
             }
 
 
-cpdef dict _rec_baseq_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_baseq_strand_pad(FastaFile fafile, chrom, pos,
                                  bint one_based=False):
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 
@@ -2372,13 +2410,13 @@ cpdef dict _rec_baseq_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_strand(aligmentfile, **kwargs):
+def stat_baseq_strand(alignmentfile, **kwargs):
     """Generate base quality statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -2404,7 +2442,7 @@ def stat_baseq_strand(aligmentfile, **kwargs):
     """
 
     return _iter_pileup(_rec_baseq_strand, _rec_baseq_strand_pad,
-                        aligmentfile, **kwargs)
+                        alignmentfile, **kwargs)
 
 
 def load_baseq_strand(*args, **kwargs):
@@ -2439,7 +2477,7 @@ dtype_baseq_ext = [
 fields_baseq_ext = [t[0] for t in dtype_baseq_ext]
 
 
-cpdef dict _rec_baseq_ext(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
                           PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -2447,7 +2485,7 @@ cpdef dict _rec_baseq_ext(AlignmentFile aligmentfile, Fastafile fafile,
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     # counting variables
@@ -2474,11 +2512,12 @@ cpdef dict _rec_baseq_ext(AlignmentFile aligmentfile, Fastafile fafile,
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # reference base
-    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    refbase = fafile.fetch(reference=chrom, start=col.pos,
+                           end=col.pos + 1).upper()
     
     # loop over reads, extract what we need
     for i in range(n):
@@ -2516,8 +2555,12 @@ cpdef dict _rec_baseq_ext(AlignmentFile aligmentfile, Fastafile fafile,
     rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
     rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
     rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
+                                        mismatches_pp)
 
+    if not PY2:
+        refbase = str(refbase, 'ascii')
+        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_pp': reads_pp,
             'matches': matches,
@@ -2533,9 +2576,11 @@ cpdef dict _rec_baseq_ext(AlignmentFile aligmentfile, Fastafile fafile,
             }
 
 
-cpdef dict _rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_baseq_ext_pad(FastaFile fafile, chrom, pos,
                               bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    if not PY2:
+        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_pp': 0,
@@ -2552,15 +2597,15 @@ cpdef dict _rec_baseq_ext_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_ext(aligmentfile, fafile, **kwargs):
+def stat_baseq_ext(alignmentfile, fafile, **kwargs):
     """Generate extended base quality statistics per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -2585,7 +2630,7 @@ def stat_baseq_ext(aligmentfile, fafile, **kwargs):
 
     """
 
-    return _iter_pileup(_rec_baseq_ext, _rec_baseq_ext_pad, aligmentfile,
+    return _iter_pileup(_rec_baseq_ext, _rec_baseq_ext_pad, alignmentfile,
                         fafile=fafile, **kwargs)
 
 
@@ -2644,7 +2689,7 @@ dtype_baseq_ext_strand = [
 fields_baseq_ext_strand = [t[0] for t in dtype_baseq_ext_strand]
 
 
-cpdef dict _rec_baseq_ext_strand(AlignmentFile aligmentfile, Fastafile fafile,
+cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
                                  PileupColumn col, bint one_based=False):
 
     # statically typed variables
@@ -2652,7 +2697,7 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile aligmentfile, Fastafile fafile,
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
     cdef int i # loop index
-    cdef int n # total number of reads in column
+    cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef bint is_reverse
@@ -2709,7 +2754,7 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile aligmentfile, Fastafile fafile,
     plp = col.plp
 
     # get chromosome name and position
-    chrom = aligmentfile.getrname(col.tid)
+    chrom = alignmentfile.getrname(col.tid)
     pos = col.pos + 1 if one_based else col.pos
     
     # reference base
@@ -2802,37 +2847,51 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile aligmentfile, Fastafile fafile,
     rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
     rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
     rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum, matches_fwd)
-    rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum, matches_rev)
+    rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum,
+                                      matches_fwd)
+    rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum,
+                                      matches_rev)
     rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum, matches_pp_fwd)
-    rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum, matches_pp_rev)
+    rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum,
+                                         matches_pp_fwd)
+    rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum,
+                                         matches_pp_rev)
     rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum, mismatches_fwd)
-    rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum, mismatches_rev)
-    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum, mismatches_pp)
-    rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum, mismatches_pp_fwd)
-    rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum, mismatches_pp_rev)
+    rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum,
+                                         mismatches_fwd)
+    rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum,
+                                         mismatches_rev)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
+                                        mismatches_pp)
+    rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum,
+                                            mismatches_pp_fwd)
+    rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum,
+                                            mismatches_pp_rev)
 
+    if not PY2:
+        refbase = str(refbase, 'ascii')
+        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev, 
+            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
             'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
-            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev, 
+            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev,
             'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
-            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev, 
+            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev,
             'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
-            'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev, 
+            'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
             'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
-            'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev, 
+            'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev,
             'rms_baseq_matches_pp': rms_baseq_matches_pp, 'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
-            'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev, 
+            'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev,
             'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
             }
 
 
-cpdef dict _rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos,
+cpdef dict _rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos,
                                      bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    if not PY2:
+        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
@@ -2850,15 +2909,15 @@ cpdef dict _rec_baseq_ext_strand_pad(Fastafile fafile, chrom, pos,
             }
 
 
-def stat_baseq_ext_strand(aligmentfile, fafile, **kwargs):
+def stat_baseq_ext_strand(alignmentfile, fafile, **kwargs):
     """Generate extended base quality statistics by strand per genome position.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -2884,7 +2943,7 @@ def stat_baseq_ext_strand(aligmentfile, fafile, **kwargs):
     """
 
     return _iter_pileup(_rec_baseq_ext_strand, _rec_baseq_ext_strand_pad,
-                        aligmentfile, fafile=fafile, **kwargs)
+                        alignmentfile, fafile=fafile, **kwargs)
 
 
 def load_baseq_ext_strand(*args, **kwargs):
@@ -2907,7 +2966,7 @@ dtype_coverage_gc = [('chrom', 'a12'),
 fields_coverage_gc = [t[0] for t in dtype_coverage_gc]
 
 
-def stat_coverage_gc(aligmentfile, fafile, chrom=None, start=None, end=None,
+def stat_coverage_gc(alignmentfile, fafile, chrom=None, start=None, end=None,
                      one_based=False, truncate=False, pad=False, max_depth=8000,
                      window_size=300, window_offset=None, **kwargs):
     """Generate coverage statistics per genome position with reference genome
@@ -2916,9 +2975,9 @@ def stat_coverage_gc(aligmentfile, fafile, chrom=None, start=None, end=None,
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -2951,9 +3010,9 @@ def stat_coverage_gc(aligmentfile, fafile, chrom=None, start=None, end=None,
     if window_offset is None:
         window_offset = window_size / 2
         
-    def _rec_coverage_gc(AlignmentFile aligmentfile, Fastafile fafile,
+    def _rec_coverage_gc(AlignmentFile alignmentfile, FastaFile fafile,
                          PileupColumn col, bint one_based):
-        chrom = aligmentfile.getrname(col.tid)
+        chrom = alignmentfile.getrname(col.tid)
 
         ref_window_start = col.pos - window_offset
         ref_window_end = ref_window_start + window_size
@@ -2967,11 +3026,11 @@ def stat_coverage_gc(aligmentfile, fafile, chrom=None, start=None, end=None,
         else:
             gc_percent = _gc_content(ref_window)
 
-        rec = _rec_coverage(aligmentfile, fafile, col, one_based)
+        rec = _rec_coverage(alignmentfile, fafile, col, one_based)
         rec['gc'] = gc_percent
         return rec
 
-    def _rec_coverage_gc_pad(Fastafile fafile, chrom, pos,
+    def _rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
                              bint one_based):
         ref_window_start = pos - window_offset
         ref_window_end = ref_window_start + window_size
@@ -2990,7 +3049,7 @@ def stat_coverage_gc(aligmentfile, fafile, chrom=None, start=None, end=None,
 
     return _iter_pileup(_rec_coverage_gc,
                         _rec_coverage_gc_pad,
-                        aligmentfile, fafile=fafile, chrom=chrom, start=start,
+                        alignmentfile, fafile=fafile, chrom=chrom, start=start,
                         end=end, one_based=one_based,
                         truncate=truncate, pad=pad,
                         max_depth=max_depth,
@@ -3016,15 +3075,15 @@ dtype_coverage_binned = [('chrom', 'a12'),
 fields_coverage_binned = [t[0] for t in dtype_coverage_binned]
 
 
-def stat_coverage_binned(aligmentfile, fafile, **kwargs):
+def stat_coverage_binned(alignmentfile, fafile, **kwargs):
     """Generate binned coverage statistics.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -3053,8 +3112,8 @@ def stat_coverage_binned(aligmentfile, fafile, **kwargs):
 
     """
 
-    stat = _CoverageBinned(fafile)
-    return _iter_binned(stat, aligmentfile=aligmentfile, fafile=fafile, **kwargs)
+    stat = _CoverageBinned()
+    return _iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
 
 
 cdef inline int _gc_content(ref_window):
@@ -3064,7 +3123,7 @@ cdef inline int _gc_content(ref_window):
     n = len(ref_window)
     seq = ref_window
     for i in range(n):
-        if seq[i] == 'g' or seq[i] == 'c':
+        if seq[i] == b'g' or seq[i] == b'c':
             gc_count += 1
     gc_percent = int(round(gc_count * 100. / n))
     return gc_percent
@@ -3072,7 +3131,7 @@ cdef inline int _gc_content(ref_window):
 
 cdef class _StatBinned(object):
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
         return dict()
 
     cdef recv(self, bam1_t * b):
@@ -3086,7 +3145,7 @@ cdef class _CoverageBinned(_StatBinned):
     def __cinit__(self):
         self.reads_all = self.reads_pp = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # determine %GC
         ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
@@ -3141,15 +3200,15 @@ dtype_coverage_ext_binned = [('chrom', 'a12'),
 fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
 
 
-def stat_coverage_ext_binned(aligmentfile, fafile, **kwargs):
+def stat_coverage_ext_binned(alignmentfile, fafile, **kwargs):
     """Generate binned extended coverage statistics.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -3178,8 +3237,9 @@ def stat_coverage_ext_binned(aligmentfile, fafile, **kwargs):
 
     """
 
-    stat = _CoverageExtBinned(fafile)
-    return _iter_binned(stat, aligmentfile=aligmentfile, fafile=fafile, **kwargs)
+    stat = _CoverageExtBinned()
+    return _iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile,
+                        **kwargs)
 
 
 cdef class _CoverageExtBinned(_StatBinned):
@@ -3194,7 +3254,7 @@ cdef class _CoverageExtBinned(_StatBinned):
             = self.reads_faceaway = self.reads_softclipped \
             = self.reads_duplicate = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # determine %GC
         ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
@@ -3277,13 +3337,13 @@ dtype_mapq_binned = [
 fields_mapq_binned = [t[0] for t in dtype_mapq_binned]
 
 
-def stat_mapq_binned(aligmentfile, **kwargs):
+def stat_mapq_binned(alignmentfile, **kwargs):
     """Generate binned mapping quality statistics.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -3313,7 +3373,7 @@ def stat_mapq_binned(aligmentfile, **kwargs):
     """
 
     stat = _MapqBinned()
-    return _iter_binned(stat, aligmentfile=aligmentfile, **kwargs)
+    return _iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
 
 
 cdef class _MapqBinned(_StatBinned):
@@ -3324,7 +3384,7 @@ cdef class _MapqBinned(_StatBinned):
     def __cinit__(self):
         self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all,
@@ -3381,15 +3441,15 @@ dtype_alignment_binned = [
 fields_alignment_binned = [t[0] for t in dtype_alignment_binned]
 
 
-def stat_alignment_binned(aligmentfile, **kwargs):
+def stat_alignment_binned(alignmentfile, **kwargs):
     """Generate binned alignment statistics.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
-    fafile : pysam.Fastafile or string
+    fafile : pysam.FastaFile or string
         FASTA file or file path
     chrom : string
         chromosome/contig
@@ -3419,7 +3479,7 @@ def stat_alignment_binned(aligmentfile, **kwargs):
     """
 
     stat = _AlignmentBinned()
-    return _iter_binned(stat, aligmentfile=aligmentfile, **kwargs)
+    return _iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
 
 
 cdef class _AlignmentBinned(_StatBinned):
@@ -3430,7 +3490,7 @@ cdef class _AlignmentBinned(_StatBinned):
         self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
             = self.P = self.EQ = self.X = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all,
@@ -3503,13 +3563,13 @@ dtype_tlen_binned = [
 fields_tlen_binned = [t[0] for t in dtype_tlen_binned]
 
 
-def stat_tlen_binned(aligmentfile, **kwargs):
+def stat_tlen_binned(alignmentfile, **kwargs):
     """Generate binned insert size statistics.
 
     Parameters
     ----------
 
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path
     chrom : string
         chromosome/contig
@@ -3539,7 +3599,7 @@ def stat_tlen_binned(aligmentfile, **kwargs):
     """
 
     stat = _TlenBinned()
-    return _iter_binned(stat, aligmentfile=aligmentfile, **kwargs)
+    return _iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
 
 
 cdef class _TlenBinned(_StatBinned):
@@ -3555,7 +3615,7 @@ cdef class _TlenBinned(_StatBinned):
         self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
             self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
 
-    cdef dict rec(self, chrom, bin_start, bin_end, Fastafile fafile):
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # make record for bin
         rec = {'reads_all': self.reads_all, 'reads_pp': self.reads_pp,
@@ -3601,7 +3661,7 @@ def load_tlen_binned(*args, **kwargs):
 #####################
 
 
-def _iter_pileup(frec, fpad, aligmentfile, fafile=None, chrom=None, start=None,
+def _iter_pileup(frec, fpad, alignmentfile, fafile=None, chrom=None, start=None,
                  end=None, one_based=False, truncate=False, pad=False,
                  max_depth=8000, **kwargs):
     """General purpose function to generate statistics, where one record is
@@ -3610,50 +3670,50 @@ def _iter_pileup(frec, fpad, aligmentfile, fafile=None, chrom=None, start=None,
 
     """
 
-    if isinstance(aligmentfile, basestring):
-        aligmentfile = AlignmentFile(aligmentfile)
+    if isinstance(alignmentfile, _string_types):
+        alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, basestring):
-        fafile = Fastafile(fafile)
+    if isinstance(fafile, _string_types):
+        fafile = FastaFile(fafile)
 
     if pad:
-        return _iter_pileup_padded(frec, fpad, aligmentfile,
+        return _iter_pileup_padded(frec, fpad, alignmentfile,
                                    fafile=fafile, chrom=chrom,
                                    start=start, end=end, one_based=one_based,
                                    truncate=truncate, max_depth=max_depth,
                                    **kwargs)
     else:
-        return _iter_pileup_default(frec, aligmentfile, fafile=fafile, chrom=chrom,
+        return _iter_pileup_default(frec, alignmentfile, fafile=fafile, chrom=chrom,
                                     start=start, end=end, one_based=one_based,
                                     truncate=truncate, max_depth=max_depth,
                                     **kwargs)
 
 
-def _iter_pileup_default(frec, aligmentfile, fafile=None,
+def _iter_pileup_default(frec, alignmentfile, fafile=None,
                          chrom=None, start=None, end=None,
                          one_based=False, truncate=False,
                          max_depth=8000, **kwargs):
-    start, end = _normalise_coords(aligmentfile, chrom, start, end, one_based)
-    it = aligmentfile.pileup(reference=chrom, start=start, end=end,
+    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end,
                         truncate=truncate, max_depth=max_depth)
     for col in it:
-        yield frec(aligmentfile, fafile, col, one_based)
+        yield frec(alignmentfile, fafile, col, one_based)
 
 
-def _iter_pileup_padded(frec, fpad, aligmentfile, fafile=None, chrom=None,
+def _iter_pileup_padded(frec, fpad, alignmentfile, fafile=None, chrom=None,
                         start=None, end=None, one_based=False,
                         truncate=False, max_depth=8000, **kwargs):
 
     if chrom is not None:
-        it = _iter_pileup_padded_chrom(frec, fpad, aligmentfile, fafile=fafile,
+        it = _iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile=fafile,
                                        chrom=chrom, start=start, end=end,
                                        one_based=one_based,
                                        truncate=truncate,
                                        max_depth=max_depth, **kwargs)
     else:
         its = list()
-        for chrom in aligmentfile.references:
-            itc = _iter_pileup_padded_chrom(frec, fpad, aligmentfile, fafile=fafile,
+        for chrom in alignmentfile.references:
+            itc = _iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile=fafile,
                                             chrom=chrom, start=None,
                                             end=None,
                                             one_based=one_based,
@@ -3661,57 +3721,57 @@ def _iter_pileup_padded(frec, fpad, aligmentfile, fafile=None, chrom=None,
                                             max_depth=max_depth,
                                             **kwargs)
             its.append(itc)
-        it = itertools.chain(*its)
+        it = _itertools.chain(*its)
     return it
 
 
-def _iter_pileup_padded_chrom(frec, fpad, aligmentfile, fafile, chrom, start=None,
+def _iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile, chrom, start=None,
                               end=None, one_based=False, truncate=False,
                               max_depth=8000, **kwargs):
     cdef PileupColumn col
     cdef int curpos
     assert chrom is not None, 'chromosome is None'
-    start, end = _normalise_coords(aligmentfile, chrom, start, end, one_based)
-    it = aligmentfile.pileup(reference=chrom, start=start, end=end,
+    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end,
                         truncate=truncate, max_depth=max_depth)
     curpos = start
     for col in it:
         while curpos < col.pos:
             yield fpad(fafile, chrom, curpos, one_based)
             curpos += 1
-        yield frec(aligmentfile, fafile, col, one_based)
+        yield frec(alignmentfile, fafile, col, one_based)
         curpos = col.pos + 1
     while curpos < end:
         yield fpad(fafile, chrom, curpos, one_based)
         curpos += 1
 
 
-def _iter_binned(stat, aligmentfile, fafile=None, chrom=None, start=None, end=None,
+def _iter_binned(stat, alignmentfile, fafile=None, chrom=None, start=None, end=None,
                  one_based=False, window_size=300, window_offset=None,
                  **kwargs):
 
-    if isinstance(aligmentfile, basestring):
-        aligmentfile = AlignmentFile(aligmentfile)
+    if isinstance(alignmentfile, _string_types):
+        alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, basestring):
-        fafile = Fastafile(fafile)
+    if isinstance(fafile, _string_types):
+        fafile = FastaFile(fafile)
 
     if window_offset is None:
         window_offset = window_size / 2
 
     if chrom is None:
         its = list()
-        for chrom in aligmentfile.references:
-            itc = _iter_binned_chrom(stat, aligmentfile=aligmentfile,
+        for chrom in alignmentfile.references:
+            itc = _iter_binned_chrom(stat, alignmentfile=alignmentfile,
                                      fafile=fafile, chrom=chrom, start=None,
                                      end=None, one_based=one_based,
                                      window_size=window_size,
                                      window_offset=window_offset)
             its.append(itc)
-        it = itertools.chain(*its)
+        it = _itertools.chain(*its)
 
     else:
-        it = _iter_binned_chrom(stat, aligmentfile=aligmentfile, fafile=fafile,
+        it = _iter_binned_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
                                 chrom=chrom, start=start, end=end,
                                 one_based=one_based, window_size=window_size,
                                 window_offset=window_offset)
@@ -3719,22 +3779,23 @@ def _iter_binned(stat, aligmentfile, fafile=None, chrom=None, start=None, end=No
     return it
 
 
-def _iter_binned_chrom(_StatBinned stat, AlignmentFile aligmentfile, Fastafile fafile,
+def _iter_binned_chrom(_StatBinned stat, AlignmentFile alignmentfile, FastaFile fafile,
                        chrom, start=None, end=None, one_based=False,
                        int window_size=300, int window_offset=150, **kwargs):
 
     # setup
 
     assert chrom is not None, 'chromosome is None'
-    start, end = _normalise_coords(aligmentfile, chrom, start, end, one_based)
+    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
 
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     has_coord, rtid, rstart, rend = \
-        aligmentfile._parseRegion(chrom, start, end, None)
+        alignmentfile._parseRegion(chrom, start, end, None)
 
     cdef IteratorRowRegion it
     cdef bam1_t * b
-    it = IteratorRowRegion(aligmentfile, rtid, rstart, rend, reopen=False)
+    it = IteratorRowRegion(alignmentfile, rtid, rstart, rend,
+                           multiple_iterators=False)
     b = it.b
 
     # setup first bin
@@ -3791,7 +3852,7 @@ def _iter_binned_chrom(_StatBinned stat, AlignmentFile aligmentfile, Fastafile f
             yield rec
 
 
-def _normalise_coords(AlignmentFile aligmentfile, chrom, start, end, one_based):
+def _normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based):
     """Convert to zero-based coordinates and deal with unspecified start
     and/or end.
 
@@ -3801,14 +3862,14 @@ def _normalise_coords(AlignmentFile aligmentfile, chrom, start, end, one_based):
         return None, None
 
     else:
-        assert chrom in aligmentfile.references, \
+        assert chrom in alignmentfile.references, \
             'chromosome not in SAM references: %s' % chrom
 
         if one_based:
             start = start - 1 if start is not None else None
             end = end - 1 if end is not None else None
 
-        chrlen = aligmentfile.lengths[aligmentfile.references.index(chrom)]
+        chrlen = alignmentfile.lengths[alignmentfile.references.index(chrom)]
         if start is None:
             start = 0
         if end is None:
@@ -3819,7 +3880,7 @@ def _normalise_coords(AlignmentFile aligmentfile, chrom, start, end, one_based):
         return start, end
 
     
-def write_csv(stats_type, outfile, aligmentfile, fields=None, dialect='excel-tab',
+def write_csv(stats_type, outfile, alignmentfile, fields=None, dialect='excel-tab',
               write_header=True, progress=None, **kwargs):
     """Write statistics output to a CSV file.
 
@@ -3830,7 +3891,7 @@ def write_csv(stats_type, outfile, aligmentfile, fields=None, dialect='excel-tab
         statistics type, one of 'coverage', 'coverage_ext', ...
     outfile : file-like
         output file to write to
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         input BAM or SAM file or file path
     fields : list of strings
         list of field names to output (all by default)
@@ -3855,13 +3916,13 @@ def write_csv(stats_type, outfile, aligmentfile, fields=None, dialect='excel-tab
         fields = globals()['fields_' + stats_type]
 
     # setup record generator
-    recs = stats_function(aligmentfile, **kwargs)
+    recs = stats_function(alignmentfile, **kwargs)
 
     # flatten records to rows
     rows = flatten(recs, *fields)
 
     # initialise writer
-    writer = csv.writer(outfile, dialect=dialect)
+    writer = _csv.writer(outfile, dialect=dialect)
 
     # write header row
     if write_header:
@@ -3875,28 +3936,29 @@ def write_csv(stats_type, outfile, aligmentfile, fields=None, dialect='excel-tab
     else:
         counter = 0
         modulus = progress
-        before = time.time()
+        before = _time.time()
         before_all = before
         for row in rows:
             counter += 1
             writer.writerow(row)
             if counter % modulus == 0:
-                after = time.time()
+                after = _time.time()
                 elapsed = after - before_all
                 batch_elapsed = after - before
-                print >>sys.stderr, \
-                    '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
-                    '%.2fs (%d rows/s)' \
-                    % (counter, elapsed, counter/elapsed, batch_elapsed,
-                       progress/batch_elapsed)
+                msg = '[pysamstats] %s rows in %.2fs (%d rows/s); batch in ' \
+                      '%.2fs (%d rows/s)' \
+                      % (counter, elapsed, counter / elapsed, batch_elapsed,
+                         progress / batch_elapsed)
+                print(msg, file=_sys.stderr)
                 before = after
-        after_all = time.time()
+        after_all = _time.time()
         elapsed_all = after_all - before_all
-        print >>sys.stderr, '[pysamstats] %s rows in %.2fs (%d rows/s)' \
-                            % (counter, elapsed_all, counter/elapsed_all)
+        msg = '[pysamstats] %s rows in %.2fs (%d rows/s)' \
+              % (counter, elapsed_all, counter / elapsed_all)
+        print(msg, file=_sys.stderr)
     
 
-def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
+def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None,
                hdf5_group='/', hdf5_dataset='data', hdf5_complevel=5,
                hdf5_complib='zlib', hdf5_shuffle=True,
                hdf5_fletcher32=False, hdf5_chunksize=2**17, **kwargs):
@@ -3909,7 +3971,7 @@ def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
         statistics type, one of 'coverage', 'coverage_ext', ...
     outfile : string
         output file path
-    aligmentfile : pysam.AlignmentFile or string
+    alignmentfile : pysam.AlignmentFile or string
         input BAM or SAM file or file path
     fields : list of strings
         list of field names to output (all by default)
@@ -3936,6 +3998,7 @@ def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
     """
 
     import tables
+    import numpy as np
     h5file = None
 
     # lookup stats function
@@ -3959,7 +4022,7 @@ def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
     dtype = np.dtype(dtype)
 
     # setup record generator
-    recs = stats_function(aligmentfile, **kwargs)
+    recs = stats_function(alignmentfile, **kwargs)
 
     # flatten records to rows
     rows = flatten(recs, *fields)
@@ -3993,11 +4056,11 @@ def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
         # record initial time
         counter = 0
         counter_before = 0
-        before = time.time()
+        before = _time.time()
         before_all = before
 
         # load data in batches of size `hdf5_chunklen`
-        chunk = list(itertools.islice(rows, hdf5_chunklen))
+        chunk = list(_itertools.islice(rows, hdf5_chunklen))
 
         # load chunk at a time
         while chunk:
@@ -4012,26 +4075,27 @@ def write_hdf5(stats_type, outfile, aligmentfile, fields=None, progress=None,
 
             # log progress
             if progress and (counter % progress) < hdf5_chunklen:
-                after = time.time()
+                after = _time.time()
                 elapsed = after - before_all
                 batch_elapsed = after - before
                 batch_size = counter - counter_before
-                print >>sys.stderr, \
-                    '[pysamstats] %s rows in %.2fs (%d rows/s); last %s rows ' \
-                    'in %.2fs (%d rows/s)' \
-                    % (counter, elapsed, counter/elapsed,
-                       batch_size, batch_elapsed, batch_size/batch_elapsed)
+                msg = '[pysamstats] %s rows in %.2fs (%d rows/s); last %s ' \
+                      'rows in %.2fs (%d rows/s)' \
+                      % (counter, elapsed, counter / elapsed,
+                         batch_size, batch_elapsed, batch_size / batch_elapsed)
+                print(msg, file=_sys.stderr)
                 before = after
                 counter_before = counter
 
             # load next batch
-            chunk = list(itertools.islice(rows, hdf5_chunklen))
+            chunk = list(_itertools.islice(rows, hdf5_chunklen))
 
         if progress:
-            after_all = time.time()
+            after_all = _time.time()
             elapsed_all = after_all - before_all
-            print >>sys.stderr, '[pysamstats] %s rows in %.2fs (%d rows/s)' \
-                                % (counter, elapsed_all, counter/elapsed_all)
+            msg = '[pysamstats] %s rows in %.2fs (%d rows/s)' \
+                  % (counter, elapsed_all, counter / elapsed_all)
+            print(msg, file=_sys.stderr)
 
     finally:
         if h5file is not None:
@@ -4114,6 +4178,8 @@ class _StatsTable(object):
 
 def _load_stats(statfun, default_dtype, *args, **kwargs):
 
+    import numpy as np
+
     # determine fields to load
     fields = kwargs.pop('fields', None)
     if not fields:
@@ -4148,7 +4214,7 @@ def _load_stats(statfun, default_dtype, *args, **kwargs):
                 
 cdef inline bint _is_softclipped(bam1_t * aln):
     cdef int k
-    cigar_p = pysam_bam_get_cigar(aln);
+    cigar_p = pysam_bam_get_cigar(aln)
     for k in range(aln.core.n_cigar):
         op = cigar_p[k] & BAM_CIGAR_MASK
         if op == BAM_CSOFT_CLIP:
@@ -4167,21 +4233,21 @@ cdef inline object _get_seq_base(bam1_t *src, uint32_t k):
     s   = <char*>seq
     p   = pysam_bam_get_seq(src)
 
-    s[0] = bam_nt16_rev_table[p[k/2] >> 4 * (1 - k%2) & 0xf]
+    s[0] = bam_nt16_rev_table[p[k//2] >> 4 * (1 - k%2) & 0xf]
 
     return seq
 
 
 cdef inline int _rootmean(uint64_t sqsum, int count):
     if count > 0:
-        return int(round(sqrt(sqsum * 1. / count)))
+        return int(round(sqrt(sqsum / count)))
     else:
         return 0
     
     
-cdef inline int _mean(int64_t sum, int count):
+cdef inline int _mean(int64_t total, int count):
     if count > 0:
-        return int(round(sum * 1. / count))
+        return int(round(total / count))
     else:
         return 0
 
@@ -4189,12 +4255,14 @@ cdef inline int _mean(int64_t sum, int count):
 # SANDBOX
 
 
-def count_reads(AlignmentFile aligmentfile, chrom=None, start=None, end=None):
+def count_reads(AlignmentFile alignmentfile, chrom=None, start=None, end=None):
     cdef IteratorRowRegion it
     cdef int n = 0
-    has_coord, rtid, rstart, rend = aligmentfile._parseRegion(chrom, start, end,
-                                                         None)
-    it = IteratorRowRegion(aligmentfile, rtid, rstart, rend, reopen=False)
+    has_coord, rtid, rstart, rend = alignmentfile._parseRegion(chrom, start,
+                                                               end,
+                                                               None)
+    it = IteratorRowRegion(alignmentfile, rtid, rstart, rend,
+                           multiple_iterators=False)
     while True:
         it.cnext()
         if it.retval > 0:

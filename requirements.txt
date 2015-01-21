@@ -1,5 +1,3 @@
 cython
 numpy
 pysam==0.8.1
-nose
-ipython[all]
