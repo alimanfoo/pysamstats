@@ -11,20 +11,28 @@ based on sequence alignments from a SAM or BAM file.
 Installation
 ------------
 
-Building pysamstats depends on [numpy](http://www.numpy.org/), please install
-that first. Then try:
+Building pysamstats depends on [numpy](http://www.numpy.org/),
+[cython](http://cython.org/) and
+[pysam](http://pysam.readthedocs.org/en/latest/) version 0.8.1. These *should*
+be installed automatically via pip, e.g.:
 
 ```
-$ pip install -U pysam
-$ pip install -U pysamstats
+$ pip install pysamstats
 ```
 
-N.B., pysamstats also depends on [pysam](http://code.google.com/p/pysam/)
-which needs to be installed **before** attempting to install pysamstats. If you
-have problems installing pysam, email the
+However, if you have any problems, try installing the dependencies first, e.g.:
+
+```
+$ pip install cython
+$ pip install numpy
+$ pip install pysam==0.8.2
+$ pip install pysamstats
+
+If you have problems installing pysam, email the
 [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-**Please note that pysamstats versions 0.16 and higher requires pysam version 0.8.0.**
+**Please note that pysamstats versions 0.20 and higher requires pysam version
+0.8.1.**
 
 Alternatively, clone the git repo and build in-place:
 
