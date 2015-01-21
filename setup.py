@@ -1,4 +1,7 @@
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 from ast import literal_eval
 from distutils.extension import Extension
 from Cython.Build import cythonize
@@ -38,4 +41,5 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     ext_modules=cythonize(extensions),
+    install_requires=['pysam>=0.8.1'],
 )
