@@ -13,26 +13,21 @@ Installation
 
 Building pysamstats depends on [numpy](http://www.numpy.org/),
 [cython](http://cython.org/) and
-[pysam](http://pysam.readthedocs.org/en/latest/) version 0.8.1. These *should*
-be installed automatically via pip, e.g.:
-
-```
-$ pip install pysamstats
-```
-
-However, if you have any problems, try installing the dependencies first, e.g.:
+[pysam version 0.8.1](http://pysam.readthedocs.org/en/latest/). Please **install
+these dependencies first**, before attempting to install pysamstats, e.g.:
 
 ```
 $ pip install cython
 $ pip install numpy
-$ pip install pysam==0.8.2
+$ pip install pysam==0.8.1
 $ pip install pysamstats
+```
 
 If you have problems installing pysam, email the
 [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-**Please note that pysamstats versions 0.20 and higher requires pysam version
-0.8.1.**
+**Please note that pysamstats versions 0.20 and higher specifically requires
+pysam version 0.8.1.**
 
 Alternatively, clone the git repo and build in-place:
 
@@ -49,6 +44,8 @@ From the command line:
 
 ```
 $ pysamstats --help
+Usage: pysamstats [options] FILE
+
 Calculate statistics against genome positions based on sequence alignments
 from a SAM or BAM file and print them to stdout.
 
@@ -136,8 +133,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.19 (pysam 0.8.0)
-
+Version: 0.20 (pysam 0.8.1)
 ```
 
 From Python:
@@ -263,5 +259,3 @@ properly paired.
 * **rms_baseq_mismatches** - Root-mean-square value of base qualities
     for bases aligned at this position where the base does not match
     the reference.
-
-

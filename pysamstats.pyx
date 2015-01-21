@@ -3,7 +3,7 @@
 from __future__ import print_function, division, absolute_import
 
 
-__version__ = '0.20b1'
+__version__ = '0.20b2'
 
 
 import sys as _sys
