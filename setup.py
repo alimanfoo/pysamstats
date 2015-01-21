@@ -15,7 +15,8 @@ def get_version(source='pysamstats.pyx'):
 
 extensions = [Extension('pysamstats',
                         sources=['pysamstats.pyx'],
-                        include_dirs=pysam.get_include())]
+                        include_dirs=pysam.get_include(),
+                        define_macros=pysam.get_defines())]
 
 
 setup(
