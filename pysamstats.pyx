@@ -1,9 +1,9 @@
-# cython: profile=True
+# cython: profile=False
 # cython: embedsignature=True
 from __future__ import print_function, division, absolute_import
 
 
-__version__ = '0.20b4'
+__version__ = '0.20'
 
 
 import sys as _sys
