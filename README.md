@@ -13,28 +13,26 @@ Installation
 
 Building pysamstats depends on [numpy](http://www.numpy.org/),
 [cython](http://cython.org/) and
-[pysam version 0.8.1](http://pysam.readthedocs.org/en/latest/). Please **install
-these dependencies first**, before attempting to install pysamstats, e.g.:
+[pysam version 0.8.3 or higher](http://pysam.readthedocs.org/en/latest/).
+Please **install these dependencies first**, before attempting to install
+pysamstats, e.g.:
 
 ```
 $ pip install cython
 $ pip install numpy
-$ pip install pysam==0.8.1
+$ pip install pysam
 $ pip install pysamstats
 ```
 
 If you have problems installing pysam, email the
 [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-**Please note that pysamstats versions 0.20 and higher specifically requires
-pysam version 0.8.1.**
-
-Alternatively, clone the git repo and build in-place:
+Alternatively, clone the git repo and install:
 
 ```
 $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
-$ python setup.py build_ext --inplace 
+$ python setup.py install
 ```
 
 Usage
@@ -133,7 +131,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.20 (pysam 0.8.1)
+Version: 0.22 (pysam 0.8.3)
 ```
 
 From Python:

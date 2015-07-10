@@ -1,15 +1,15 @@
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
-from ast import literal_eval
+from distutils.core import setup
 from distutils.extension import Extension
-from Cython.Build import cythonize
+
+
+# require pysam is pre-installed
 import pysam
 
 
-def get_version(source='pysamstats.pyx'):
-    with open(source) as f:
+def get_version():
+    """Extract version number from source file."""
+    from ast import literal_eval
+    with open('pysamstats.pyx') as f:
         for line in f:
             if line.startswith('__version__'):
                 return literal_eval(line.partition('=')[2].lstrip())
@@ -17,7 +17,7 @@ def get_version(source='pysamstats.pyx'):
 
 
 extensions = [Extension('pysamstats',
-                        sources=['pysamstats.pyx'],
+                        sources=['pysamstats.c'],
                         include_dirs=pysam.get_include(),
                         define_macros=pysam.get_defines())]
 
@@ -30,7 +30,8 @@ setup(
     url='https://github.com/alimanfoo/pysamstats',
     license='MIT Licenses',
     description='A Python utility for calculating statistics against genome '
-                'position based on sequence alignments from a SAM or BAM file.',
+                'position based on sequence alignments from a SAM, '
+                'BAM or CRAM file.',
     scripts=['scripts/pysamstats'],
     classifiers=[
         'Intended Audience :: Developers',
@@ -40,6 +41,6 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
-    ext_modules=cythonize(extensions),
-    install_requires=['pysam>=0.8.1'],
+    ext_modules=extensions,
+    install_requires=['pysam>=0.8.3'],
 )

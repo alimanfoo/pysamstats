@@ -3,21 +3,13 @@
 from __future__ import print_function, division, absolute_import
 
 
-__version__ = '0.21'
+__version__ = '0.22'
 
 
 import sys as _sys
 import itertools as _itertools
 import time as _time
 import csv as _csv
-from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
-from libc.math cimport sqrt
-from cpython cimport PyBytes_FromStringAndSize
-from pysam.chtslib cimport bam1_t, bam_pileup1_t
-from pysam.cfaidx cimport FastaFile
-from pysam.calignmentfile cimport AlignmentFile, PileupColumn, \
-    IteratorRowRegion, pysam_bam_get_cigar, pysam_bam_get_seq, \
-    pysam_bam_get_qual
 
 
 # PY2/3 compatibility

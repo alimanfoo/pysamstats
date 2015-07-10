@@ -1,3 +1,4 @@
 include *.md
 include *.pyx
 include *.pxd
+include *.c
