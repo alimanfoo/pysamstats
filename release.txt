@@ -1,6 +1,7 @@
 sed -i -e 's/.dev0//' pysamstats.pyx
 version=`grep __version__ pysamstats.pyx | sed -e "s/__version__[ ]=[ ]'\(.*\)'/\1/"`
 echo $version
+python cythonize.py
 python setup.py build_ext --inplace
 nosetests -v
 git commit -a -m v$version

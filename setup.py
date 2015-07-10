@@ -42,5 +42,4 @@ setup(
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     ext_modules=extensions,
-    install_requires=['pysam>=0.8.3'],
 )
