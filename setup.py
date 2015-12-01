@@ -8,9 +8,10 @@ try:
 except ImportError:
     raise Exception('pysam not found; please install pysam first')
 from distutils.version import StrictVersion
-if StrictVersion(pysam.__version__) < StrictVersion('0.8.4'):
-    raise Exception('pysam version >= 0.8.4 is required; found %s' %
-                    pysam.__version__)
+required_pysam_version = '0.8.4'
+if StrictVersion(pysam.__version__) < StrictVersion(required_pysam_version):
+    raise Exception('pysam version >= %s is required; found %s' %
+                    (required_pysam_version, pysam.__version__))
 
 
 def get_version():
