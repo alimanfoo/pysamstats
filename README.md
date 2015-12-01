@@ -12,13 +12,12 @@ Installation
 ------------
 
 Building pysamstats depends on 
-[pysam version 0.8.3 or higher](http://pysam.readthedocs.org/en/latest/).
+[pysam version 0.8.4 or higher](http://pysam.readthedocs.org/en/latest/).
 Please **install pysam first**, before attempting to install
 pysamstats, e.g.:
 
 ```
-$ pip install cython
-$ pip install pysam>=0.8.3
+$ pip install pysam>=0.8.4
 $ pip install pysamstats
 ```
 
@@ -131,7 +130,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.23 (pysam 0.8.3)
+Version: 0.24 (pysam 0.8.4)
 ```
 
 From Python:

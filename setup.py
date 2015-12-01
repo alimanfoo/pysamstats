@@ -3,7 +3,14 @@ from distutils.extension import Extension
 
 
 # require pysam is pre-installed
-import pysam
+try:
+    import pysam
+except ImportError:
+    raise Exception('pysam not found; please install pysam first')
+from distutils.version import StrictVersion
+if StrictVersion(pysam.__version__) < StrictVersion('0.8.4'):
+    raise Exception('pysam version >= 0.8.4 is required; found %s' %
+                    pysam.__version__)
 
 
 def get_version():
