@@ -1520,7 +1520,7 @@ struct __pyx_obj_10pysamstats___pyx_scope_struct_2__iter_pileup_padded_chrom {
   PyObject_HEAD
   PyObject *__pyx_v_alignmentfile;
   PyObject *__pyx_v_chrom;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col;
   int __pyx_v_curpos;
   PyObject *__pyx_v_end;
   PyObject *__pyx_v_fafile;
@@ -2655,35 +2655,35 @@ static PyTypeObject *__pyx_ptype_10pysamstats___pyx_scope_struct_5_genexpr = 0;
 static PyTypeObject *__pyx_ptype_10pysamstats___pyx_scope_struct_6___iter__ = 0;
 static char *__pyx_v_10pysamstats_CODE2CIGAR;
 static char *__pyx_v_10pysamstats_bam_nt16_rev_table;
-static PyObject *__pyx_f_10pysamstats__rec_coverage(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_coverage(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_coverage_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_coverage_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_coverage_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_coverage_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_variation(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_variation(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_variation_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_pad *__pyx_optional_args); /*proto*/
 static CYTHON_INLINE PyObject *__pyx_f_10pysamstats__init_pp_strand(struct __pyx_t_10pysamstats__CountPpStrand *); /*proto*/
 static CYTHON_INLINE PyObject *__pyx_f_10pysamstats__incr_pp_strand(struct __pyx_t_10pysamstats__CountPpStrand *, int, int); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_variation_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_variation_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_variation_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_tlen(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_tlen(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_tlen_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_tlen_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_tlen_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_tlen_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_mapq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_mapq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_mapq_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_mapq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_mapq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_mapq_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_baseq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_baseq_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_baseq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_baseq_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_strand_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_baseq_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_pad *__pyx_optional_args); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_strand *__pyx_optional_args); /*proto*/
+static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *, struct __pyx_obj_5pysam_6cfaidx_FastaFile *, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_strand *__pyx_optional_args); /*proto*/
 static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_strand_pad(struct __pyx_obj_5pysam_6cfaidx_FastaFile *, PyObject *, PyObject *, int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_strand_pad *__pyx_optional_args); /*proto*/
 static CYTHON_INLINE int __pyx_f_10pysamstats__gc_content(PyObject *); /*proto*/
 static CYTHON_INLINE int __pyx_f_10pysamstats__is_softclipped(bam1_t *); /*proto*/
@@ -2799,7 +2799,6 @@ static char __pyx_k_sys_2[] = "sys";
 static char __pyx_k_throw[] = "throw";
 static char __pyx_k_title[] = "title";
 static char __pyx_k_upper[] = "upper";
-static char __pyx_k_0_24_0[] = "0.24.0";
 static char __pyx_k_append[] = "append";
 static char __pyx_k_before[] = "before";
 static char __pyx_k_chrlen[] = "chrlen";
@@ -2917,6 +2916,7 @@ static char __pyx_k_references[] = "references";
 static char __pyx_k_stat_baseq[] = "stat_baseq";
 static char __pyx_k_stats_type[] = "stats_type";
 static char __pyx_k_write_hdf5[] = "write_hdf5";
+static char __pyx_k_0_25_0_dev0[] = "0.25.0.dev0";
 static char __pyx_k_MemoryError[] = "MemoryError";
 static char __pyx_k_count_reads[] = "count_reads";
 static char __pyx_k_dtype_baseq[] = "dtype_baseq";
@@ -3157,7 +3157,7 @@ static char __pyx_k_stat_coverage_gc_locals__rec_cov[] = "stat_coverage_gc.<loca
 static char __pyx_k_pysamstats_s_rows_in_2fs_d_rows_2[] = "[pysamstats] %s rows in %.2fs (%d rows/s)";
 static char __pyx_k_pysamstats_s_rows_in_2fs_d_rows_3[] = "[pysamstats] %s rows in %.2fs (%d rows/s); last %s rows in %.2fs (%d rows/s)";
 static char __pyx_k_stat_coverage_gc_locals__rec_cov_2[] = "stat_coverage_gc.<locals>._rec_coverage_gc_pad";
-static PyObject *__pyx_kp_s_0_24_0;
+static PyObject *__pyx_kp_s_0_25_0_dev0;
 static PyObject *__pyx_n_b_A;
 static PyObject *__pyx_n_s_A;
 static PyObject *__pyx_n_s_A_fwd;
@@ -3616,63 +3616,63 @@ static PyObject *__pyx_n_s_write_header;
 static PyObject *__pyx_n_s_writer;
 static PyObject *__pyx_n_s_writerow;
 static PyObject *__pyx_n_s_zlib;
-static PyObject *__pyx_pf_10pysamstats__rec_coverage(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats__rec_coverage(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_2_rec_coverage_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_4stat_coverage(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_6load_coverage(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_8_rec_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_8_rec_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_10_rec_coverage_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_12stat_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_14load_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_16_rec_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_16_rec_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_18_rec_coverage_ext_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_20stat_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_22load_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_24_rec_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_24_rec_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_26_rec_coverage_ext_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_28stat_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_30load_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_32_rec_variation(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_32_rec_variation(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_34_rec_variation_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_36stat_variation(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_38load_variation(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_40_rec_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_40_rec_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_42_rec_variation_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_44stat_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_46load_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_48_rec_tlen(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_48_rec_tlen(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_50_rec_tlen_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_52stat_tlen(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_54load_tlen(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_56_rec_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_56_rec_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_58_rec_tlen_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_60stat_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_62load_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_64_rec_mapq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_64_rec_mapq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_66_rec_mapq_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_68stat_mapq(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_70load_mapq(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_72_rec_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_72_rec_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_74_rec_mapq_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_76stat_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_78load_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_80_rec_baseq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_80_rec_baseq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_82_rec_baseq_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_84stat_baseq(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_86load_baseq(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_88_rec_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_88_rec_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_90_rec_baseq_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_92stat_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_94load_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_96_rec_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_96_rec_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_98_rec_baseq_ext_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_100stat_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_102load_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_104_rec_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_104_rec_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_106_rec_baseq_ext_strand_pad(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_108stat_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_110load_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_16stat_coverage_gc__rec_coverage_gc(PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
+static PyObject *__pyx_pf_10pysamstats_16stat_coverage_gc__rec_coverage_gc(PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_16stat_coverage_gc_2_rec_coverage_gc_pad(PyObject *__pyx_self, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos, int __pyx_v_one_based); /* proto */
 static PyObject *__pyx_pf_10pysamstats_112stat_coverage_gc(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_pad, PyObject *__pyx_v_max_depth, PyObject *__pyx_v_window_size, PyObject *__pyx_v_window_offset, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_114load_coverage_gc(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_args, PyObject *__pyx_v_kwargs); /* proto */
@@ -4189,7 +4189,7 @@ static PyObject *__pyx_codeobj__452;
  */
 
 static PyObject *__pyx_pw_10pysamstats_1_rec_coverage(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_coverage(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage *__pyx_optional_args) {
 
   /* "pysamstats.pyx":83
  * 
@@ -4474,7 +4474,7 @@ static char __pyx_doc_10pysamstats__rec_coverage[] = "_rec_coverage(AlignmentFil
 static PyObject *__pyx_pw_10pysamstats_1_rec_coverage(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -4532,7 +4532,7 @@ static PyObject *__pyx_pw_10pysamstats_1_rec_coverage(PyObject *__pyx_self, PyOb
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 83; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -4557,7 +4557,7 @@ static PyObject *__pyx_pw_10pysamstats_1_rec_coverage(PyObject *__pyx_self, PyOb
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 82; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 82; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 83; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 83; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats__rec_coverage(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":82
@@ -4577,7 +4577,7 @@ static PyObject *__pyx_pw_10pysamstats_1_rec_coverage(PyObject *__pyx_self, PyOb
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats__rec_coverage(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats__rec_coverage(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -5104,7 +5104,7 @@ static PyObject *__pyx_pf_10pysamstats_6load_coverage(CYTHON_UNUSED PyObject *__
  */
 
 static PyObject *__pyx_pw_10pysamstats_9_rec_coverage_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_coverage_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":189
  * 
@@ -5569,7 +5569,7 @@ static char __pyx_doc_10pysamstats_8_rec_coverage_strand[] = "_rec_coverage_stra
 static PyObject *__pyx_pw_10pysamstats_9_rec_coverage_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -5627,7 +5627,7 @@ static PyObject *__pyx_pw_10pysamstats_9_rec_coverage_strand(PyObject *__pyx_sel
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 189; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -5652,7 +5652,7 @@ static PyObject *__pyx_pw_10pysamstats_9_rec_coverage_strand(PyObject *__pyx_sel
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 188; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 188; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 189; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 189; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_8_rec_coverage_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":188
@@ -5672,7 +5672,7 @@ static PyObject *__pyx_pw_10pysamstats_9_rec_coverage_strand(PyObject *__pyx_sel
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_8_rec_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_8_rec_coverage_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -6227,7 +6227,7 @@ static PyObject *__pyx_pf_10pysamstats_14load_coverage_strand(CYTHON_UNUSED PyOb
  */
 
 static PyObject *__pyx_pw_10pysamstats_17_rec_coverage_ext(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_coverage_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext *__pyx_optional_args) {
 
   /* "pysamstats.pyx":321
  * 
@@ -6928,7 +6928,7 @@ static char __pyx_doc_10pysamstats_16_rec_coverage_ext[] = "_rec_coverage_ext(Al
 static PyObject *__pyx_pw_10pysamstats_17_rec_coverage_ext(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -6986,7 +6986,7 @@ static PyObject *__pyx_pw_10pysamstats_17_rec_coverage_ext(PyObject *__pyx_self,
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 321; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -7011,7 +7011,7 @@ static PyObject *__pyx_pw_10pysamstats_17_rec_coverage_ext(PyObject *__pyx_self,
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 320; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 320; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 320; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 320; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_16_rec_coverage_ext(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":320
@@ -7031,7 +7031,7 @@ static PyObject *__pyx_pw_10pysamstats_17_rec_coverage_ext(PyObject *__pyx_self,
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_16_rec_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_16_rec_coverage_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -7548,7 +7548,7 @@ static PyObject *__pyx_pf_10pysamstats_22load_coverage_ext(CYTHON_UNUSED PyObjec
  */
 
 static PyObject *__pyx_pw_10pysamstats_25_rec_coverage_ext_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_coverage_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_coverage_ext_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":485
  * 
@@ -8915,7 +8915,7 @@ static char __pyx_doc_10pysamstats_24_rec_coverage_ext_strand[] = "_rec_coverage
 static PyObject *__pyx_pw_10pysamstats_25_rec_coverage_ext_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -8973,7 +8973,7 @@ static PyObject *__pyx_pw_10pysamstats_25_rec_coverage_ext_strand(PyObject *__py
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 485; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -8998,7 +8998,7 @@ static PyObject *__pyx_pw_10pysamstats_25_rec_coverage_ext_strand(PyObject *__py
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 484; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 484; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 485; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 485; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_24_rec_coverage_ext_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":484
@@ -9018,7 +9018,7 @@ static PyObject *__pyx_pw_10pysamstats_25_rec_coverage_ext_strand(PyObject *__py
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_24_rec_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_24_rec_coverage_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -9583,7 +9583,7 @@ static PyObject *__pyx_pf_10pysamstats_30load_coverage_ext_strand(CYTHON_UNUSED 
  */
 
 static PyObject *__pyx_pw_10pysamstats_33_rec_variation(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_variation(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_variation(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation *__pyx_optional_args) {
 
   /* "pysamstats.pyx":728
  * 
@@ -10830,7 +10830,7 @@ static char __pyx_doc_10pysamstats_32_rec_variation[] = "_rec_variation(Alignmen
 static PyObject *__pyx_pw_10pysamstats_33_rec_variation(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -10888,7 +10888,7 @@ static PyObject *__pyx_pw_10pysamstats_33_rec_variation(PyObject *__pyx_self, Py
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 728; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -10913,7 +10913,7 @@ static PyObject *__pyx_pw_10pysamstats_33_rec_variation(PyObject *__pyx_self, Py
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 727; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 727; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 728; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 728; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_32_rec_variation(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":727
@@ -10933,7 +10933,7 @@ static PyObject *__pyx_pw_10pysamstats_33_rec_variation(PyObject *__pyx_self, Py
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_32_rec_variation(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_32_rec_variation(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -11795,7 +11795,7 @@ static CYTHON_INLINE PyObject *__pyx_f_10pysamstats__incr_pp_strand(struct __pyx
  */
 
 static PyObject *__pyx_pw_10pysamstats_41_rec_variation_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_variation_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_variation_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_variation_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":986
  * 
@@ -12887,7 +12887,7 @@ static char __pyx_doc_10pysamstats_40_rec_variation_strand[] = "_rec_variation_s
 static PyObject *__pyx_pw_10pysamstats_41_rec_variation_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -12945,7 +12945,7 @@ static PyObject *__pyx_pw_10pysamstats_41_rec_variation_strand(PyObject *__pyx_s
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 986; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -12970,7 +12970,7 @@ static PyObject *__pyx_pw_10pysamstats_41_rec_variation_strand(PyObject *__pyx_s
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 985; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 985; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 986; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 986; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_40_rec_variation_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":985
@@ -12990,7 +12990,7 @@ static PyObject *__pyx_pw_10pysamstats_41_rec_variation_strand(PyObject *__pyx_s
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_40_rec_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_40_rec_variation_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -13713,7 +13713,7 @@ static PyObject *__pyx_pf_10pysamstats_46load_variation_strand(CYTHON_UNUSED PyO
  */
 
 static PyObject *__pyx_pw_10pysamstats_49_rec_tlen(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_tlen(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_tlen(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen *__pyx_optional_args) {
 
   /* "pysamstats.pyx":1172
  * 
@@ -14723,7 +14723,7 @@ static char __pyx_doc_10pysamstats_48_rec_tlen[] = "_rec_tlen(AlignmentFile alig
 static PyObject *__pyx_pw_10pysamstats_49_rec_tlen(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -14781,7 +14781,7 @@ static PyObject *__pyx_pw_10pysamstats_49_rec_tlen(PyObject *__pyx_self, PyObjec
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1172; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -14806,7 +14806,7 @@ static PyObject *__pyx_pw_10pysamstats_49_rec_tlen(PyObject *__pyx_self, PyObjec
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1171; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1171; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1171; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1171; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_48_rec_tlen(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":1171
@@ -14826,7 +14826,7 @@ static PyObject *__pyx_pw_10pysamstats_49_rec_tlen(PyObject *__pyx_self, PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_48_rec_tlen(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_48_rec_tlen(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -15320,7 +15320,7 @@ static PyObject *__pyx_pf_10pysamstats_54load_tlen(CYTHON_UNUSED PyObject *__pyx
  */
 
 static PyObject *__pyx_pw_10pysamstats_57_rec_tlen_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_tlen_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_tlen_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_tlen_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":1387
  * 
@@ -17644,7 +17644,7 @@ static char __pyx_doc_10pysamstats_56_rec_tlen_strand[] = "_rec_tlen_strand(Alig
 static PyObject *__pyx_pw_10pysamstats_57_rec_tlen_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -17702,7 +17702,7 @@ static PyObject *__pyx_pw_10pysamstats_57_rec_tlen_strand(PyObject *__pyx_self, 
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1387; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -17727,7 +17727,7 @@ static PyObject *__pyx_pw_10pysamstats_57_rec_tlen_strand(PyObject *__pyx_self, 
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1386; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1386; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1386; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1386; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_56_rec_tlen_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":1386
@@ -17747,7 +17747,7 @@ static PyObject *__pyx_pw_10pysamstats_57_rec_tlen_strand(PyObject *__pyx_self, 
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_56_rec_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_56_rec_tlen_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -18291,7 +18291,7 @@ static PyObject *__pyx_pf_10pysamstats_62load_tlen_strand(CYTHON_UNUSED PyObject
  */
 
 static PyObject *__pyx_pw_10pysamstats_65_rec_mapq(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_mapq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_mapq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq *__pyx_optional_args) {
 
   /* "pysamstats.pyx":1727
  * 
@@ -18934,7 +18934,7 @@ static char __pyx_doc_10pysamstats_64_rec_mapq[] = "_rec_mapq(AlignmentFile alig
 static PyObject *__pyx_pw_10pysamstats_65_rec_mapq(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -18992,7 +18992,7 @@ static PyObject *__pyx_pw_10pysamstats_65_rec_mapq(PyObject *__pyx_self, PyObjec
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1727; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -19017,7 +19017,7 @@ static PyObject *__pyx_pw_10pysamstats_65_rec_mapq(PyObject *__pyx_self, PyObjec
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1726; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1726; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1726; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1726; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_64_rec_mapq(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":1726
@@ -19037,7 +19037,7 @@ static PyObject *__pyx_pw_10pysamstats_65_rec_mapq(PyObject *__pyx_self, PyObjec
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_64_rec_mapq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_64_rec_mapq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -19530,7 +19530,7 @@ static PyObject *__pyx_pf_10pysamstats_70load_mapq(CYTHON_UNUSED PyObject *__pyx
  */
 
 static PyObject *__pyx_pw_10pysamstats_73_rec_mapq_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_mapq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_mapq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_mapq_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":1891
  * 
@@ -21059,7 +21059,7 @@ static char __pyx_doc_10pysamstats_72_rec_mapq_strand[] = "_rec_mapq_strand(Alig
 static PyObject *__pyx_pw_10pysamstats_73_rec_mapq_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -21117,7 +21117,7 @@ static PyObject *__pyx_pw_10pysamstats_73_rec_mapq_strand(PyObject *__pyx_self, 
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1891; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -21142,7 +21142,7 @@ static PyObject *__pyx_pw_10pysamstats_73_rec_mapq_strand(PyObject *__pyx_self, 
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1890; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1890; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1890; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1890; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_72_rec_mapq_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":1890
@@ -21162,7 +21162,7 @@ static PyObject *__pyx_pw_10pysamstats_73_rec_mapq_strand(PyObject *__pyx_self, 
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_72_rec_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_72_rec_mapq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -21703,7 +21703,7 @@ static PyObject *__pyx_pf_10pysamstats_78load_mapq_strand(CYTHON_UNUSED PyObject
  */
 
 static PyObject *__pyx_pw_10pysamstats_81_rec_baseq(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_baseq(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq *__pyx_optional_args) {
 
   /* "pysamstats.pyx":2142
  * 
@@ -22166,7 +22166,7 @@ static char __pyx_doc_10pysamstats_80_rec_baseq[] = "_rec_baseq(AlignmentFile al
 static PyObject *__pyx_pw_10pysamstats_81_rec_baseq(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -22224,7 +22224,7 @@ static PyObject *__pyx_pw_10pysamstats_81_rec_baseq(PyObject *__pyx_self, PyObje
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2142; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -22249,7 +22249,7 @@ static PyObject *__pyx_pw_10pysamstats_81_rec_baseq(PyObject *__pyx_self, PyObje
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2141; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_80_rec_baseq(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":2141
@@ -22269,7 +22269,7 @@ static PyObject *__pyx_pw_10pysamstats_81_rec_baseq(PyObject *__pyx_self, PyObje
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_80_rec_baseq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_80_rec_baseq(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -22758,7 +22758,7 @@ static PyObject *__pyx_pf_10pysamstats_86load_baseq(CYTHON_UNUSED PyObject *__py
  */
 
 static PyObject *__pyx_pw_10pysamstats_89_rec_baseq_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_baseq_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, CYTHON_UNUSED struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":2276
  * 
@@ -23687,7 +23687,7 @@ static char __pyx_doc_10pysamstats_88_rec_baseq_strand[] = "_rec_baseq_strand(Al
 static PyObject *__pyx_pw_10pysamstats_89_rec_baseq_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -23745,7 +23745,7 @@ static PyObject *__pyx_pw_10pysamstats_89_rec_baseq_strand(PyObject *__pyx_self,
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2276; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -23770,7 +23770,7 @@ static PyObject *__pyx_pw_10pysamstats_89_rec_baseq_strand(PyObject *__pyx_self,
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2275; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2275; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2275; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2275; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_88_rec_baseq_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":2275
@@ -23790,7 +23790,7 @@ static PyObject *__pyx_pw_10pysamstats_89_rec_baseq_strand(PyObject *__pyx_self,
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_88_rec_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_88_rec_baseq_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -24343,7 +24343,7 @@ static PyObject *__pyx_pf_10pysamstats_94load_baseq_strand(CYTHON_UNUSED PyObjec
  */
 
 static PyObject *__pyx_pw_10pysamstats_97_rec_baseq_ext(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_baseq_ext(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext *__pyx_optional_args) {
 
   /* "pysamstats.pyx":2474
  * 
@@ -25275,7 +25275,7 @@ static char __pyx_doc_10pysamstats_96_rec_baseq_ext[] = "_rec_baseq_ext(Alignmen
 static PyObject *__pyx_pw_10pysamstats_97_rec_baseq_ext(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -25333,7 +25333,7 @@ static PyObject *__pyx_pw_10pysamstats_97_rec_baseq_ext(PyObject *__pyx_self, Py
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2474; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -25358,7 +25358,7 @@ static PyObject *__pyx_pw_10pysamstats_97_rec_baseq_ext(PyObject *__pyx_self, Py
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2473; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2473; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2474; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2474; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_96_rec_baseq_ext(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":2473
@@ -25378,7 +25378,7 @@ static PyObject *__pyx_pw_10pysamstats_97_rec_baseq_ext(PyObject *__pyx_self, Py
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_96_rec_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_96_rec_baseq_ext(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -26021,7 +26021,7 @@ static PyObject *__pyx_pf_10pysamstats_102load_baseq_ext(CYTHON_UNUSED PyObject 
  */
 
 static PyObject *__pyx_pw_10pysamstats_105_rec_baseq_ext_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_strand *__pyx_optional_args) {
+static PyObject *__pyx_f_10pysamstats__rec_baseq_ext_strand(struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, CYTHON_UNUSED int __pyx_skip_dispatch, struct __pyx_opt_args_10pysamstats__rec_baseq_ext_strand *__pyx_optional_args) {
 
   /* "pysamstats.pyx":2686
  * 
@@ -27879,7 +27879,7 @@ static char __pyx_doc_10pysamstats_104_rec_baseq_ext_strand[] = "_rec_baseq_ext_
 static PyObject *__pyx_pw_10pysamstats_105_rec_baseq_ext_strand(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -27937,7 +27937,7 @@ static PyObject *__pyx_pw_10pysamstats_105_rec_baseq_ext_strand(PyObject *__pyx_
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     if (values[3]) {
       __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2686; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
     } else {
@@ -27962,7 +27962,7 @@ static PyObject *__pyx_pw_10pysamstats_105_rec_baseq_ext_strand(PyObject *__pyx_
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2685; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2685; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2686; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 2686; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_104_rec_baseq_ext_strand(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* "pysamstats.pyx":2685
@@ -27982,7 +27982,7 @@ static PyObject *__pyx_pw_10pysamstats_105_rec_baseq_ext_strand(PyObject *__pyx_
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_104_rec_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_104_rec_baseq_ext_strand(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   PyObject *__pyx_t_1 = NULL;
@@ -28878,7 +28878,7 @@ static PyMethodDef __pyx_mdef_10pysamstats_16stat_coverage_gc_1_rec_coverage_gc 
 static PyObject *__pyx_pw_10pysamstats_16stat_coverage_gc_1_rec_coverage_gc(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile = 0;
   struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile = 0;
-  struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col = 0;
+  struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col = 0;
   int __pyx_v_one_based;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
@@ -28934,7 +28934,7 @@ static PyObject *__pyx_pw_10pysamstats_16stat_coverage_gc_1_rec_coverage_gc(PyOb
     }
     __pyx_v_alignmentfile = ((struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *)values[0]);
     __pyx_v_fafile = ((struct __pyx_obj_5pysam_6cfaidx_FastaFile *)values[1]);
-    __pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)values[2]);
+    __pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)values[2]);
     __pyx_v_one_based = __Pyx_PyObject_IsTrue(values[3]); if (unlikely((__pyx_v_one_based == (int)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3007; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   }
   goto __pyx_L4_argument_unpacking_done;
@@ -28947,7 +28947,7 @@ static PyObject *__pyx_pw_10pysamstats_16stat_coverage_gc_1_rec_coverage_gc(PyOb
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_alignmentfile), __pyx_ptype_5pysam_14calignmentfile_AlignmentFile, 1, "alignmentfile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3006; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_fafile), __pyx_ptype_5pysam_6cfaidx_FastaFile, 1, "fafile", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3006; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_14calignmentfile_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3007; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_col), __pyx_ptype_5pysam_15calignedsegment_PileupColumn, 1, "col", 0))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3007; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_r = __pyx_pf_10pysamstats_16stat_coverage_gc__rec_coverage_gc(__pyx_self, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_col, __pyx_v_one_based);
 
   /* function exit code */
@@ -28959,7 +28959,7 @@ static PyObject *__pyx_pw_10pysamstats_16stat_coverage_gc_1_rec_coverage_gc(PyOb
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_16stat_coverage_gc__rec_coverage_gc(PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
+static PyObject *__pyx_pf_10pysamstats_16stat_coverage_gc__rec_coverage_gc(PyObject *__pyx_self, struct __pyx_obj_5pysam_14calignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_6cfaidx_FastaFile *__pyx_v_fafile, struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *__pyx_v_col, int __pyx_v_one_based) {
   struct __pyx_obj_10pysamstats___pyx_scope_struct__stat_coverage_gc *__pyx_cur_scope;
   struct __pyx_obj_10pysamstats___pyx_scope_struct__stat_coverage_gc *__pyx_outer_scope;
   PyObject *__pyx_v_chrom = NULL;
@@ -36024,9 +36024,9 @@ static PyObject *__pyx_gb_10pysamstats_145generator1(__pyx_CoroutineObject *__py
       }
       __Pyx_GOTREF(__pyx_t_6);
     }
-    if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5pysam_14calignmentfile_PileupColumn))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3731; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    if (!(likely(((__pyx_t_6) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_6, __pyx_ptype_5pysam_15calignedsegment_PileupColumn))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 3731; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     __Pyx_XGOTREF(((PyObject *)__pyx_cur_scope->__pyx_v_col));
-    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_col, ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)__pyx_t_6));
+    __Pyx_XDECREF_SET(__pyx_cur_scope->__pyx_v_col, ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)__pyx_t_6));
     __Pyx_GIVEREF(__pyx_t_6);
     __pyx_t_6 = 0;
 
@@ -45069,7 +45069,7 @@ static int __pyx_tp_clear_10pysamstats___pyx_scope_struct_2__iter_pileup_padded_
   p->__pyx_v_chrom = Py_None; Py_INCREF(Py_None);
   Py_XDECREF(tmp);
   tmp = ((PyObject*)p->__pyx_v_col);
-  p->__pyx_v_col = ((struct __pyx_obj_5pysam_14calignmentfile_PileupColumn *)Py_None); Py_INCREF(Py_None);
+  p->__pyx_v_col = ((struct __pyx_obj_5pysam_15calignedsegment_PileupColumn *)Py_None); Py_INCREF(Py_None);
   Py_XDECREF(tmp);
   tmp = ((PyObject*)p->__pyx_v_end);
   p->__pyx_v_end = Py_None; Py_INCREF(Py_None);
@@ -45758,7 +45758,7 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_0_24_0, __pyx_k_0_24_0, sizeof(__pyx_k_0_24_0), 0, 0, 1, 0},
+  {&__pyx_kp_s_0_25_0_dev0, __pyx_k_0_25_0_dev0, sizeof(__pyx_k_0_25_0_dev0), 0, 0, 1, 0},
   {&__pyx_n_b_A, __pyx_k_A, sizeof(__pyx_k_A), 0, 0, 0, 1},
   {&__pyx_n_s_A, __pyx_k_A, sizeof(__pyx_k_A), 0, 0, 1, 1},
   {&__pyx_n_s_A_fwd, __pyx_k_A_fwd, sizeof(__pyx_k_A_fwd), 0, 0, 1, 1},
@@ -50705,11 +50705,11 @@ PyMODINIT_FUNC PyInit_pysamstats(void)
   /* "pysamstats.pyx":6
  * 
  * 
- * __version__ = '0.24.0'             # <<<<<<<<<<<<<<
+ * __version__ = '0.25.0.dev0'             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_version, __pyx_kp_s_0_24_0) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_version, __pyx_kp_s_0_25_0_dev0) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
   /* "pysamstats.pyx":9
  * 
