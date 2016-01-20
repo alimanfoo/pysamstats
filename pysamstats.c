@@ -2799,6 +2799,7 @@ static char __pyx_k_sys_2[] = "sys";
 static char __pyx_k_throw[] = "throw";
 static char __pyx_k_title[] = "title";
 static char __pyx_k_upper[] = "upper";
+static char __pyx_k_0_24_2[] = "0.24.2";
 static char __pyx_k_append[] = "append";
 static char __pyx_k_before[] = "before";
 static char __pyx_k_chrlen[] = "chrlen";
@@ -2917,7 +2918,6 @@ static char __pyx_k_references[] = "references";
 static char __pyx_k_stat_baseq[] = "stat_baseq";
 static char __pyx_k_stats_type[] = "stats_type";
 static char __pyx_k_write_hdf5[] = "write_hdf5";
-static char __pyx_k_0_25_0_dev0[] = "0.25.0.dev0";
 static char __pyx_k_MemoryError[] = "MemoryError";
 static char __pyx_k_count_reads[] = "count_reads";
 static char __pyx_k_dtype_baseq[] = "dtype_baseq";
@@ -3158,7 +3158,7 @@ static char __pyx_k_stat_coverage_gc_locals__rec_cov[] = "stat_coverage_gc.<loca
 static char __pyx_k_pysamstats_s_rows_in_2fs_d_rows_2[] = "[pysamstats] %s rows in %.2fs (%d rows/s)";
 static char __pyx_k_pysamstats_s_rows_in_2fs_d_rows_3[] = "[pysamstats] %s rows in %.2fs (%d rows/s); last %s rows in %.2fs (%d rows/s)";
 static char __pyx_k_stat_coverage_gc_locals__rec_cov_2[] = "stat_coverage_gc.<locals>._rec_coverage_gc_pad";
-static PyObject *__pyx_kp_s_0_25_0_dev0;
+static PyObject *__pyx_kp_s_0_24_2;
 static PyObject *__pyx_n_b_A;
 static PyObject *__pyx_n_s_A;
 static PyObject *__pyx_n_s_A_fwd;
@@ -45695,7 +45695,7 @@ static struct PyModuleDef __pyx_moduledef = {
 #endif
 
 static __Pyx_StringTabEntry __pyx_string_tab[] = {
-  {&__pyx_kp_s_0_25_0_dev0, __pyx_k_0_25_0_dev0, sizeof(__pyx_k_0_25_0_dev0), 0, 0, 1, 0},
+  {&__pyx_kp_s_0_24_2, __pyx_k_0_24_2, sizeof(__pyx_k_0_24_2), 0, 0, 1, 0},
   {&__pyx_n_b_A, __pyx_k_A, sizeof(__pyx_k_A), 0, 0, 0, 1},
   {&__pyx_n_s_A, __pyx_k_A, sizeof(__pyx_k_A), 0, 0, 1, 1},
   {&__pyx_n_s_A_fwd, __pyx_k_A_fwd, sizeof(__pyx_k_A_fwd), 0, 0, 1, 1},
@@ -50698,11 +50698,11 @@ PyMODINIT_FUNC PyInit_pysamstats(void)
   /* "pysamstats.pyx":6
  * 
  * 
- * __version__ = '0.25.0.dev0'             # <<<<<<<<<<<<<<
+ * __version__ = '0.24.2'             # <<<<<<<<<<<<<<
  * 
  * 
  */
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_version, __pyx_kp_s_0_25_0_dev0) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_version, __pyx_kp_s_0_24_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
   /* "pysamstats.pyx":9
  * 
