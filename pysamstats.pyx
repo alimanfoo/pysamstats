@@ -109,8 +109,6 @@ cpdef dict _rec_coverage(AlignmentFile alignmentfile, FastaFile fafile,
         if is_proper_pair:
             reads_pp += 1
 
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos,
             'reads_all': n,
@@ -229,8 +227,6 @@ cpdef dict _rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
             else:
                 reads_pp_fwd += 1
 
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
@@ -377,8 +373,6 @@ cpdef dict _rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, Pile
         if _is_softclipped(aln):
             reads_softclipped += 1
             
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos,
             'reads_all': n,
             'reads_pp': reads_pp,
@@ -588,8 +582,6 @@ cpdef dict _rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafil
             else:
                 reads_duplicate_fwd += 1
             
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos,
            'reads_all': n, 
            'reads_fwd': reads_fwd,
@@ -735,6 +727,7 @@ cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
     cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
+    cdef bytes alnbase, refbase_b
     # counting variables
     cdef int reads_pp = 0
     cdef int matches = 0
@@ -768,6 +761,10 @@ cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
     refbase = fafile\
         .fetch(reference=chrom, start=col.pos, end=col.pos+1)\
         .upper()
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
     
     # loop over reads, extract what we need
     for i in range(reads_all):
@@ -811,7 +808,7 @@ cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
                 insertions += 1
                 if is_proper_pair:
                     insertions_pp += 1
-            if alnbase == refbase:
+            if alnbase == refbase_b:
                 matches += 1
                 if is_proper_pair:
                     matches_pp += 1
@@ -820,9 +817,6 @@ cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
                 if is_proper_pair:
                     mismatches_pp += 1
 
-    if not PY2:
-        refbase = str(refbase, 'ascii')
-        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': reads_all, 'reads_pp': reads_pp,
             'matches': matches,
@@ -843,8 +837,6 @@ cpdef dict _rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
 cpdef dict _rec_variation_pad(FastaFile fafile, chrom, pos,
                               bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    if not PY2:
-        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_pp': 0,
@@ -993,6 +985,7 @@ cpdef dict _rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair, is_reverse
+    cdef bytes alnbase, refbase_b
     # counting variables
     cdef _CountPpStrand reads, matches, mismatches, deletions, insertions, \
         A, C, T, G, N
@@ -1017,7 +1010,11 @@ cpdef dict _rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
     
     # reference base
     refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-    
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
+
     # loop over reads, extract what we need
     for i in range(n):
         read = &(plp[0][i])
@@ -1045,14 +1042,11 @@ cpdef dict _rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
                 _incr_pp_strand(&N, is_reverse, is_proper_pair)
             if read.indel > 0:
                 _incr_pp_strand(&insertions, is_reverse, is_proper_pair)
-            if alnbase == refbase:
+            if alnbase == refbase_b:
                 _incr_pp_strand(&matches, is_reverse, is_proper_pair)
             else:
                 _incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
-    if not PY2:
-        refbase = str(refbase, 'ascii')
-        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev, 
             'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
@@ -1075,8 +1069,6 @@ cpdef dict _rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
 cpdef dict _rec_variation_strand_pad(FastaFile fafile, chrom, pos,
                                      bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    if not PY2:
-        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
@@ -1273,8 +1265,6 @@ cpdef dict _rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
 
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
@@ -1594,8 +1584,6 @@ cpdef dict _rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileu
     else:
         rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
 
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
@@ -1782,8 +1770,6 @@ cpdef dict _rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn
     else:
         rms_mapq_pp = max_mapq_pp = 0
         
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
@@ -2018,8 +2004,6 @@ cpdef dict _rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileu
     else:
         rms_mapq_pp_rev = max_mapq_pp_rev = 0
         
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n,
@@ -2187,8 +2171,6 @@ cpdef dict _rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColum
     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
 
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n, 
@@ -2364,8 +2346,6 @@ cpdef dict _rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pile
     rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
     rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
         
-    # if not PY2:
-    #     chrom = str(chrom, 'ascii')
     return {'chrom': chrom,
             'pos': pos, 
             'reads_all': n,
@@ -2481,6 +2461,7 @@ cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
+    cdef bytes refbase_b, alnbase
     # counting variables
     cdef int reads_nodel = 0
     cdef int reads_pp = 0
@@ -2511,7 +2492,11 @@ cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
     # reference base
     refbase = fafile.fetch(reference=chrom, start=col.pos,
                            end=col.pos + 1).upper()
-    
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
+
     # loop over reads, extract what we need
     for i in range(n):
         read = &(plp[0][i])
@@ -2529,7 +2514,7 @@ cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
                 reads_pp_nodel += 1
                 baseq_pp_squared_sum += baseq_squared
             alnbase = _get_seq_base(aln, read.qpos)
-            if alnbase == refbase:
+            if alnbase == refbase_b:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
                 if is_proper_pair:
@@ -2551,9 +2536,6 @@ cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
     rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
                                         mismatches_pp)
 
-    if not PY2:
-        refbase = str(refbase, 'ascii')
-        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_pp': reads_pp,
             'matches': matches,
@@ -2572,8 +2554,6 @@ cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
 cpdef dict _rec_baseq_ext_pad(FastaFile fafile, chrom, pos,
                               bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    if not PY2:
-        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_pp': 0,
@@ -2694,7 +2674,7 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef uint32_t flag
     cdef bint is_proper_pair
     cdef bint is_reverse
-    
+    cdef bytes alnbase, refbase_b
     # counting variables
     cdef int reads_fwd = 0
     cdef int reads_rev = 0
@@ -2752,7 +2732,11 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
     
     # reference base
     refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-    
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
+
     # loop over reads, extract what we need
     for i in range(n):
         read = &(plp[0][i])
@@ -2793,7 +2777,7 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
                     reads_pp_fwd_nodel += 1
                     baseq_pp_fwd_squared_sum += baseq_squared
             alnbase = _get_seq_base(aln, read.qpos)
-            if alnbase == refbase:
+            if alnbase == refbase_b:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
                 if is_reverse:
@@ -2861,9 +2845,6 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
     rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum,
                                             mismatches_pp_rev)
 
-    if not PY2:
-        refbase = str(refbase, 'ascii')
-        # chrom = str(chrom, 'ascii')
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
             'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
@@ -2883,8 +2864,6 @@ cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
 cpdef dict _rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos,
                                      bint one_based=False):
     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    if not PY2:
-        refbase = str(refbase, 'ascii')
     pos = pos + 1 if one_based else pos
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0, 
@@ -3109,11 +3088,14 @@ def stat_coverage_binned(alignmentfile, fafile, **kwargs):
     return _iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
 
 
-cdef inline int _gc_content(ref_window):
+cdef int _gc_content(ref_window) except -1:
     cdef Py_ssize_t i, n
     cdef char* seq
     cdef int gc_count = 0
     n = len(ref_window)
+    if not PY2:
+        # TODO optimise?
+        ref_window = ref_window.encode('ascii')
     seq = ref_window
     for i in range(n):
         if seq[i] == b'g' or seq[i] == b'c':
@@ -3783,7 +3765,7 @@ def _iter_binned_chrom(_StatBinned stat, AlignmentFile alignmentfile, FastaFile 
 
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     has_coord, rtid, rstart, rend = \
-        alignmentfile._parseRegion(chrom, start, end, None)
+        alignmentfile.parse_region(chrom, start, end, None)
 
     cdef IteratorRowRegion it
     cdef bam1_t * b
@@ -4251,9 +4233,8 @@ cdef inline int _mean(int64_t total, int count):
 def count_reads(AlignmentFile alignmentfile, chrom=None, start=None, end=None):
     cdef IteratorRowRegion it
     cdef int n = 0
-    has_coord, rtid, rstart, rend = alignmentfile._parseRegion(chrom, start,
-                                                               end,
-                                                               None)
+    has_coord, rtid, rstart, rend = alignmentfile.parse_region(chrom, start,
+                                                               end, None)
     it = IteratorRowRegion(alignmentfile, rtid, rstart, rend,
                            multiple_iterators=False)
     while True:
