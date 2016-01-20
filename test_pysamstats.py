@@ -257,8 +257,6 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None,
         reads_pp = pp(reads)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
-        if not PY2:
-            ref = str(ref, 'ascii')
         debug('%r %r %r', chrom, pos, ref)
         debug(repr(reads[0].alignment.seq[reads[0].query_position]))
         matches = [read for read in reads_nodel
@@ -277,6 +275,8 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None,
                       if read.indel > 0]
         insertions_pp = [read for read in reads_pp
                          if read.indel > 0]
+        debug([read.alignment.seq[read.query_position]
+               for read in reads_nodel])
         a = [read for read in reads_nodel
              if read.alignment.seq[read.query_position] == 'A']
         a_pp = [read for read in reads_pp_nodel
@@ -331,8 +331,6 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None,
         reads_pp_nodel = [read for read in reads
                           if read.alignment.is_proper_pair and not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
-        if not PY2:
-            ref = str(ref, 'ascii')
         matches = [read for read in reads_nodel
                    if read.alignment.seq[read.query_position] == ref]
         matches_pp = [read for read in reads_pp_nodel
@@ -658,7 +656,13 @@ def test_stat_mapq_strand():
 
 
 def baseq(reads):
-    return [ord(read.alignment.qual[read.query_position])-33 for read in reads]
+    if PY2:
+        l = [ord(read.alignment.qual[read.query_position])-33
+             for read in reads]
+    else:
+        l = [read.alignment.qual[read.query_position]-33
+             for read in reads]
+    return l
 
 
 def nodel(reads):
@@ -745,8 +749,6 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None,
         reads_pp = pp(reads)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
-        if not PY2:
-            ref = str(ref, 'ascii')
         matches = [read for read in reads_nodel
                    if read.alignment.seq[read.query_position] == ref]
         matches_pp = [read for read in reads_pp_nodel
@@ -798,8 +800,6 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None,
         reads_nodel_pp_rev = rev(reads_nodel_pp)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
-        if not PY2:
-            ref = str(ref, 'ascii')
         matches = [read for read in reads_nodel
                    if read.alignment.seq[read.query_position] == ref]
         matches_fwd = fwd(matches)
@@ -905,10 +905,7 @@ def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None,
         debug(ref_window)
         base_counter = Counter(ref_window)
         debug(base_counter)
-        if PY2:
-            gc_count = base_counter['g'] + base_counter['c']
-        else:
-            gc_count = base_counter[ord(b'g')] + base_counter[(ord(b'c'))]
+        gc_count = base_counter['g'] + base_counter['c']
         debug(gc_count)
         gc_percent = int(round(gc_count * 100. / window_size))
         yield {'chrom': chrom, 'pos': pos,
@@ -946,8 +943,6 @@ def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
 
 def _gc_percent(fastafile, chrom, start, end):
     seq = fastafile.fetch(chrom, start, end).lower()
-    if not PY2:
-        seq = str(seq, 'ascii')
     nc = Counter(seq)
     gc_percent = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
     return gc_percent
@@ -1481,6 +1476,7 @@ def test_pileup_truncate():
                   **kwargs_notrunc)
         else:
             a = f(Samfile('fixture/test.bam'), **kwargs_notrunc)
+        debug(a[:5])
         eq_(1952, a['pos'][0])
         eq_(2154, a['pos'][-1])
         # test truncate
