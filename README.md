@@ -26,6 +26,7 @@ Alternatively, clone the git repo and install:
 ```
 $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
+$ python cythonize.py  # optional, required if making any changes to pysamstats.pyx
 $ python setup.py install
 ```
 
