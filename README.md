@@ -12,12 +12,12 @@ Installation
 ------------
 
 Building pysamstats depends on 
-[pysam version 0.8.4 or higher](http://pysam.readthedocs.org/en/latest/).
+[pysam version 0.8.4](http://pysam.readthedocs.org/en/latest/).
 Please **install pysam first**, before attempting to install
 pysamstats, e.g.:
 
 ```
-$ pip install pysam>=0.8.4
+$ pip install pysam==0.8.4
 $ pip install pysamstats
 ```
 
