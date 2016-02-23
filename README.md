@@ -28,6 +28,7 @@ $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
 $ python cythonize.py  # optional, required if making any changes to pysamstats.pyx
 $ python setup.py install
+$ nosetests -v  # optional, run test suite
 ```
 
 If you have problems installing pysam, email the
