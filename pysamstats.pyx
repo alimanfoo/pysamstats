@@ -3,7 +3,7 @@
 from __future__ import print_function, division, absolute_import
 
 
-__version__ = '0.24.2'
+__version__ = '0.24.3'
 
 
 import sys as _sys
@@ -3936,7 +3936,7 @@ def write_csv(stats_type, outfile, alignmentfile, fields=None, dialect='excel-ta
 def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None,
                hdf5_group='/', hdf5_dataset='data', hdf5_complevel=5,
                hdf5_complib='zlib', hdf5_shuffle=True,
-               hdf5_fletcher32=False, hdf5_chunksize=2**17, **kwargs):
+               hdf5_fletcher32=False, hdf5_chunksize=2**20, **kwargs):
     """Write statistics output to an HDF5 file. Requires PyTables.
 
     Parameters
@@ -4008,7 +4008,7 @@ def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None,
         h5file = tables.open_file(outfile, mode='a')
 
         # determine chunk shape
-        hdf5_chunklen = hdf5_chunksize/dtype.itemsize
+        hdf5_chunklen = int(hdf5_chunksize/dtype.itemsize)
         hdf5_chunkshape = (hdf5_chunklen,)
 
         # replace any existing node at that location

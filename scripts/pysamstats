@@ -163,13 +163,13 @@ Version: {version} (pysam {pysamversion})
                       help='HDF5 compression library (defaults to zlib).')
 
     parser.add_option('--hdf5-complevel', dest='hdf5_complevel', type=int,
-                      default=5,
+                      default=1,
                       help='HDF5 compression level (defaults to 5).')
 
     parser.add_option('--hdf5-chunksize', dest='hdf5_chunksize', type=int,
-                      default=2**17,
+                      default=2**20,
                       help='Size of chunks in number of bytes (defaults to '
-                           '2**17).')
+                           '2**20).')
 
     options, args = parser.parse_args()
     
