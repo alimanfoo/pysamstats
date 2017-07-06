@@ -7,6 +7,9 @@ import pysamstats.opt as opt
 import pysamstats.util as util
 
 
+# TODO factor out docstring parameters
+
+
 # noinspection PyShadowingBuiltins
 def stat_pileup(type,
                 alignmentfile,
@@ -27,7 +30,7 @@ def stat_pileup(type,
     type : string
         Statistics type. One of "coverage", "coverage_strand", "coverage_ext",
         "coverage_ext_strand", "variation", "variation_strand", "tlen", "tlen_strand", "mapq",
-        "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", @@TODO
+        "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", "coverage_gc".
     alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path.
     fafile : pysam.FastaFile or string
@@ -92,7 +95,8 @@ def load_pileup(type,
     ----------
     type : string
         Statistics type. One of "coverage", "coverage_strand", "coverage_ext",
-        "coverage_ext_strand", @@TODO
+        "coverage_ext_strand", "variation", "variation_strand", "tlen", "tlen_strand", "mapq",
+        "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", "coverage_gc".
     alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path.
     fafile : pysam.FastaFile or string

@@ -84,7 +84,7 @@ cpdef dict rec_coverage(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i  # loop index
+    cdef int i, n  # loop index
     cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -134,7 +134,7 @@ cpdef dict rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_reverse
@@ -206,7 +206,7 @@ cpdef dict rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, Pileu
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i  # loop index
+    cdef int i, n  # loop index
     cdef int reads_all  # total number of reads in column
     cdef bint is_reverse
     cdef bint is_proper_pair
@@ -296,7 +296,7 @@ cpdef dict rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafile
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef bint is_reverse
     cdef bint is_proper_pair
@@ -634,7 +634,7 @@ cpdef dict rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair, is_reverse
@@ -759,7 +759,7 @@ cpdef dict rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn 
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i  # loop index
+    cdef int i, n  # loop index
     cdef int reads_all  # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -897,7 +897,7 @@ cpdef dict rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileup
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -1178,7 +1178,7 @@ cpdef dict rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn 
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef uint64_t mapq
@@ -1269,7 +1269,7 @@ cpdef dict rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileup
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i  # loop index
+    cdef int i, n  # loop index
     cdef int reads_all  # total number of reads in column
 
     cdef uint32_t flag
@@ -1465,7 +1465,7 @@ cpdef dict rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -1538,7 +1538,7 @@ cpdef dict rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileu
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
 
     cdef uint32_t flag
@@ -1671,7 +1671,7 @@ cpdef dict rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -1795,7 +1795,7 @@ cpdef dict rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bam_pileup1_t ** plp
     cdef bam_pileup1_t * read
     cdef bam1_t * aln
-    cdef int i # loop index
+    cdef int i, n # loop index
     cdef int reads_all # total number of reads in column
     cdef uint32_t flag
     cdef bint is_proper_pair
@@ -2059,47 +2059,6 @@ def frecs_coverage_gc(window_size=300, window_offset=None):
 ###################
 # BINNED COVERAGE #
 ###################
-
-
-# def stat_coverage_binned(alignmentfile, fafile, **kwargs):
-#     """Generate binned coverage statistics.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     stat = _CoverageBinned()
-#     return iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
 
 
 cdef int _gc_content(ref_window) except -1:

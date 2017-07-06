@@ -11,6 +11,9 @@ an example dataset.
 """
 
 
+# TODO break up tests into modules
+
+
 import sys
 from pysam import Samfile, Fastafile
 from nose.tools import eq_, assert_almost_equal
