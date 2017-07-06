@@ -747,1835 +747,1265 @@ cpdef dict rec_variation_strand_pad(FastaFile fafile, chrom, pos,
             }
 
 
-# def stat_variation_strand(alignmentfile, fafile, **kwargs):
-#     """Generate variation statistics by strand per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_variation_strand,
-#                        _rec_variation_strand_pad,
-#                        alignmentfile, fafile=fafile, **kwargs)
-#
-#
-# def load_variation_strand(*args, **kwargs):
-#     return load_stats(stat_variation_strand, dtype_variation_strand,
-#                       *args, **kwargs)
-#
-#
-# ##########################
-# # INSERT SIZE STATISTICS #
-# ##########################
-#
-#
-# dtype_tlen = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_paired', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('mean_tlen', 'i4'),
-#     ('mean_tlen_pp', 'i4'),
-#     ('rms_tlen', 'i4'),
-#     ('rms_tlen_pp', 'i4'),
-#     ('std_tlen', 'i4'),
-#     ('std_tlen_pp', 'i4')
-# ]
-#
-#
-# fields_tlen = [t[0] for t in dtype_tlen]
-#
-#
-# cpdef dict _rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                      bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i  # loop index
-#     cdef int reads_all  # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bint mate_is_unmappped
-#     cdef bint mate_other_chr
-#     # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
-#     # meaningful
-#     cdef int reads_p = 0
-#     # reads "properly paired", as defined by aligner
-#     cdef int reads_pp = 0
-#     cdef int64_t tlen
-#     cdef int64_t tlen_squared
-#     cdef int64_t tlen_p_sum = 0
-#     cdef double tlen_p_mean = 0
-#     cdef double tlen_p_dev_squared
-#     cdef double tlen_p_dev_squared_sum = 0
-#     cdef int64_t tlen_p_squared_sum = 0
-#     cdef int64_t tlen_pp_sum = 0
-#     cdef double tlen_pp_mean = 0
-#     cdef double tlen_pp_dev_squared
-#     cdef double tlen_pp_dev_squared_sum = 0
-#     cdef int64_t tlen_pp_squared_sum = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-#
-#         # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
-#         # follow their naming convention
-#         tlen = aln.core.isize
-#         tlen_squared = tlen**2
-#
-#         # N.B. insert size is only meaningful if mate is mapped to same chromosome
-#         if not mate_is_unmapped and not mate_other_chr:
-#             reads_p += 1
-#             tlen_p_sum += tlen
-#             tlen_p_squared_sum += tlen_squared
-#             if is_proper_pair:
-#                 reads_pp += 1
-#                 tlen_pp_sum += tlen
-#                 tlen_pp_squared_sum += tlen_squared
-#
-#     # calculate intermediate variables
-#     if reads_p > 0:
-#         tlen_p_mean = tlen_p_sum / reads_p
-#     if reads_pp > 0:
-#         tlen_pp_mean = tlen_pp_sum / reads_pp
-#
-#     # loop over reads again to calculate variance (and hence std)
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-#         tlen = aln.core.isize
-#         # N.B. insert size is only meaningful if mate is mapped to same chromosome
-#         if not mate_is_unmapped and not mate_other_chr:
-#             tlen_p_dev_squared = (tlen - tlen_p_mean)**2
-#             tlen_p_dev_squared_sum += tlen_p_dev_squared
-#             if is_proper_pair:
-#                 tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
-#                 tlen_pp_dev_squared_sum += tlen_pp_dev_squared
-#
-#     # calculate output variables
-#     # N.B. round values to nearest integer, any finer precision is probably not
-#     # interesting
-#     if reads_p > 0:
-#         mean_tlen = int(round(tlen_p_mean))
-#         rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
-#         variance_tlen = tlen_p_dev_squared_sum / reads_p
-#         std_tlen = int(round(sqrt(variance_tlen)))
-#     else:
-#         rms_tlen = std_tlen = mean_tlen = median_tlen = 0
-#     if reads_pp > 0:
-#         mean_tlen_pp = int(round(tlen_pp_mean))
-#         rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
-#         variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
-#         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
-#     else:
-#         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_paired': reads_p,
-#             'reads_pp': reads_pp,
-#             'mean_tlen': mean_tlen,
-#             'mean_tlen_pp': mean_tlen_pp,
-#             'rms_tlen': rms_tlen,
-#             'rms_tlen_pp': rms_tlen_pp,
-#             'std_tlen': std_tlen,
-#             'std_tlen_pp': std_tlen_pp}
-#
-#
-# cpdef dict _rec_tlen_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_paired': 0,
-#             'reads_pp': 0,
-#             'mean_tlen': 0,
-#             'mean_tlen_pp': 0,
-#             'rms_tlen': 0,
-#             'rms_tlen_pp': 0,
-#             'std_tlen': 0,
-#             'std_tlen_pp': 0,
-#             }
-#
-#
-# def stat_tlen(alignmentfile, **kwargs):
-#     """Generate insert size statistics per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_tlen, _rec_tlen_pad, alignmentfile, **kwargs)
-#
-#
-# def load_tlen(*args, **kwargs):
-#     return load_stats(stat_tlen, dtype_tlen, *args, **kwargs)
-#
-#
-# ####################################
-# # INSERT SIZE STATISTICS BY STRAND #
-# ####################################
-#
-#
-# dtype_tlen_strand = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_fwd', 'i4'),
-#     ('reads_rev', 'i4'),
-#     ('reads_paired', 'i4'),
-#     ('reads_paired_fwd', 'i4'),
-#     ('reads_paired_rev', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('reads_pp_fwd', 'i4'),
-#     ('reads_pp_rev', 'i4'),
-#     ('mean_tlen', 'i4'),
-#     ('mean_tlen_fwd', 'i4'),
-#     ('mean_tlen_rev', 'i4'),
-#     ('mean_tlen_pp', 'i4'),
-#     ('mean_tlen_pp_fwd', 'i4'),
-#     ('mean_tlen_pp_rev', 'i4'),
-#     ('rms_tlen', 'i4'),
-#     ('rms_tlen_fwd', 'i4'),
-#     ('rms_tlen_rev', 'i4'),
-#     ('rms_tlen_pp', 'i4'),
-#     ('rms_tlen_pp_fwd', 'i4'),
-#     ('rms_tlen_pp_rev', 'i4'),
-#     ('std_tlen', 'i4'),
-#     ('std_tlen_fwd', 'i4'),
-#     ('std_tlen_rev', 'i4'),
-#     ('std_tlen_pp', 'i4'),
-#     ('std_tlen_pp_fwd', 'i4'),
-#     ('std_tlen_pp_rev', 'i4')
-# ]
-#
-#
-# fields_tlen_strand = [t[0] for t in dtype_tlen_strand]
-#
-#
-# cpdef dict _rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                             bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bint mate_is_unmappped
-#     cdef bint mate_other_chr
-#
-#     # counting variables
-#     cdef int reads_fwd = 0
-#     cdef int reads_rev = 0
-#     # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
-#     # meaningful
-#     cdef int reads_p = 0
-#     cdef int reads_p_fwd = 0
-#     cdef int reads_p_rev = 0
-#     # reads "properly paired", as defined by aligner
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_pp_rev = 0
-#
-#     cdef int64_t tlen
-#     cdef int64_t tlen_squared
-#
-#     cdef int64_t tlen_p_sum = 0
-#     cdef double tlen_p_mean = 0
-#     cdef double tlen_p_dev_squared
-#     cdef double tlen_p_dev_squared_sum = 0
-#     cdef int64_t tlen_p_squared_sum = 0
-#     cdef int64_t tlen_p_fwd_sum = 0
-#     cdef double tlen_p_fwd_mean = 0
-#     cdef double tlen_p_fwd_dev_squared
-#     cdef double tlen_p_fwd_dev_squared_sum = 0
-#     cdef int64_t tlen_p_fwd_squared_sum = 0
-#     cdef int64_t tlen_p_rev_sum = 0
-#     cdef double tlen_p_rev_mean = 0
-#     cdef double tlen_p_rev_dev_squared
-#     cdef double tlen_p_rev_dev_squared_sum = 0
-#     cdef int64_t tlen_p_rev_squared_sum = 0
-#
-#     cdef int64_t tlen_pp_sum = 0
-#     cdef double tlen_pp_mean = 0
-#     cdef double tlen_pp_dev_squared
-#     cdef double tlen_pp_dev_squared_sum = 0
-#     cdef int64_t tlen_pp_squared_sum = 0
-#     cdef int64_t tlen_pp_fwd_sum = 0
-#     cdef double tlen_pp_fwd_mean = 0
-#     cdef double tlen_pp_fwd_dev_squared
-#     cdef double tlen_pp_fwd_dev_squared_sum = 0
-#     cdef int64_t tlen_pp_fwd_squared_sum = 0
-#     cdef int64_t tlen_pp_rev_sum = 0
-#     cdef double tlen_pp_rev_mean = 0
-#     cdef double tlen_pp_rev_dev_squared
-#     cdef double tlen_pp_rev_dev_squared_sum = 0
-#     cdef int64_t tlen_pp_rev_squared_sum = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-#
-#         # not sure these are really needed
-#         if is_reverse:
-#             reads_rev += 1
-#         else:
-#             reads_fwd += 1
-#
-#         # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
-#         # follow their naming convention
-#         tlen = aln.core.isize
-#         tlen_squared = tlen**2
-#
-#         # N.B. insert size is only meaningful if mate is mapped to same
-#         # chromosome
-#         if not mate_is_unmapped and not mate_other_chr:
-#             reads_p += 1
-#             tlen_p_sum += tlen
-#             tlen_p_squared_sum += tlen_squared
-#             if is_reverse:
-#                 reads_p_rev += 1
-#                 tlen_p_rev_sum += tlen
-#                 tlen_p_rev_squared_sum += tlen_squared
-#             else:
-#                 reads_p_fwd += 1
-#                 tlen_p_fwd_sum += tlen
-#                 tlen_p_fwd_squared_sum += tlen_squared
-#
-#             if is_proper_pair:
-#                 reads_pp += 1
-#                 tlen_pp_sum += tlen
-#                 tlen_pp_squared_sum += tlen_squared
-#                 if is_reverse:
-#                     reads_pp_rev += 1
-#                     tlen_pp_rev_sum += tlen
-#                     tlen_pp_rev_squared_sum += tlen_squared
-#                 else:
-#                     reads_pp_fwd += 1
-#                     tlen_pp_fwd_sum += tlen
-#                     tlen_pp_fwd_squared_sum += tlen_squared
-#
-#     # calculate intermediate variables
-#     if reads_p > 0:
-#         tlen_p_mean = tlen_p_sum / reads_p
-#         if reads_p_rev > 0:
-#             tlen_p_rev_mean = tlen_p_rev_sum / reads_p_rev
-#         if reads_p_fwd > 0:
-#             tlen_p_fwd_mean = tlen_p_fwd_sum / reads_p_fwd
-#     if reads_pp > 0:
-#         tlen_pp_mean = tlen_pp_sum / reads_pp
-#         if reads_pp_rev > 0:
-#             tlen_pp_rev_mean = tlen_pp_rev_sum / reads_pp_rev
-#         if reads_pp_fwd > 0:
-#             tlen_pp_fwd_mean = tlen_pp_fwd_sum / reads_pp_fwd
-#
-#     # loop over reads again to calculate variance (and hence std)
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-#         tlen = aln.core.isize
-#         # N.B. insert size is only meaningful if mate is mapped to same
-#         # chromosome
-#         if not mate_is_unmapped and not mate_other_chr:
-#             tlen_p_dev_squared = (tlen - tlen_p_mean)**2
-#             tlen_p_dev_squared_sum += tlen_p_dev_squared
-#             if is_reverse:
-#                 tlen_p_rev_dev_squared = (tlen - tlen_p_rev_mean)**2
-#                 tlen_p_rev_dev_squared_sum += tlen_p_rev_dev_squared
-#             else:
-#                 tlen_p_fwd_dev_squared = (tlen - tlen_p_fwd_mean)**2
-#                 tlen_p_fwd_dev_squared_sum += tlen_p_fwd_dev_squared
-#             if is_proper_pair:
-#                 tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
-#                 tlen_pp_dev_squared_sum += tlen_pp_dev_squared
-#                 if is_reverse:
-#                     tlen_pp_rev_dev_squared = (tlen - tlen_pp_rev_mean)**2
-#                     tlen_pp_rev_dev_squared_sum += tlen_pp_rev_dev_squared
-#                 else:
-#                     tlen_pp_fwd_dev_squared = (tlen - tlen_pp_fwd_mean)**2
-#                     tlen_pp_fwd_dev_squared_sum += tlen_pp_fwd_dev_squared
-#
-#     # calculate output variables
-#     # N.B. round values to nearest integer, any finer precision is probably not
-#     # interesting
-#     if reads_p > 0:
-#         mean_tlen = int(round(tlen_p_mean))
-#         rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
-#         variance_tlen = tlen_p_dev_squared_sum / reads_p
-#         std_tlen = int(round(sqrt(variance_tlen)))
-#     else:
-#         rms_tlen = std_tlen = mean_tlen = 0
-#     if reads_p_rev > 0:
-#         mean_tlen_rev = int(round(tlen_p_rev_mean))
-#         rms_tlen_rev = _rootmean(tlen_p_rev_squared_sum, reads_p_rev)
-#         variance_tlen_rev = tlen_p_rev_dev_squared_sum / reads_p_rev
-#         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
-#     else:
-#         rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
-#     if reads_p_fwd > 0:
-#         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-#         rms_tlen_fwd = _rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
-#         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum / reads_p_fwd
-#         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
-#     else:
-#         rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
-#     if reads_pp > 0:
-#         mean_tlen_pp = int(round(tlen_pp_mean))
-#         rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
-#         variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
-#         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
-#     else:
-#         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
-#     if reads_pp_rev > 0:
-#         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-#         rms_tlen_pp_rev = _rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
-#         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum / reads_pp_rev
-#         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
-#     else:
-#         rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
-#     if reads_pp_fwd > 0:
-#         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-#         rms_tlen_pp_fwd = _rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
-#         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum / reads_pp_fwd
-#         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
-#     else:
-#         rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_fwd': reads_fwd,
-#             'reads_rev': reads_rev,
-#             'reads_paired': reads_p,
-#             'reads_paired_fwd': reads_p_fwd,
-#             'reads_paired_rev': reads_p_rev,
-#             'reads_pp': reads_pp,
-#             'reads_pp_fwd': reads_pp_fwd,
-#             'reads_pp_rev': reads_pp_rev,
-#             'mean_tlen': mean_tlen,
-#             'mean_tlen_fwd': mean_tlen_fwd,
-#             'mean_tlen_rev': mean_tlen_rev,
-#             'mean_tlen_pp': mean_tlen_pp,
-#             'mean_tlen_pp_fwd': mean_tlen_pp_fwd,
-#             'mean_tlen_pp_rev': mean_tlen_pp_rev,
-#             'rms_tlen': rms_tlen,
-#             'rms_tlen_fwd': rms_tlen_fwd,
-#             'rms_tlen_rev': rms_tlen_rev,
-#             'rms_tlen_pp': rms_tlen_pp,
-#             'rms_tlen_pp_fwd': rms_tlen_pp_fwd,
-#             'rms_tlen_pp_rev': rms_tlen_pp_rev,
-#             'std_tlen': std_tlen,
-#             'std_tlen_fwd': std_tlen_fwd,
-#             'std_tlen_rev': std_tlen_rev,
-#             'std_tlen_pp': std_tlen_pp,
-#             'std_tlen_pp_fwd': std_tlen_pp_fwd,
-#             'std_tlen_pp_rev': std_tlen_pp_rev}
-#
-#
-# cpdef dict _rec_tlen_strand_pad(FastaFile fafile, chrom, pos,
-#                                 bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_fwd': 0,
-#             'reads_rev': 0,
-#             'reads_paired': 0,
-#             'reads_paired_fwd': 0,
-#             'reads_paired_rev': 0,
-#             'reads_pp': 0,
-#             'reads_pp_fwd': 0,
-#             'reads_pp_rev': 0,
-#             'mean_tlen': 0,
-#             'mean_tlen_fwd': 0,
-#             'mean_tlen_rev': 0,
-#             'mean_tlen_pp': 0,
-#             'mean_tlen_pp_fwd': 0,
-#             'mean_tlen_pp_rev': 0,
-#             'rms_tlen': 0,
-#             'rms_tlen_fwd': 0,
-#             'rms_tlen_rev': 0,
-#             'rms_tlen_pp': 0,
-#             'rms_tlen_pp_fwd': 0,
-#             'rms_tlen_pp_rev': 0,
-#             'std_tlen': 0,
-#             'std_tlen_fwd': 0,
-#             'std_tlen_rev': 0,
-#             'std_tlen_pp': 0,
-#             'std_tlen_pp_fwd': 0,
-#             'std_tlen_pp_rev': 0,
-#             }
-#
-#
-# def stat_tlen_strand(alignmentfile, **kwargs):
-#     """Generate insert size statistics by strand per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_tlen_strand, _rec_tlen_strand_pad, alignmentfile,
-#                        **kwargs)
-#
-#
-# def load_tlen_strand(*args, **kwargs):
-#     return load_stats(stat_tlen_strand, dtype_tlen_strand, *args, **kwargs)
-#
-#
-# ##############################
-# # MAPPING QUALITY STATISTICS #
-# ##############################
-#
-#
-# dtype_mapq = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('reads_mapq0', 'i4'),
-#     ('reads_mapq0_pp', 'i4'),
-#     ('rms_mapq', 'i4'),
-#     ('rms_mapq_pp', 'i4'),
-#     ('max_mapq', 'i4'),
-#     ('max_mapq_pp', 'i4')
-# ]
-#
-#
-# fields_mapq = [t[0] for t in dtype_mapq]
-#
-#
-# cpdef dict _rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                      bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef uint64_t mapq
-#     cdef uint64_t mapq_max = 0
-#     cdef uint64_t mapq_pp_max = 0
-#     cdef uint64_t mapq_squared
-#     cdef uint64_t mapq_squared_sum = 0
-#     cdef uint64_t mapq_pp_squared_sum = 0
-#     cdef bint is_proper_pair
-#     cdef int reads_pp = 0
-#     cdef int reads_mapq0 = 0
-#     cdef int reads_mapq0_pp = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         mapq = aln.core.qual
-#         mapq_squared = mapq**2
-#         mapq_squared_sum += mapq_squared
-#         if mapq == 0:
-#             reads_mapq0 += 1
-#         if mapq > mapq_max:
-#             mapq_max = mapq
-#         if is_proper_pair:
-#             reads_pp += 1
-#             mapq_pp_squared_sum += mapq_squared
-#             if mapq > mapq_pp_max:
-#                 mapq_pp_max = mapq
-#             if mapq == 0:
-#                 reads_mapq0_pp += 1
-#
-#     # construct output variables
-#     rms_mapq = _rootmean(mapq_squared_sum, n)
-#     max_mapq = mapq_max
-#     if reads_pp > 0:
-#         rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
-#         max_mapq_pp = mapq_pp_max
-#     else:
-#         rms_mapq_pp = max_mapq_pp = 0
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_pp': reads_pp,
-#             'reads_mapq0': reads_mapq0,
-#             'reads_mapq0_pp': reads_mapq0_pp,
-#             'rms_mapq': rms_mapq,
-#             'rms_mapq_pp': rms_mapq_pp,
-#             'max_mapq': max_mapq,
-#             'max_mapq_pp': max_mapq_pp}
-#
-#
-# cpdef dict _rec_mapq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_pp': 0,
-#             'reads_mapq0': 0,
-#             'reads_mapq0_pp': 0,
-#             'rms_mapq': 0,
-#             'rms_mapq_pp': 0,
-#             'max_mapq': 0,
-#             'max_mapq_pp': 0,
-#             }
-#
-#
-# def stat_mapq(alignmentfile, **kwargs):
-#     """Generate mapping quality statistics per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_mapq, _rec_mapq_pad, alignmentfile, **kwargs)
-#
-#
-# def load_mapq(*args, **kwargs):
-#     return load_stats(stat_mapq, dtype_mapq, *args, **kwargs)
-#
-#
-# ########################################
-# # MAPPING QUALITY STATISTICS BY STRAND #
-# ########################################
-#
-#
-# dtype_mapq_strand = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_fwd', 'i4'),
-#     ('reads_rev', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('reads_pp_fwd', 'i4'),
-#     ('reads_pp_rev', 'i4'),
-#     ('reads_mapq0', 'i4'),
-#     ('reads_mapq0_fwd', 'i4'),
-#     ('reads_mapq0_rev', 'i4'),
-#     ('reads_mapq0_pp', 'i4'),
-#     ('reads_mapq0_pp_fwd', 'i4'),
-#     ('reads_mapq0_pp_rev', 'i4'),
-#     ('rms_mapq', 'i4'),
-#     ('rms_mapq_fwd', 'i4'),
-#     ('rms_mapq_rev', 'i4'),
-#     ('rms_mapq_pp', 'i4'),
-#     ('rms_mapq_pp_fwd', 'i4'),
-#     ('rms_mapq_pp_rev', 'i4'),
-#     ('max_mapq', 'i4'),
-#     ('max_mapq_fwd', 'i4'),
-#     ('max_mapq_rev', 'i4'),
-#     ('max_mapq_pp', 'i4'),
-#     ('max_mapq_pp_fwd', 'i4'),
-#     ('max_mapq_pp_rev', 'i4'),
-# ]
-#
-#
-# fields_mapq_strand = [t[0] for t in dtype_mapq_strand]
-#
-#
-# cpdef dict _rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                             bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i  # loop index
-#     cdef int reads_all  # total number of reads in column
-#
-#     cdef uint32_t flag
-#     cdef uint64_t mapq
-#     cdef uint64_t mapq_squared
-#     cdef bint is_proper_pair
-#     cdef bint is_reverse
-#
-#     cdef uint64_t mapq_max = 0
-#     cdef uint64_t mapq_rev_max = 0
-#     cdef uint64_t mapq_fwd_max = 0
-#     cdef uint64_t mapq_pp_max = 0
-#     cdef uint64_t mapq_pp_rev_max = 0
-#     cdef uint64_t mapq_pp_fwd_max = 0
-#     cdef uint64_t mapq_squared_sum = 0
-#     cdef uint64_t mapq_fwd_squared_sum = 0
-#     cdef uint64_t mapq_rev_squared_sum = 0
-#     cdef uint64_t mapq_pp_squared_sum = 0
-#     cdef uint64_t mapq_pp_fwd_squared_sum = 0
-#     cdef uint64_t mapq_pp_rev_squared_sum = 0
-#
-#     cdef int reads_rev = 0
-#     cdef int reads_fwd = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_rev = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_mapq0 = 0
-#     cdef int reads_mapq0_fwd = 0
-#     cdef int reads_mapq0_rev = 0
-#     cdef int reads_mapq0_pp = 0
-#     cdef int reads_mapq0_pp_fwd = 0
-#     cdef int reads_mapq0_pp_rev = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         mapq = aln.core.qual
-#         mapq_squared = mapq**2
-#
-#         mapq_squared_sum += mapq_squared
-#         if mapq > mapq_max:
-#             mapq_max = mapq
-#         if is_reverse:
-#             reads_rev += 1
-#             mapq_rev_squared_sum += mapq_squared
-#             if mapq > mapq_rev_max:
-#                 mapq_rev_max = mapq
-#         else:
-#             reads_fwd += 1
-#             mapq_fwd_squared_sum += mapq_squared
-#             if mapq > mapq_fwd_max:
-#                 mapq_fwd_max = mapq
-#
-#         if mapq == 0:
-#             reads_mapq0 += 1
-#             if is_reverse:
-#                 reads_mapq0_rev += 1
-#             else:
-#                 reads_mapq0_fwd += 1
-#
-#         if is_proper_pair:
-#             reads_pp += 1
-#             mapq_pp_squared_sum += mapq_squared
-#             if mapq > mapq_pp_max:
-#                 mapq_pp_max = mapq
-#             if is_reverse:
-#                 reads_pp_rev += 1
-#                 mapq_pp_rev_squared_sum += mapq_squared
-#                 if mapq > mapq_pp_rev_max:
-#                     mapq_pp_rev_max = mapq
-#             else:
-#                 reads_pp_fwd += 1
-#                 mapq_pp_fwd_squared_sum += mapq_squared
-#                 if mapq > mapq_pp_fwd_max:
-#                     mapq_pp_fwd_max = mapq
-#             if mapq == 0:
-#                 reads_mapq0_pp += 1
-#                 if is_reverse:
-#                     reads_mapq0_pp_rev += 1
-#                 else:
-#                     reads_mapq0_pp_fwd += 1
-#
-#     # construct output variables
-#     rms_mapq = _rootmean(mapq_squared_sum, n)
-#     max_mapq = mapq_max
-#     if reads_rev > 0:
-#         rms_mapq_rev = _rootmean(mapq_rev_squared_sum, reads_rev)
-#         max_mapq_rev = mapq_rev_max
-#     else:
-#         rms_mapq_rev = max_mapq_rev = 0
-#     if reads_fwd > 0:
-#         rms_mapq_fwd = _rootmean(mapq_fwd_squared_sum, reads_fwd)
-#         max_mapq_fwd = mapq_fwd_max
-#     else:
-#         rms_mapq_fwd = max_mapq_fwd = 0
-#     if reads_pp > 0:
-#         rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
-#         max_mapq_pp = mapq_pp_max
-#     else:
-#         rms_mapq_pp = max_mapq_pp = 0
-#     if reads_pp_fwd > 0:
-#         rms_mapq_pp_fwd = _rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
-#         max_mapq_pp_fwd = mapq_pp_fwd_max
-#     else:
-#         rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
-#     if reads_pp_rev > 0:
-#         rms_mapq_pp_rev = _rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
-#         max_mapq_pp_rev = mapq_pp_rev_max
-#     else:
-#         rms_mapq_pp_rev = max_mapq_pp_rev = 0
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_fwd': reads_fwd,
-#             'reads_rev': reads_rev,
-#             'reads_pp': reads_pp,
-#             'reads_pp_fwd': reads_pp_fwd,
-#             'reads_pp_rev': reads_pp_rev,
-#             'reads_mapq0': reads_mapq0,
-#             'reads_mapq0_fwd': reads_mapq0_fwd,
-#             'reads_mapq0_rev': reads_mapq0_rev,
-#             'reads_mapq0_pp': reads_mapq0_pp,
-#             'reads_mapq0_pp_fwd': reads_mapq0_pp_fwd,
-#             'reads_mapq0_pp_rev': reads_mapq0_pp_rev,
-#             'rms_mapq': rms_mapq,
-#             'rms_mapq_fwd': rms_mapq_fwd,
-#             'rms_mapq_rev': rms_mapq_rev,
-#             'rms_mapq_pp': rms_mapq_pp,
-#             'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
-#             'rms_mapq_pp_rev': rms_mapq_pp_rev,
-#             'max_mapq': max_mapq,
-#             'max_mapq_fwd': max_mapq_fwd,
-#             'max_mapq_rev': max_mapq_rev,
-#             'max_mapq_pp': max_mapq_pp,
-#             'max_mapq_pp_fwd': max_mapq_pp_fwd,
-#             'max_mapq_pp_rev': max_mapq_pp_rev,
-#             }
-#
-#
-# cpdef dict _rec_mapq_strand_pad(FastaFile fafile, chrom, pos,
-#                                 bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_fwd': 0,
-#             'reads_rev': 0,
-#             'reads_pp': 0,
-#             'reads_pp_fwd': 0,
-#             'reads_pp_rev': 0,
-#             'reads_mapq0': 0,
-#             'reads_mapq0_fwd': 0,
-#             'reads_mapq0_rev': 0,
-#             'reads_mapq0_pp': 0,
-#             'reads_mapq0_pp_fwd': 0,
-#             'reads_mapq0_pp_rev': 0,
-#             'rms_mapq': 0,
-#             'rms_mapq_fwd': 0,
-#             'rms_mapq_rev': 0,
-#             'rms_mapq_pp': 0,
-#             'rms_mapq_pp_fwd': 0,
-#             'rms_mapq_pp_rev': 0,
-#             'max_mapq': 0,
-#             'max_mapq_fwd': 0,
-#             'max_mapq_rev': 0,
-#             'max_mapq_pp': 0,
-#             'max_mapq_pp_fwd': 0,
-#             'max_mapq_pp_rev': 0,
-#             }
-#
-#
-# def stat_mapq_strand(alignmentfile, **kwargs):
-#     """Generate mapping quality statistics by strand per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_mapq_strand, _rec_mapq_strand_pad, alignmentfile,
-#                        **kwargs)
-#
-#
-# def load_mapq_strand(*args, **kwargs):
-#     return load_stats(stat_mapq_strand, dtype_mapq_strand, *args, **kwargs)
-#
-#
-# ###########################
-# # BASE QUALITY STATISTICS #
-# ###########################
-#
-#
-# dtype_baseq = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('rms_baseq', 'i4'),
-#     ('rms_baseq_pp', 'i4'),
-# ]
-#
-#
-# fields_baseq = [t[0] for t in dtype_baseq]
-#
-#
-# cpdef dict _rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                       bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef int reads_nodel = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_nodel = 0
-#     cdef uint64_t baseq, baseq_squared
-#     cdef uint64_t baseq_squared_sum = 0
-#     cdef uint64_t baseq_pp_squared_sum = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         if is_proper_pair:
-#             reads_pp += 1
-#         # N.B., base quality only makes sense if the aligned read is not a
-#         # deletion
-#         if not read.is_del:
-#             reads_nodel += 1
-#             baseq = pysam_bam_get_qual(aln)[read.qpos]
-#             baseq_squared = baseq**2
-#             baseq_squared_sum += baseq_squared
-#             if is_proper_pair:
-#                 reads_pp_nodel += 1
-#                 baseq_pp_squared_sum += baseq_squared
-#
-#     # output variables
-#     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-#     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_pp': reads_pp,
-#             'rms_baseq': rms_baseq,
-#             'rms_baseq_pp': rms_baseq_pp}
-#
-#
-# cpdef dict _rec_baseq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_pp': 0,
-#             'rms_baseq': 0,
-#             'rms_baseq_pp': 0,
-#             }
-#
-#
-# def stat_baseq(alignmentfile, **kwargs):
-#     """Generate base quality statistics per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_baseq, _rec_baseq_pad, alignmentfile, **kwargs)
-#
-#
-# def load_baseq(*args, **kwargs):
-#     return load_stats(stat_baseq, dtype_baseq, *args, **kwargs)
-#
-#
-# #####################################
-# # BASE QUALITY STATISTICS BY STRAND #
-# #####################################
-#
-#
-# dtype_baseq_strand = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_fwd', 'i4'),
-#     ('reads_rev', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('reads_pp_fwd', 'i4'),
-#     ('reads_pp_rev', 'i4'),
-#     ('rms_baseq', 'i4'),
-#     ('rms_baseq_fwd', 'i4'),
-#     ('rms_baseq_rev', 'i4'),
-#     ('rms_baseq_pp', 'i4'),
-#     ('rms_baseq_pp_fwd', 'i4'),
-#     ('rms_baseq_pp_rev', 'i4'),
-# ]
-#
-#
-# fields_baseq_strand = [t[0] for t in dtype_baseq_strand]
-#
-#
-# cpdef dict _rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                              bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bint is_reverse
-#     cdef uint64_t baseq
-#     cdef uint64_t baseq_squared
-#
-#     cdef uint64_t baseq_squared_sum = 0
-#     cdef uint64_t baseq_fwd_squared_sum = 0
-#     cdef uint64_t baseq_rev_squared_sum = 0
-#     cdef uint64_t baseq_pp_squared_sum = 0
-#     cdef uint64_t baseq_pp_fwd_squared_sum = 0
-#     cdef uint64_t baseq_pp_rev_squared_sum = 0
-#
-#     cdef int reads_rev = 0
-#     cdef int reads_fwd = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_rev = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_nodel = 0
-#     cdef int reads_rev_nodel = 0
-#     cdef int reads_fwd_nodel = 0
-#     cdef int reads_pp_nodel = 0
-#     cdef int reads_pp_rev_nodel = 0
-#     cdef int reads_pp_fwd_nodel = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#
-#         if is_reverse:
-#             reads_rev += 1
-#         else:
-#             reads_fwd += 1
-#         if is_proper_pair:
-#             reads_pp += 1
-#             if is_reverse:
-#                 reads_pp_rev += 1
-#             else:
-#                 reads_pp_fwd += 1
-#
-#         # N.B., baseq only makes sense if not a deletion
-#         if not read.is_del:
-#             reads_nodel += 1
-#             baseq = pysam_bam_get_qual(aln)[read.qpos]
-#             baseq_squared = baseq**2
-#             baseq_squared_sum += baseq_squared
-#             if is_reverse:
-#                 reads_rev_nodel += 1
-#                 baseq_rev_squared_sum += baseq_squared
-#             else:
-#                 reads_fwd_nodel += 1
-#                 baseq_fwd_squared_sum += baseq_squared
-#             if is_proper_pair:
-#                 reads_pp_nodel += 1
-#                 baseq_pp_squared_sum += baseq_squared
-#                 if is_reverse:
-#                     reads_pp_rev_nodel += 1
-#                     baseq_pp_rev_squared_sum += baseq_squared
-#                 else:
-#                     reads_pp_fwd_nodel += 1
-#                     baseq_pp_fwd_squared_sum += baseq_squared
-#
-#     # construct output variables
-#     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-#     rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-#     rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-#     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-#     rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-#     rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_fwd': reads_fwd,
-#             'reads_rev': reads_rev,
-#             'reads_pp': reads_pp,
-#             'reads_pp_fwd': reads_pp_fwd,
-#             'reads_pp_rev': reads_pp_rev,
-#             'rms_baseq': rms_baseq,
-#             'rms_baseq_fwd': rms_baseq_fwd,
-#             'rms_baseq_rev': rms_baseq_rev,
-#             'rms_baseq_pp': rms_baseq_pp,
-#             'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
-#             'rms_baseq_pp_rev': rms_baseq_pp_rev,
-#             }
-#
-#
-# cpdef dict _rec_baseq_strand_pad(FastaFile fafile, chrom, pos,
-#                                  bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_fwd': 0,
-#             'reads_rev': 0,
-#             'reads_pp': 0,
-#             'reads_pp_fwd': 0,
-#             'reads_pp_rev': 0,
-#             'rms_baseq': 0,
-#             'rms_baseq_fwd': 0,
-#             'rms_baseq_rev': 0,
-#             'rms_baseq_pp': 0,
-#             'rms_baseq_pp_fwd': 0,
-#             'rms_baseq_pp_rev': 0,
-#             }
-#
-#
-# def stat_baseq_strand(alignmentfile, **kwargs):
-#     """Generate base quality statistics by strand per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_baseq_strand, _rec_baseq_strand_pad,
-#                        alignmentfile, **kwargs)
-#
-#
-# def load_baseq_strand(*args, **kwargs):
-#     return load_stats(stat_baseq_strand, dtype_baseq_strand,
-#                       *args, **kwargs)
-#
-#
-# ####################################
-# # EXTENDED BASE QUALITY STATISTICS #
-# ####################################
-#
-#
-# dtype_baseq_ext = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('ref', 'a1'),
-#     ('reads_all', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('matches', 'i4'),
-#     ('matches_pp', 'i4'),
-#     ('mismatches', 'i4'),
-#     ('mismatches_pp', 'i4'),
-#     ('rms_baseq', 'i4'),
-#     ('rms_baseq_pp', 'i4'),
-#     ('rms_baseq_matches', 'i4'),
-#     ('rms_baseq_matches_pp', 'i4'),
-#     ('rms_baseq_mismatches', 'i4'),
-#     ('rms_baseq_mismatches_pp', 'i4'),
-# ]
-#
-#
-# fields_baseq_ext = [t[0] for t in dtype_baseq_ext]
-#
-#
-# cpdef dict _rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
-#                           PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bytes refbase_b, alnbase
-#     # counting variables
-#     cdef int reads_nodel = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_nodel = 0
-#     cdef int matches = 0
-#     cdef int matches_pp = 0
-#     cdef int mismatches = 0
-#     cdef int mismatches_pp = 0
-#
-#     cdef uint64_t baseq
-#     cdef uint64_t baseq_squared
-#
-#     cdef uint64_t baseq_squared_sum = 0
-#     cdef uint64_t baseq_pp_squared_sum = 0
-#     cdef uint64_t baseq_matches_squared_sum = 0
-#     cdef uint64_t baseq_matches_pp_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_pp_squared_sum = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # reference base
-#     refbase = fafile.fetch(reference=chrom, start=col.pos,
-#                            end=col.pos + 1).upper()
-#     if not PY2:
-#         refbase_b = refbase.encode('ascii')
-#     else:
-#         refbase_b = refbase
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         if is_proper_pair:
-#             reads_pp += 1
-#         if not read.is_del:
-#             reads_nodel += 1
-#             baseq = pysam_bam_get_qual(aln)[read.qpos]
-#             baseq_squared = baseq**2
-#             baseq_squared_sum += baseq_squared
-#             if is_proper_pair:
-#                 reads_pp_nodel += 1
-#                 baseq_pp_squared_sum += baseq_squared
-#             alnbase = _get_seq_base(aln, read.qpos)
-#             if alnbase == refbase_b:
-#                 matches += 1
-#                 baseq_matches_squared_sum += baseq_squared
-#                 if is_proper_pair:
-#                     matches_pp += 1
-#                     baseq_matches_pp_squared_sum += baseq_squared
-#             else:
-#                 mismatches += 1
-#                 baseq_mismatches_squared_sum += baseq_squared
-#                 if is_proper_pair:
-#                     mismatches_pp += 1
-#                     baseq_mismatches_pp_squared_sum += baseq_squared
-#
-#     # construct output variables
-#     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-#     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-#     rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
-#     rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
-#     rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-#     rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
-#                                         mismatches_pp)
-#
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': n, 'reads_pp': reads_pp,
-#             'matches': matches,
-#             'matches_pp': matches_pp,
-#             'mismatches': mismatches,
-#             'mismatches_pp': mismatches_pp,
-#             'rms_baseq': rms_baseq,
-#             'rms_baseq_pp': rms_baseq_pp,
-#             'rms_baseq_matches': rms_baseq_matches,
-#             'rms_baseq_matches_pp': rms_baseq_matches_pp,
-#             'rms_baseq_mismatches': rms_baseq_mismatches,
-#             'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp,
-#             }
-#
-#
-# cpdef dict _rec_baseq_ext_pad(FastaFile fafile, chrom, pos,
-#                               bint one_based=False):
-#     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': 0, 'reads_pp': 0,
-#             'matches': 0,
-#             'matches_pp': 0,
-#             'mismatches': 0,
-#             'mismatches_pp': 0,
-#             'rms_baseq': 0,
-#             'rms_baseq_pp': 0,
-#             'rms_baseq_matches': 0,
-#             'rms_baseq_matches_pp': 0,
-#             'rms_baseq_mismatches': 0,
-#             'rms_baseq_mismatches_pp': 0,
-#             }
-#
-#
-# def stat_baseq_ext(alignmentfile, fafile, **kwargs):
-#     """Generate extended base quality statistics per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_baseq_ext, _rec_baseq_ext_pad, alignmentfile,
-#                        fafile=fafile, **kwargs)
-#
-#
-# def load_baseq_ext(*args, **kwargs):
-#     return load_stats(stat_baseq_ext, dtype_baseq_ext, *args, **kwargs)
-#
-#
-# ##############################################
-# # EXTENDED BASE QUALITY STATISTICS BY STRAND #
-# ##############################################
-#
-#
-# dtype_baseq_ext_strand = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('ref', 'a1'),
-#     ('reads_all', 'i4'),
-#     ('reads_fwd', 'i4'),
-#     ('reads_rev', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('reads_pp_fwd', 'i4'),
-#     ('reads_pp_rev', 'i4'),
-#     ('matches', 'i4'),
-#     ('matches_fwd', 'i4'),
-#     ('matches_rev', 'i4'),
-#     ('matches_pp', 'i4'),
-#     ('matches_pp_fwd', 'i4'),
-#     ('matches_pp_rev', 'i4'),
-#     ('mismatches', 'i4'),
-#     ('mismatches_fwd', 'i4'),
-#     ('mismatches_rev', 'i4'),
-#     ('mismatches_pp', 'i4'),
-#     ('mismatches_pp_fwd', 'i4'),
-#     ('mismatches_pp_rev', 'i4'),
-#     ('rms_baseq', 'i4'),
-#     ('rms_baseq_fwd', 'i4'),
-#     ('rms_baseq_rev', 'i4'),
-#     ('rms_baseq_pp', 'i4'),
-#     ('rms_baseq_pp_fwd', 'i4'),
-#     ('rms_baseq_pp_rev', 'i4'),
-#     ('rms_baseq_matches', 'i4'),
-#     ('rms_baseq_matches_fwd', 'i4'),
-#     ('rms_baseq_matches_rev', 'i4'),
-#     ('rms_baseq_matches_pp', 'i4'),
-#     ('rms_baseq_matches_pp_fwd', 'i4'),
-#     ('rms_baseq_matches_pp_rev', 'i4'),
-#     ('rms_baseq_mismatches', 'i4'),
-#     ('rms_baseq_mismatches_fwd', 'i4'),
-#     ('rms_baseq_mismatches_rev', 'i4'),
-#     ('rms_baseq_mismatches_pp', 'i4'),
-#     ('rms_baseq_mismatches_pp_fwd', 'i4'),
-#     ('rms_baseq_mismatches_pp_rev', 'i4')
-# ]
-#
-#
-# fields_baseq_ext_strand = [t[0] for t in dtype_baseq_ext_strand]
-#
-#
-# cpdef dict _rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
-#                                  PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t ** plp
-#     cdef bam_pileup1_t * read
-#     cdef bam1_t * aln
-#     cdef int i # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bint is_reverse
-#     cdef bytes alnbase, refbase_b
-#     # counting variables
-#     cdef int reads_fwd = 0
-#     cdef int reads_rev = 0
-#     cdef int reads_nodel = 0
-#     cdef int reads_fwd_nodel = 0
-#     cdef int reads_rev_nodel = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_pp_rev = 0
-#     cdef int reads_pp_nodel = 0
-#     cdef int reads_pp_fwd_nodel = 0
-#     cdef int reads_pp_rev_nodel = 0
-#     cdef int matches = 0
-#     cdef int matches_fwd = 0
-#     cdef int matches_rev = 0
-#     cdef int matches_pp = 0
-#     cdef int matches_pp_fwd = 0
-#     cdef int matches_pp_rev = 0
-#     cdef int mismatches = 0
-#     cdef int mismatches_fwd = 0
-#     cdef int mismatches_rev = 0
-#     cdef int mismatches_pp = 0
-#     cdef int mismatches_pp_fwd = 0
-#     cdef int mismatches_pp_rev = 0
-#
-#     cdef uint64_t baseq
-#     cdef uint64_t baseq_squared
-#
-#     cdef uint64_t baseq_squared_sum = 0
-#     cdef uint64_t baseq_fwd_squared_sum = 0
-#     cdef uint64_t baseq_rev_squared_sum = 0
-#     cdef uint64_t baseq_pp_squared_sum = 0
-#     cdef uint64_t baseq_pp_fwd_squared_sum = 0
-#     cdef uint64_t baseq_pp_rev_squared_sum = 0
-#     cdef uint64_t baseq_matches_squared_sum = 0
-#     cdef uint64_t baseq_matches_fwd_squared_sum = 0
-#     cdef uint64_t baseq_matches_rev_squared_sum = 0
-#     cdef uint64_t baseq_matches_pp_squared_sum = 0
-#     cdef uint64_t baseq_matches_pp_fwd_squared_sum = 0
-#     cdef uint64_t baseq_matches_pp_rev_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_fwd_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_rev_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_pp_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_pp_fwd_squared_sum = 0
-#     cdef uint64_t baseq_mismatches_pp_rev_squared_sum = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # reference base
-#     refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-#     if not PY2:
-#         refbase_b = refbase.encode('ascii')
-#     else:
-#         refbase_b = refbase
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#
-#         if is_reverse:
-#             reads_rev += 1
-#         else:
-#             reads_fwd += 1
-#         if is_proper_pair:
-#             reads_pp += 1
-#             if is_reverse:
-#                 reads_pp_rev += 1
-#             else:
-#                 reads_pp_fwd += 1
-#
-#         if not read.is_del:
-#             reads_nodel += 1
-#             baseq = pysam_bam_get_qual(aln)[read.qpos]
-#             baseq_squared = baseq**2
-#             baseq_squared_sum += baseq_squared
-#             if is_reverse:
-#                 reads_rev_nodel += 1
-#                 baseq_rev_squared_sum += baseq_squared
-#             else:
-#                 reads_fwd_nodel += 1
-#                 baseq_fwd_squared_sum += baseq_squared
-#             if is_proper_pair:
-#                 reads_pp_nodel += 1
-#                 baseq_pp_squared_sum += baseq_squared
-#                 if is_reverse:
-#                     reads_pp_rev_nodel += 1
-#                     baseq_pp_rev_squared_sum += baseq_squared
-#                 else:
-#                     reads_pp_fwd_nodel += 1
-#                     baseq_pp_fwd_squared_sum += baseq_squared
-#             alnbase = _get_seq_base(aln, read.qpos)
-#             if alnbase == refbase_b:
-#                 matches += 1
-#                 baseq_matches_squared_sum += baseq_squared
-#                 if is_reverse:
-#                     matches_rev += 1
-#                     baseq_matches_rev_squared_sum += baseq_squared
-#                 else:
-#                     matches_fwd += 1
-#                     baseq_matches_fwd_squared_sum += baseq_squared
-#
-#                 if is_proper_pair:
-#                     matches_pp += 1
-#                     baseq_matches_pp_squared_sum += baseq_squared
-#                     if is_reverse:
-#                         matches_pp_rev += 1
-#                         baseq_matches_pp_rev_squared_sum += baseq_squared
-#                     else:
-#                         matches_pp_fwd += 1
-#                         baseq_matches_pp_fwd_squared_sum += baseq_squared
-#             else:
-#                 mismatches += 1
-#                 baseq_mismatches_squared_sum += baseq_squared
-#                 if is_reverse:
-#                     mismatches_rev += 1
-#                     baseq_mismatches_rev_squared_sum += baseq_squared
-#                 else:
-#                     mismatches_fwd += 1
-#                     baseq_mismatches_fwd_squared_sum += baseq_squared
-#
-#                 if is_proper_pair:
-#                     mismatches_pp += 1
-#                     baseq_mismatches_pp_squared_sum += baseq_squared
-#                     if is_reverse:
-#                         mismatches_pp_rev += 1
-#                         baseq_mismatches_pp_rev_squared_sum += baseq_squared
-#                     else:
-#                         mismatches_pp_fwd += 1
-#                         baseq_mismatches_pp_fwd_squared_sum += baseq_squared
-#
-#     # construct output variables
-#     rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-#     rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-#     rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-#     rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-#     rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-#     rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
-#     rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
-#     rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum,
-#                                       matches_fwd)
-#     rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum,
-#                                       matches_rev)
-#     rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
-#     rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum,
-#                                          matches_pp_fwd)
-#     rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum,
-#                                          matches_pp_rev)
-#     rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-#     rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum,
-#                                          mismatches_fwd)
-#     rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum,
-#                                          mismatches_rev)
-#     rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
-#                                         mismatches_pp)
-#     rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum,
-#                                             mismatches_pp_fwd)
-#     rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum,
-#                                             mismatches_pp_rev)
-#
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
-#             'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
-#             'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev,
-#             'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
-#             'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev,
-#             'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
-#             'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
-#             'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
-#             'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev,
-#             'rms_baseq_matches_pp': rms_baseq_matches_pp, 'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
-#             'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev,
-#             'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
-#             }
-#
-#
-# cpdef dict _rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos,
-#                                      bint one_based=False):
-#     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0,
-#             'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
-#             'matches': 0, 'matches_fwd': 0, 'matches_rev': 0,
-#             'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
-#             'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0,
-#             'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
-#             'rms_baseq': 0, 'rms_baseq_fwd': 0, 'rms_baseq_rev': 0,
-#             'rms_baseq_pp': 0, 'rms_baseq_pp_fwd': 0, 'rms_baseq_pp_rev': 0,
-#             'rms_baseq_matches': 0, 'rms_baseq_matches_fwd': 0, 'rms_baseq_matches_rev': 0,
-#             'rms_baseq_matches_pp': 0, 'rms_baseq_matches_pp_fwd': 0, 'rms_baseq_matches_pp_rev': 0,
-#             'rms_baseq_mismatches': 0, 'rms_baseq_mismatches_fwd': 0, 'rms_baseq_mismatches_rev': 0,
-#             'rms_baseq_mismatches_pp': 0, 'rms_baseq_mismatches_pp_fwd': 0, 'rms_baseq_mismatches_pp_rev': 0,
-#             }
-#
-#
-# def stat_baseq_ext_strand(alignmentfile, fafile, **kwargs):
-#     """Generate extended base quality statistics by strand per genome position.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     return iter_pileup(_rec_baseq_ext_strand, _rec_baseq_ext_strand_pad,
-#                        alignmentfile, fafile=fafile, **kwargs)
-#
-#
-# def load_baseq_ext_strand(*args, **kwargs):
-#     return load_stats(stat_baseq_ext_strand, dtype_baseq_ext_strand,
-#                       *args, **kwargs)
-#
-#
+##########################
+# INSERT SIZE STATISTICS #
+##########################
+
+
+cpdef dict rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                    bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i  # loop index
+    cdef int reads_all  # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint mate_is_unmappped
+    cdef bint mate_other_chr
+    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
+    cdef int reads_p = 0
+    # reads "properly paired", as defined by aligner
+    cdef int reads_pp = 0
+    cdef int64_t tlen
+    cdef int64_t tlen_squared
+    cdef int64_t tlen_p_sum = 0
+    cdef double tlen_p_mean = 0
+    cdef double tlen_p_dev_squared
+    cdef double tlen_p_dev_squared_sum = 0
+    cdef int64_t tlen_p_squared_sum = 0
+    cdef int64_t tlen_pp_sum = 0
+    cdef double tlen_pp_mean = 0
+    cdef double tlen_pp_dev_squared
+    cdef double tlen_pp_dev_squared_sum = 0
+    cdef int64_t tlen_pp_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+
+        # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
+        # follow their naming convention
+        tlen = aln.core.isize
+        tlen_squared = tlen**2
+
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            reads_p += 1
+            tlen_p_sum += tlen
+            tlen_p_squared_sum += tlen_squared
+            if is_proper_pair:
+                reads_pp += 1
+                tlen_pp_sum += tlen
+                tlen_pp_squared_sum += tlen_squared
+
+    # calculate intermediate variables
+    if reads_p > 0:
+        tlen_p_mean = tlen_p_sum / reads_p
+    if reads_pp > 0:
+        tlen_pp_mean = tlen_pp_sum / reads_pp
+
+    # loop over reads again to calculate variance (and hence std)
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        tlen = aln.core.isize
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
+            tlen_p_dev_squared_sum += tlen_p_dev_squared
+            if is_proper_pair:
+                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
+                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
+
+    # calculate output variables
+    # N.B. round values to nearest integer, any finer precision is probably not
+    # interesting
+    if reads_p > 0:
+        mean_tlen = int(round(tlen_p_mean))
+        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
+        variance_tlen = tlen_p_dev_squared_sum / reads_p
+        std_tlen = int(round(sqrt(variance_tlen)))
+    else:
+        rms_tlen = std_tlen = mean_tlen = median_tlen = 0
+    if reads_pp > 0:
+        mean_tlen_pp = int(round(tlen_pp_mean))
+        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
+        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
+        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
+    else:
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_paired': reads_p,
+            'reads_pp': reads_pp,
+            'mean_tlen': mean_tlen,
+            'mean_tlen_pp': mean_tlen_pp,
+            'rms_tlen': rms_tlen,
+            'rms_tlen_pp': rms_tlen_pp,
+            'std_tlen': std_tlen,
+            'std_tlen_pp': std_tlen_pp}
+
+
+cpdef dict rec_tlen_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_paired': 0,
+            'reads_pp': 0,
+            'mean_tlen': 0,
+            'mean_tlen_pp': 0,
+            'rms_tlen': 0,
+            'rms_tlen_pp': 0,
+            'std_tlen': 0,
+            'std_tlen_pp': 0,
+            }
+
+
+####################################
+# INSERT SIZE STATISTICS BY STRAND #
+####################################
+
+
+cpdef dict rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                           bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint mate_is_unmappped
+    cdef bint mate_other_chr
+
+    # counting variables
+    cdef int reads_fwd = 0
+    cdef int reads_rev = 0
+    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
+    # meaningful
+    cdef int reads_p = 0
+    cdef int reads_p_fwd = 0
+    cdef int reads_p_rev = 0
+    # reads "properly paired", as defined by aligner
+    cdef int reads_pp = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_pp_rev = 0
+
+    cdef int64_t tlen
+    cdef int64_t tlen_squared
+
+    cdef int64_t tlen_p_sum = 0
+    cdef double tlen_p_mean = 0
+    cdef double tlen_p_dev_squared
+    cdef double tlen_p_dev_squared_sum = 0
+    cdef int64_t tlen_p_squared_sum = 0
+    cdef int64_t tlen_p_fwd_sum = 0
+    cdef double tlen_p_fwd_mean = 0
+    cdef double tlen_p_fwd_dev_squared
+    cdef double tlen_p_fwd_dev_squared_sum = 0
+    cdef int64_t tlen_p_fwd_squared_sum = 0
+    cdef int64_t tlen_p_rev_sum = 0
+    cdef double tlen_p_rev_mean = 0
+    cdef double tlen_p_rev_dev_squared
+    cdef double tlen_p_rev_dev_squared_sum = 0
+    cdef int64_t tlen_p_rev_squared_sum = 0
+
+    cdef int64_t tlen_pp_sum = 0
+    cdef double tlen_pp_mean = 0
+    cdef double tlen_pp_dev_squared
+    cdef double tlen_pp_dev_squared_sum = 0
+    cdef int64_t tlen_pp_squared_sum = 0
+    cdef int64_t tlen_pp_fwd_sum = 0
+    cdef double tlen_pp_fwd_mean = 0
+    cdef double tlen_pp_fwd_dev_squared
+    cdef double tlen_pp_fwd_dev_squared_sum = 0
+    cdef int64_t tlen_pp_fwd_squared_sum = 0
+    cdef int64_t tlen_pp_rev_sum = 0
+    cdef double tlen_pp_rev_mean = 0
+    cdef double tlen_pp_rev_dev_squared
+    cdef double tlen_pp_rev_dev_squared_sum = 0
+    cdef int64_t tlen_pp_rev_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+
+        # not sure these are really needed
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+
+        # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
+        # follow their naming convention
+        tlen = aln.core.isize
+        tlen_squared = tlen**2
+
+        # N.B. insert size is only meaningful if mate is mapped to same
+        # chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            reads_p += 1
+            tlen_p_sum += tlen
+            tlen_p_squared_sum += tlen_squared
+            if is_reverse:
+                reads_p_rev += 1
+                tlen_p_rev_sum += tlen
+                tlen_p_rev_squared_sum += tlen_squared
+            else:
+                reads_p_fwd += 1
+                tlen_p_fwd_sum += tlen
+                tlen_p_fwd_squared_sum += tlen_squared
+
+            if is_proper_pair:
+                reads_pp += 1
+                tlen_pp_sum += tlen
+                tlen_pp_squared_sum += tlen_squared
+                if is_reverse:
+                    reads_pp_rev += 1
+                    tlen_pp_rev_sum += tlen
+                    tlen_pp_rev_squared_sum += tlen_squared
+                else:
+                    reads_pp_fwd += 1
+                    tlen_pp_fwd_sum += tlen
+                    tlen_pp_fwd_squared_sum += tlen_squared
+
+    # calculate intermediate variables
+    if reads_p > 0:
+        tlen_p_mean = tlen_p_sum / reads_p
+        if reads_p_rev > 0:
+            tlen_p_rev_mean = tlen_p_rev_sum / reads_p_rev
+        if reads_p_fwd > 0:
+            tlen_p_fwd_mean = tlen_p_fwd_sum / reads_p_fwd
+    if reads_pp > 0:
+        tlen_pp_mean = tlen_pp_sum / reads_pp
+        if reads_pp_rev > 0:
+            tlen_pp_rev_mean = tlen_pp_rev_sum / reads_pp_rev
+        if reads_pp_fwd > 0:
+            tlen_pp_fwd_mean = tlen_pp_fwd_sum / reads_pp_fwd
+
+    # loop over reads again to calculate variance (and hence std)
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        tlen = aln.core.isize
+        # N.B. insert size is only meaningful if mate is mapped to same
+        # chromosome
+        if not mate_is_unmapped and not mate_other_chr:
+            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
+            tlen_p_dev_squared_sum += tlen_p_dev_squared
+            if is_reverse:
+                tlen_p_rev_dev_squared = (tlen - tlen_p_rev_mean)**2
+                tlen_p_rev_dev_squared_sum += tlen_p_rev_dev_squared
+            else:
+                tlen_p_fwd_dev_squared = (tlen - tlen_p_fwd_mean)**2
+                tlen_p_fwd_dev_squared_sum += tlen_p_fwd_dev_squared
+            if is_proper_pair:
+                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
+                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
+                if is_reverse:
+                    tlen_pp_rev_dev_squared = (tlen - tlen_pp_rev_mean)**2
+                    tlen_pp_rev_dev_squared_sum += tlen_pp_rev_dev_squared
+                else:
+                    tlen_pp_fwd_dev_squared = (tlen - tlen_pp_fwd_mean)**2
+                    tlen_pp_fwd_dev_squared_sum += tlen_pp_fwd_dev_squared
+
+    # calculate output variables
+    # N.B. round values to nearest integer, any finer precision is probably not
+    # interesting
+    if reads_p > 0:
+        mean_tlen = int(round(tlen_p_mean))
+        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
+        variance_tlen = tlen_p_dev_squared_sum / reads_p
+        std_tlen = int(round(sqrt(variance_tlen)))
+    else:
+        rms_tlen = std_tlen = mean_tlen = 0
+    if reads_p_rev > 0:
+        mean_tlen_rev = int(round(tlen_p_rev_mean))
+        rms_tlen_rev = _rootmean(tlen_p_rev_squared_sum, reads_p_rev)
+        variance_tlen_rev = tlen_p_rev_dev_squared_sum / reads_p_rev
+        std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
+    else:
+        rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
+    if reads_p_fwd > 0:
+        mean_tlen_fwd = int(round(tlen_p_fwd_mean))
+        rms_tlen_fwd = _rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
+        variance_tlen_fwd = tlen_p_fwd_dev_squared_sum / reads_p_fwd
+        std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
+    else:
+        rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
+    if reads_pp > 0:
+        mean_tlen_pp = int(round(tlen_pp_mean))
+        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
+        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
+        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
+    else:
+        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
+    if reads_pp_rev > 0:
+        mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
+        rms_tlen_pp_rev = _rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
+        variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum / reads_pp_rev
+        std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
+    else:
+        rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
+    if reads_pp_fwd > 0:
+        mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
+        rms_tlen_pp_fwd = _rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
+        variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum / reads_pp_fwd
+        std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
+    else:
+        rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_fwd': reads_fwd,
+            'reads_rev': reads_rev,
+            'reads_paired': reads_p,
+            'reads_paired_fwd': reads_p_fwd,
+            'reads_paired_rev': reads_p_rev,
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
+            'mean_tlen': mean_tlen,
+            'mean_tlen_fwd': mean_tlen_fwd,
+            'mean_tlen_rev': mean_tlen_rev,
+            'mean_tlen_pp': mean_tlen_pp,
+            'mean_tlen_pp_fwd': mean_tlen_pp_fwd,
+            'mean_tlen_pp_rev': mean_tlen_pp_rev,
+            'rms_tlen': rms_tlen,
+            'rms_tlen_fwd': rms_tlen_fwd,
+            'rms_tlen_rev': rms_tlen_rev,
+            'rms_tlen_pp': rms_tlen_pp,
+            'rms_tlen_pp_fwd': rms_tlen_pp_fwd,
+            'rms_tlen_pp_rev': rms_tlen_pp_rev,
+            'std_tlen': std_tlen,
+            'std_tlen_fwd': std_tlen_fwd,
+            'std_tlen_rev': std_tlen_rev,
+            'std_tlen_pp': std_tlen_pp,
+            'std_tlen_pp_fwd': std_tlen_pp_fwd,
+            'std_tlen_pp_rev': std_tlen_pp_rev}
+
+
+cpdef dict rec_tlen_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_fwd': 0,
+            'reads_rev': 0,
+            'reads_paired': 0,
+            'reads_paired_fwd': 0,
+            'reads_paired_rev': 0,
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'mean_tlen': 0,
+            'mean_tlen_fwd': 0,
+            'mean_tlen_rev': 0,
+            'mean_tlen_pp': 0,
+            'mean_tlen_pp_fwd': 0,
+            'mean_tlen_pp_rev': 0,
+            'rms_tlen': 0,
+            'rms_tlen_fwd': 0,
+            'rms_tlen_rev': 0,
+            'rms_tlen_pp': 0,
+            'rms_tlen_pp_fwd': 0,
+            'rms_tlen_pp_rev': 0,
+            'std_tlen': 0,
+            'std_tlen_fwd': 0,
+            'std_tlen_rev': 0,
+            'std_tlen_pp': 0,
+            'std_tlen_pp_fwd': 0,
+            'std_tlen_pp_rev': 0,
+            }
+
+
+##############################
+# MAPPING QUALITY STATISTICS #
+##############################
+
+
+cpdef dict rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                    bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+    cdef uint32_t flag
+    cdef uint64_t mapq
+    cdef uint64_t mapq_max = 0
+    cdef uint64_t mapq_pp_max = 0
+    cdef uint64_t mapq_squared
+    cdef uint64_t mapq_squared_sum = 0
+    cdef uint64_t mapq_pp_squared_sum = 0
+    cdef bint is_proper_pair
+    cdef int reads_pp = 0
+    cdef int reads_mapq0 = 0
+    cdef int reads_mapq0_pp = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        mapq = aln.core.qual
+        mapq_squared = mapq**2
+        mapq_squared_sum += mapq_squared
+        if mapq == 0:
+            reads_mapq0 += 1
+        if mapq > mapq_max:
+            mapq_max = mapq
+        if is_proper_pair:
+            reads_pp += 1
+            mapq_pp_squared_sum += mapq_squared
+            if mapq > mapq_pp_max:
+                mapq_pp_max = mapq
+            if mapq == 0:
+                reads_mapq0_pp += 1
+
+    # construct output variables
+    rms_mapq = _rootmean(mapq_squared_sum, n)
+    max_mapq = mapq_max
+    if reads_pp > 0:
+        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
+        max_mapq_pp = mapq_pp_max
+    else:
+        rms_mapq_pp = max_mapq_pp = 0
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_pp': reads_pp,
+            'reads_mapq0': reads_mapq0,
+            'reads_mapq0_pp': reads_mapq0_pp,
+            'rms_mapq': rms_mapq,
+            'rms_mapq_pp': rms_mapq_pp,
+            'max_mapq': max_mapq,
+            'max_mapq_pp': max_mapq_pp}
+
+
+cpdef dict rec_mapq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_pp': 0,
+            'reads_mapq0': 0,
+            'reads_mapq0_pp': 0,
+            'rms_mapq': 0,
+            'rms_mapq_pp': 0,
+            'max_mapq': 0,
+            'max_mapq_pp': 0,
+            }
+
+
+########################################
+# MAPPING QUALITY STATISTICS BY STRAND #
+########################################
+
+
+cpdef dict rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                           bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i  # loop index
+    cdef int reads_all  # total number of reads in column
+
+    cdef uint32_t flag
+    cdef uint64_t mapq
+    cdef uint64_t mapq_squared
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+
+    cdef uint64_t mapq_max = 0
+    cdef uint64_t mapq_rev_max = 0
+    cdef uint64_t mapq_fwd_max = 0
+    cdef uint64_t mapq_pp_max = 0
+    cdef uint64_t mapq_pp_rev_max = 0
+    cdef uint64_t mapq_pp_fwd_max = 0
+    cdef uint64_t mapq_squared_sum = 0
+    cdef uint64_t mapq_fwd_squared_sum = 0
+    cdef uint64_t mapq_rev_squared_sum = 0
+    cdef uint64_t mapq_pp_squared_sum = 0
+    cdef uint64_t mapq_pp_fwd_squared_sum = 0
+    cdef uint64_t mapq_pp_rev_squared_sum = 0
+
+    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_mapq0 = 0
+    cdef int reads_mapq0_fwd = 0
+    cdef int reads_mapq0_rev = 0
+    cdef int reads_mapq0_pp = 0
+    cdef int reads_mapq0_pp_fwd = 0
+    cdef int reads_mapq0_pp_rev = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        mapq = aln.core.qual
+        mapq_squared = mapq**2
+
+        mapq_squared_sum += mapq_squared
+        if mapq > mapq_max:
+            mapq_max = mapq
+        if is_reverse:
+            reads_rev += 1
+            mapq_rev_squared_sum += mapq_squared
+            if mapq > mapq_rev_max:
+                mapq_rev_max = mapq
+        else:
+            reads_fwd += 1
+            mapq_fwd_squared_sum += mapq_squared
+            if mapq > mapq_fwd_max:
+                mapq_fwd_max = mapq
+
+        if mapq == 0:
+            reads_mapq0 += 1
+            if is_reverse:
+                reads_mapq0_rev += 1
+            else:
+                reads_mapq0_fwd += 1
+
+        if is_proper_pair:
+            reads_pp += 1
+            mapq_pp_squared_sum += mapq_squared
+            if mapq > mapq_pp_max:
+                mapq_pp_max = mapq
+            if is_reverse:
+                reads_pp_rev += 1
+                mapq_pp_rev_squared_sum += mapq_squared
+                if mapq > mapq_pp_rev_max:
+                    mapq_pp_rev_max = mapq
+            else:
+                reads_pp_fwd += 1
+                mapq_pp_fwd_squared_sum += mapq_squared
+                if mapq > mapq_pp_fwd_max:
+                    mapq_pp_fwd_max = mapq
+            if mapq == 0:
+                reads_mapq0_pp += 1
+                if is_reverse:
+                    reads_mapq0_pp_rev += 1
+                else:
+                    reads_mapq0_pp_fwd += 1
+
+    # construct output variables
+    rms_mapq = _rootmean(mapq_squared_sum, n)
+    max_mapq = mapq_max
+    if reads_rev > 0:
+        rms_mapq_rev = _rootmean(mapq_rev_squared_sum, reads_rev)
+        max_mapq_rev = mapq_rev_max
+    else:
+        rms_mapq_rev = max_mapq_rev = 0
+    if reads_fwd > 0:
+        rms_mapq_fwd = _rootmean(mapq_fwd_squared_sum, reads_fwd)
+        max_mapq_fwd = mapq_fwd_max
+    else:
+        rms_mapq_fwd = max_mapq_fwd = 0
+    if reads_pp > 0:
+        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
+        max_mapq_pp = mapq_pp_max
+    else:
+        rms_mapq_pp = max_mapq_pp = 0
+    if reads_pp_fwd > 0:
+        rms_mapq_pp_fwd = _rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
+        max_mapq_pp_fwd = mapq_pp_fwd_max
+    else:
+        rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
+    if reads_pp_rev > 0:
+        rms_mapq_pp_rev = _rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
+        max_mapq_pp_rev = mapq_pp_rev_max
+    else:
+        rms_mapq_pp_rev = max_mapq_pp_rev = 0
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_fwd': reads_fwd,
+            'reads_rev': reads_rev,
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
+            'reads_mapq0': reads_mapq0,
+            'reads_mapq0_fwd': reads_mapq0_fwd,
+            'reads_mapq0_rev': reads_mapq0_rev,
+            'reads_mapq0_pp': reads_mapq0_pp,
+            'reads_mapq0_pp_fwd': reads_mapq0_pp_fwd,
+            'reads_mapq0_pp_rev': reads_mapq0_pp_rev,
+            'rms_mapq': rms_mapq,
+            'rms_mapq_fwd': rms_mapq_fwd,
+            'rms_mapq_rev': rms_mapq_rev,
+            'rms_mapq_pp': rms_mapq_pp,
+            'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
+            'rms_mapq_pp_rev': rms_mapq_pp_rev,
+            'max_mapq': max_mapq,
+            'max_mapq_fwd': max_mapq_fwd,
+            'max_mapq_rev': max_mapq_rev,
+            'max_mapq_pp': max_mapq_pp,
+            'max_mapq_pp_fwd': max_mapq_pp_fwd,
+            'max_mapq_pp_rev': max_mapq_pp_rev,
+            }
+
+
+cpdef dict rec_mapq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_fwd': 0,
+            'reads_rev': 0,
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'reads_mapq0': 0,
+            'reads_mapq0_fwd': 0,
+            'reads_mapq0_rev': 0,
+            'reads_mapq0_pp': 0,
+            'reads_mapq0_pp_fwd': 0,
+            'reads_mapq0_pp_rev': 0,
+            'rms_mapq': 0,
+            'rms_mapq_fwd': 0,
+            'rms_mapq_rev': 0,
+            'rms_mapq_pp': 0,
+            'rms_mapq_pp_fwd': 0,
+            'rms_mapq_pp_rev': 0,
+            'max_mapq': 0,
+            'max_mapq_fwd': 0,
+            'max_mapq_rev': 0,
+            'max_mapq_pp': 0,
+            'max_mapq_pp_fwd': 0,
+            'max_mapq_pp_rev': 0,
+            }
+
+
+###########################
+# BASE QUALITY STATISTICS #
+###########################
+
+
+cpdef dict rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                     bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef int reads_nodel = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_nodel = 0
+    cdef uint64_t baseq, baseq_squared
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+        # N.B., base quality only makes sense if the aligned read is not a
+        # deletion
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+
+    # output variables
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_pp': reads_pp,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_pp': rms_baseq_pp}
+
+
+cpdef dict rec_baseq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_pp': 0,
+            'rms_baseq': 0,
+            'rms_baseq_pp': 0,
+            }
+
+
+#####################################
+# BASE QUALITY STATISTICS BY STRAND #
+#####################################
+
+
+cpdef dict rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
+                            bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_fwd_squared_sum = 0
+    cdef uint64_t baseq_rev_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_pp_rev_squared_sum = 0
+
+    cdef int reads_rev = 0
+    cdef int reads_fwd = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_nodel = 0
+    cdef int reads_rev_nodel = 0
+    cdef int reads_fwd_nodel = 0
+    cdef int reads_pp_nodel = 0
+    cdef int reads_pp_rev_nodel = 0
+    cdef int reads_pp_fwd_nodel = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if is_proper_pair:
+            reads_pp += 1
+            if is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
+
+        # N.B., baseq only makes sense if not a deletion
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_reverse:
+                reads_rev_nodel += 1
+                baseq_rev_squared_sum += baseq_squared
+            else:
+                reads_fwd_nodel += 1
+                baseq_fwd_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+                if is_reverse:
+                    reads_pp_rev_nodel += 1
+                    baseq_pp_rev_squared_sum += baseq_squared
+                else:
+                    reads_pp_fwd_nodel += 1
+                    baseq_pp_fwd_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': n,
+            'reads_fwd': reads_fwd,
+            'reads_rev': reads_rev,
+            'reads_pp': reads_pp,
+            'reads_pp_fwd': reads_pp_fwd,
+            'reads_pp_rev': reads_pp_rev,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_fwd': rms_baseq_fwd,
+            'rms_baseq_rev': rms_baseq_rev,
+            'rms_baseq_pp': rms_baseq_pp,
+            'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
+            'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            }
+
+
+cpdef dict rec_baseq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom,
+            'pos': pos,
+            'reads_all': 0,
+            'reads_fwd': 0,
+            'reads_rev': 0,
+            'reads_pp': 0,
+            'reads_pp_fwd': 0,
+            'reads_pp_rev': 0,
+            'rms_baseq': 0,
+            'rms_baseq_fwd': 0,
+            'rms_baseq_rev': 0,
+            'rms_baseq_pp': 0,
+            'rms_baseq_pp_fwd': 0,
+            'rms_baseq_pp_rev': 0,
+            }
+
+
+####################################
+# EXTENDED BASE QUALITY STATISTICS #
+####################################
+
+
+cpdef dict rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
+                         PileupColumn col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bytes refbase_b, alnbase
+    # counting variables
+    cdef int reads_nodel = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_nodel = 0
+    cdef int matches = 0
+    cdef int matches_pp = 0
+    cdef int mismatches = 0
+    cdef int mismatches_pp = 0
+
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_matches_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_squared_sum = 0
+    cdef uint64_t baseq_mismatches_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # reference base
+    refbase = fafile.fetch(reference=chrom, start=col.pos,
+                           end=col.pos + 1).upper()
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            reads_pp += 1
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+            alnbase = _get_seq_base(aln, read.qpos)
+            if alnbase == refbase_b:
+                matches += 1
+                baseq_matches_squared_sum += baseq_squared
+                if is_proper_pair:
+                    matches_pp += 1
+                    baseq_matches_pp_squared_sum += baseq_squared
+            else:
+                mismatches += 1
+                baseq_mismatches_squared_sum += baseq_squared
+                if is_proper_pair:
+                    mismatches_pp += 1
+                    baseq_mismatches_pp_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
+                                        mismatches_pp)
+
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': n, 'reads_pp': reads_pp,
+            'matches': matches,
+            'matches_pp': matches_pp,
+            'mismatches': mismatches,
+            'mismatches_pp': mismatches_pp,
+            'rms_baseq': rms_baseq,
+            'rms_baseq_pp': rms_baseq_pp,
+            'rms_baseq_matches': rms_baseq_matches,
+            'rms_baseq_matches_pp': rms_baseq_matches_pp,
+            'rms_baseq_mismatches': rms_baseq_mismatches,
+            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp,
+            }
+
+
+cpdef dict rec_baseq_ext_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_pp': 0,
+            'matches': 0,
+            'matches_pp': 0,
+            'mismatches': 0,
+            'mismatches_pp': 0,
+            'rms_baseq': 0,
+            'rms_baseq_pp': 0,
+            'rms_baseq_matches': 0,
+            'rms_baseq_matches_pp': 0,
+            'rms_baseq_mismatches': 0,
+            'rms_baseq_mismatches_pp': 0,
+            }
+
+
+##############################################
+# EXTENDED BASE QUALITY STATISTICS BY STRAND #
+##############################################
+
+
+cpdef dict rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
+                                PileupColumn col, bint one_based=False):
+
+    # statically typed variables
+    cdef bam_pileup1_t ** plp
+    cdef bam_pileup1_t * read
+    cdef bam1_t * aln
+    cdef int i # loop index
+    cdef int reads_all # total number of reads in column
+    cdef uint32_t flag
+    cdef bint is_proper_pair
+    cdef bint is_reverse
+    cdef bytes alnbase, refbase_b
+    # counting variables
+    cdef int reads_fwd = 0
+    cdef int reads_rev = 0
+    cdef int reads_nodel = 0
+    cdef int reads_fwd_nodel = 0
+    cdef int reads_rev_nodel = 0
+    cdef int reads_pp = 0
+    cdef int reads_pp_fwd = 0
+    cdef int reads_pp_rev = 0
+    cdef int reads_pp_nodel = 0
+    cdef int reads_pp_fwd_nodel = 0
+    cdef int reads_pp_rev_nodel = 0
+    cdef int matches = 0
+    cdef int matches_fwd = 0
+    cdef int matches_rev = 0
+    cdef int matches_pp = 0
+    cdef int matches_pp_fwd = 0
+    cdef int matches_pp_rev = 0
+    cdef int mismatches = 0
+    cdef int mismatches_fwd = 0
+    cdef int mismatches_rev = 0
+    cdef int mismatches_pp = 0
+    cdef int mismatches_pp_fwd = 0
+    cdef int mismatches_pp_rev = 0
+
+    cdef uint64_t baseq
+    cdef uint64_t baseq_squared
+
+    cdef uint64_t baseq_squared_sum = 0
+    cdef uint64_t baseq_fwd_squared_sum = 0
+    cdef uint64_t baseq_rev_squared_sum = 0
+    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef uint64_t baseq_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_pp_rev_squared_sum = 0
+    cdef uint64_t baseq_matches_squared_sum = 0
+    cdef uint64_t baseq_matches_fwd_squared_sum = 0
+    cdef uint64_t baseq_matches_rev_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_matches_pp_rev_squared_sum = 0
+    cdef uint64_t baseq_mismatches_squared_sum = 0
+    cdef uint64_t baseq_mismatches_fwd_squared_sum = 0
+    cdef uint64_t baseq_mismatches_rev_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_fwd_squared_sum = 0
+    cdef uint64_t baseq_mismatches_pp_rev_squared_sum = 0
+
+    # initialise variables
+    n = col.n
+    plp = col.plp
+
+    # get chromosome name and position
+    chrom = alignmentfile.getrname(col.tid)
+    pos = col.pos + 1 if one_based else col.pos
+
+    # reference base
+    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+    if not PY2:
+        refbase_b = refbase.encode('ascii')
+    else:
+        refbase_b = refbase
+
+    # loop over reads, extract what we need
+    for i in range(n):
+        read = &(plp[0][i])
+        aln = read.b
+        flag = aln.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+
+        if is_reverse:
+            reads_rev += 1
+        else:
+            reads_fwd += 1
+        if is_proper_pair:
+            reads_pp += 1
+            if is_reverse:
+                reads_pp_rev += 1
+            else:
+                reads_pp_fwd += 1
+
+        if not read.is_del:
+            reads_nodel += 1
+            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq_squared = baseq**2
+            baseq_squared_sum += baseq_squared
+            if is_reverse:
+                reads_rev_nodel += 1
+                baseq_rev_squared_sum += baseq_squared
+            else:
+                reads_fwd_nodel += 1
+                baseq_fwd_squared_sum += baseq_squared
+            if is_proper_pair:
+                reads_pp_nodel += 1
+                baseq_pp_squared_sum += baseq_squared
+                if is_reverse:
+                    reads_pp_rev_nodel += 1
+                    baseq_pp_rev_squared_sum += baseq_squared
+                else:
+                    reads_pp_fwd_nodel += 1
+                    baseq_pp_fwd_squared_sum += baseq_squared
+            alnbase = _get_seq_base(aln, read.qpos)
+            if alnbase == refbase_b:
+                matches += 1
+                baseq_matches_squared_sum += baseq_squared
+                if is_reverse:
+                    matches_rev += 1
+                    baseq_matches_rev_squared_sum += baseq_squared
+                else:
+                    matches_fwd += 1
+                    baseq_matches_fwd_squared_sum += baseq_squared
+
+                if is_proper_pair:
+                    matches_pp += 1
+                    baseq_matches_pp_squared_sum += baseq_squared
+                    if is_reverse:
+                        matches_pp_rev += 1
+                        baseq_matches_pp_rev_squared_sum += baseq_squared
+                    else:
+                        matches_pp_fwd += 1
+                        baseq_matches_pp_fwd_squared_sum += baseq_squared
+            else:
+                mismatches += 1
+                baseq_mismatches_squared_sum += baseq_squared
+                if is_reverse:
+                    mismatches_rev += 1
+                    baseq_mismatches_rev_squared_sum += baseq_squared
+                else:
+                    mismatches_fwd += 1
+                    baseq_mismatches_fwd_squared_sum += baseq_squared
+
+                if is_proper_pair:
+                    mismatches_pp += 1
+                    baseq_mismatches_pp_squared_sum += baseq_squared
+                    if is_reverse:
+                        mismatches_pp_rev += 1
+                        baseq_mismatches_pp_rev_squared_sum += baseq_squared
+                    else:
+                        mismatches_pp_fwd += 1
+                        baseq_mismatches_pp_fwd_squared_sum += baseq_squared
+
+    # construct output variables
+    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum,
+                                      matches_fwd)
+    rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum,
+                                      matches_rev)
+    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum,
+                                         matches_pp_fwd)
+    rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum,
+                                         matches_pp_rev)
+    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum,
+                                         mismatches_fwd)
+    rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum,
+                                         mismatches_rev)
+    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
+                                        mismatches_pp)
+    rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum,
+                                            mismatches_pp_fwd)
+    rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum,
+                                            mismatches_pp_rev)
+
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
+            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
+            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev,
+            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
+            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev,
+            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
+            'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
+            'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
+            'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev,
+            'rms_baseq_matches_pp': rms_baseq_matches_pp, 'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
+            'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev,
+            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
+            }
+
+
+cpdef dict rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
+    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+    pos = pos + 1 if one_based else pos
+    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
+            'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0,
+            'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
+            'matches': 0, 'matches_fwd': 0, 'matches_rev': 0,
+            'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
+            'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0,
+            'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
+            'rms_baseq': 0, 'rms_baseq_fwd': 0, 'rms_baseq_rev': 0,
+            'rms_baseq_pp': 0, 'rms_baseq_pp_fwd': 0, 'rms_baseq_pp_rev': 0,
+            'rms_baseq_matches': 0, 'rms_baseq_matches_fwd': 0, 'rms_baseq_matches_rev': 0,
+            'rms_baseq_matches_pp': 0, 'rms_baseq_matches_pp_fwd': 0, 'rms_baseq_matches_pp_rev': 0,
+            'rms_baseq_mismatches': 0, 'rms_baseq_mismatches_fwd': 0, 'rms_baseq_mismatches_rev': 0,
+            'rms_baseq_mismatches_pp': 0, 'rms_baseq_mismatches_pp_fwd': 0, 'rms_baseq_mismatches_pp_rev': 0,
+            }
+
+
 # #################################################
 # # BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
 # #################################################
