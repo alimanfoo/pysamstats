@@ -874,51 +874,51 @@ def test_stat_baseq_ext_strand():
                      stat_baseq_ext_strand_refimpl)
 
 
-# from collections import Counter
-#
-#
-# def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None,
-#                              end=None, one_based=False, window_size=300,
-#                              window_offset=150):
-#     start, end = normalise_coords(one_based, start, end)
-#
-#     for col in samfile.pileup(reference=chrom, start=start, end=end):
-#         chrom = samfile.getrname(col.tid)
-#         pos = col.pos + 1 if one_based else col.pos
-#         reads = col.pileups
-#
-#         if col.pos <= window_offset:
-#             continue  # until we get a bit further into the chromosome
-#
-#         ref_window_start = col.pos - window_offset
-#         ref_window_end = ref_window_start + window_size
-#         ref_window = fafile.fetch(chrom, ref_window_start,
-#                                   ref_window_end).lower()
-#
-#         if len(ref_window) == 0:
-#             break  # because we've hit the end of the chromosome
-#
-#         debug(ref_window)
-#         base_counter = Counter(ref_window)
-#         debug(base_counter)
-#         gc_count = base_counter['g'] + base_counter['c']
-#         debug(gc_count)
-#         gc_percent = int(round(gc_count * 100. / window_size))
-#         yield {'chrom': chrom, 'pos': pos,
-#                'reads_all': len(reads),
-#                'reads_pp': len(pp(reads)),
-#                'gc': gc_percent}
-#
-#
-# def test_stat_coverage_gc():
-#     _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
-#
-#
-# def test_stat_coverage_gc_uppercase_fasta():
-#     _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
-#                      fasta_fn='fixture/ref.upper.fa')
-#
-#
+from collections import Counter
+
+
+def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None,
+                             end=None, one_based=False, window_size=300,
+                             window_offset=150):
+    start, end = normalise_coords(one_based, start, end)
+
+    for col in samfile.pileup(reference=chrom, start=start, end=end):
+        chrom = samfile.getrname(col.tid)
+        pos = col.pos + 1 if one_based else col.pos
+        reads = col.pileups
+
+        if col.pos <= window_offset:
+            continue  # until we get a bit further into the chromosome
+
+        ref_window_start = col.pos - window_offset
+        ref_window_end = ref_window_start + window_size
+        ref_window = fafile.fetch(chrom, ref_window_start,
+                                  ref_window_end).lower()
+
+        if len(ref_window) == 0:
+            break  # because we've hit the end of the chromosome
+
+        debug(ref_window)
+        base_counter = Counter(ref_window)
+        debug(base_counter)
+        gc_count = base_counter['g'] + base_counter['c']
+        debug(gc_count)
+        gc_percent = int(round(gc_count * 100. / window_size))
+        yield {'chrom': chrom, 'pos': pos,
+               'reads_all': len(reads),
+               'reads_pp': len(pp(reads)),
+               'gc': gc_percent}
+
+
+def test_stat_coverage_gc():
+    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
+
+
+def test_stat_coverage_gc_uppercase_fasta():
+    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
+                     fasta_fn='fixture/ref.upper.fa')
+
+
 # from itertools import chain
 #
 #

@@ -17,14 +17,17 @@ def stat_pileup(type,
                 one_based=False,
                 truncate=False,
                 pad=False,
-                max_depth=8000):
+                max_depth=8000,
+                window_size=300,
+                window_offset=None):
     """Generate statistics per genome position, based on read pileups.
 
     Parameters
     ----------
     type : string
         Statistics type. One of "coverage", "coverage_strand", "coverage_ext",
-        "coverage_ext_strand", @@TODO
+        "coverage_ext_strand", "variation", "variation_strand", "tlen", "tlen_strand", "mapq",
+        "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", @@TODO
     alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path.
     fafile : pysam.FastaFile or string
@@ -43,6 +46,10 @@ def stat_pileup(type,
         If True, emit records for every position, even if no reads are aligned.
     max_depth : int
         Maximum depth to allow in pileup column.
+    window_size : int
+        Window size to use for percent GC calculation (only applies to coverage_gc).
+    window_offset : int
+        Distance from window start to record position (only applies to coverage_gc).
 
     Returns
     -------
@@ -52,7 +59,12 @@ def stat_pileup(type,
     """
 
     try:
-        rec, rec_pad = frecs[type]
+        if type == 'coverage_gc':
+            # special case needed to handle window parameters
+            rec, rec_pad = opt.frecs_coverage_gc(window_size=window_size,
+                                                 window_offset=window_offset)
+        else:
+            rec, rec_pad = frecs[type]
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
@@ -71,7 +83,9 @@ def load_pileup(type,
                 one_based=False,
                 truncate=False,
                 pad=False,
-                max_depth=8000):
+                max_depth=8000,
+                window_size=300,
+                window_offset=None):
     """Load statistics per genome position, based on read pileups.
 
     Parameters
@@ -97,6 +111,10 @@ def load_pileup(type,
         If True, emit records for every position, even if no reads are aligned.
     max_depth : int
         Maximum depth to allow in pileup column.
+    window_size : int
+        Window size to use for percent GC calculation (only applies to coverage_gc).
+    window_offset : int
+        Distance from window start to record position (only applies to coverage_gc).
 
     Returns
     -------
@@ -113,7 +131,8 @@ def load_pileup(type,
 
     return util.load_stats(stat, dtype, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
-                           max_depth=max_depth)
+                           max_depth=max_depth, window_size=window_size,
+                           window_offset=window_offset)
 
 
 frecs = {
@@ -427,18 +446,26 @@ dtypes = {
         ('rms_baseq_mismatches_pp_fwd', 'i4'),
         ('rms_baseq_mismatches_pp_rev', 'i4')
     ],
-
+    'coverage_gc': [
+        ('chrom', 'a12'),
+        ('pos', 'i4'),
+        ('gc', 'u1'),
+        ('reads_all', 'i4'),
+        ('reads_pp', 'i4')
+    ],
 }
 
 
 # backwards compatibility
 #########################
+
+
 _stat_doc_lines = stat_pileup.__doc__.split('\n')
 _load_doc_lines = load_pileup.__doc__.split('\n')
 # strip "type" parameter
-_stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[7:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[7:])
-# setup functions
+_stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[8:])
+_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[8:])
+# named functions
 stat_coverage = functools.partial(stat_pileup, 'coverage')
 stat_coverage.__doc__ = _stat_doc
 load_coverage = functools.partial(load_pileup, 'coverage')
@@ -495,6 +522,10 @@ stat_baseq_ext_strand = functools.partial(stat_pileup, 'baseq_ext_strand')
 stat_baseq_ext_strand.__doc__ = _stat_doc
 load_baseq_ext_strand = functools.partial(load_pileup, 'baseq_ext_strand')
 load_baseq_ext_strand.__doc__ = _load_doc
+stat_coverage_gc = functools.partial(stat_pileup, 'coverage_gc')
+stat_coverage_gc.__doc__ = _stat_doc
+load_coverage_gc = functools.partial(load_pileup, 'coverage_gc')
+load_coverage_gc.__doc__ = _load_doc
 
 
 

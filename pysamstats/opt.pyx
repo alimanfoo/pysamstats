@@ -2006,115 +2006,56 @@ cpdef dict rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos, bint one_based
             }
 
 
-# #################################################
-# # BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
-# #################################################
-#
-#
-# dtype_coverage_gc = [('chrom', 'a12'),
-#                      ('pos', 'i4'),
-#                      ('gc', 'u1'),
-#                      ('reads_all', 'i4'),
-#                      ('reads_pp', 'i4')]
-#
-#
-# fields_coverage_gc = [t[0] for t in dtype_coverage_gc]
-#
-#
-# def stat_coverage_gc(alignmentfile, fafile, chrom=None, start=None, end=None,
-#                      one_based=False, truncate=False, pad=False, max_depth=8000,
-#                      window_size=300, window_offset=None, **kwargs):
-#     """Generate coverage statistics per genome position with reference genome
-#     %GC composition in surrounding window.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#
-#     if window_offset is None:
-#         window_offset = window_size / 2
-#
-#     def _rec_coverage_gc(AlignmentFile alignmentfile, FastaFile fafile,
-#                          PileupColumn col, bint one_based):
-#         chrom = alignmentfile.getrname(col.tid)
-#
-#         ref_window_start = col.pos - window_offset
-#         ref_window_end = ref_window_start + window_size
-#         if ref_window_start < 0:
-#             ref_window_start = 0
-#         ref_window = fafile\
-#             .fetch(chrom, ref_window_start, ref_window_end)\
-#             .lower()
-#         if len(ref_window) == 0:
-#             gc_percent = -1
-#         else:
-#             gc_percent = _gc_content(ref_window)
-#
-#         rec = rec_coverage(alignmentfile, fafile, col, one_based)
-#         rec['gc'] = gc_percent
-#         return rec
-#
-#     def _rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
-#                              bint one_based):
-#         ref_window_start = pos - window_offset
-#         ref_window_end = ref_window_start + window_size
-#         if ref_window_start < 0:
-#             ref_window_start = 0
-#         ref_window = fafile\
-#             .fetch(chrom, ref_window_start, ref_window_end)\
-#             .lower()
-#         if len(ref_window) == 0:
-#             gc_percent = -1
-#         else:
-#             gc_percent = _gc_content(ref_window)
-#         rec = rec_coverage_pad(fafile, chrom, pos, one_based)
-#         rec['gc'] = gc_percent
-#         return rec
-#
-#     return iter_pileup(_rec_coverage_gc,
-#                        _rec_coverage_gc_pad,
-#                        alignmentfile, fafile=fafile, chrom=chrom, start=start,
-#                        end=end, one_based=one_based,
-#                        truncate=truncate, pad=pad,
-#                        max_depth=max_depth,
-#                        **kwargs)
-#
-#
-# def load_coverage_gc(*args, **kwargs):
-#     return load_stats(stat_coverage_gc, dtype_coverage_gc, *args, **kwargs)
-#
-#
+#################################################
+# BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
+#################################################
+
+
+def frecs_coverage_gc(window_size=300, window_offset=None):
+
+    if window_offset is None:
+        window_offset = window_size / 2
+
+    def rec_coverage_gc(AlignmentFile alignmentfile, FastaFile fafile,
+                         PileupColumn col, bint one_based):
+        chrom = alignmentfile.getrname(col.tid)
+
+        ref_window_start = col.pos - window_offset
+        ref_window_end = ref_window_start + window_size
+        if ref_window_start < 0:
+            ref_window_start = 0
+        ref_window = fafile\
+            .fetch(chrom, ref_window_start, ref_window_end)\
+            .lower()
+        if len(ref_window) == 0:
+            gc_percent = -1
+        else:
+            gc_percent = _gc_content(ref_window)
+
+        rec = rec_coverage(alignmentfile, fafile, col, one_based)
+        rec['gc'] = gc_percent
+        return rec
+
+    def rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
+                             bint one_based):
+        ref_window_start = pos - window_offset
+        ref_window_end = ref_window_start + window_size
+        if ref_window_start < 0:
+            ref_window_start = 0
+        ref_window = fafile\
+            .fetch(chrom, ref_window_start, ref_window_end)\
+            .lower()
+        if len(ref_window) == 0:
+            gc_percent = -1
+        else:
+            gc_percent = _gc_content(ref_window)
+        rec = rec_coverage_pad(fafile, chrom, pos, one_based)
+        rec['gc'] = gc_percent
+        return rec
+
+    return rec_coverage_gc, rec_coverage_gc_pad
+
+
 # ###################
 # # BINNED COVERAGE #
 # ###################
@@ -2169,24 +2110,24 @@ cpdef dict rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos, bint one_based
 #
 #     stat = _CoverageBinned()
 #     return iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
-#
-#
-# cdef int _gc_content(ref_window) except -1:
-#     cdef Py_ssize_t i, n
-#     cdef char* seq
-#     cdef int gc_count = 0
-#     n = len(ref_window)
-#     if not PY2:
-#         # TODO optimise?
-#         ref_window = ref_window.encode('ascii')
-#     seq = ref_window
-#     for i in range(n):
-#         if seq[i] == b'g' or seq[i] == b'c':
-#             gc_count += 1
-#     gc_percent = int(round(gc_count * 100. / n))
-#     return gc_percent
-#
-#
+
+
+cdef int _gc_content(ref_window) except -1:
+    cdef Py_ssize_t i, n
+    cdef char* seq
+    cdef int gc_count = 0
+    n = len(ref_window)
+    if not PY2:
+        # TODO optimise?
+        ref_window = ref_window.encode('ascii')
+    seq = ref_window
+    for i in range(n):
+        if seq[i] == b'g' or seq[i] == b'c':
+            gc_count += 1
+    gc_percent = int(round(gc_count * 100. / n))
+    return gc_percent
+
+
 cdef class _StatBinned(object):
 
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
