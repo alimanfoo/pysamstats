@@ -6,7 +6,7 @@ Tests for the pysamstats module.
 
 The strategy here is to compare the outputs of the functions under test with
 unoptimised, pure-python reference implementations of the same functions, over
-an example dataset. 
+an example dataset.
 
 """
 
@@ -656,12 +656,8 @@ def test_stat_mapq_strand():
 
 
 def baseq(reads):
-    if PY2:
-        l = [ord(read.alignment.qual[read.query_position])-33
-             for read in reads]
-    else:
-        l = [read.alignment.qual[read.query_position]-33
-             for read in reads]
+    l = [ord(read.alignment.qual[read.query_position]) - 33
+         for read in reads]
     return l
 
 
@@ -1632,7 +1628,7 @@ def test_pileup_limit():
                   **kwargs)
         else:
             a = f(Samfile('fixture/deep.bam'), **kwargs)
-        eq_(12045, a[70])  # no idea why limit is not exact
+        eq_(12046, a[70])  # no idea why limit is not exact
 
         # test with default limit
         kwargs = dict(fields=['reads_all'])
@@ -1641,4 +1637,4 @@ def test_pileup_limit():
                   **kwargs)
         else:
             a = f(Samfile('fixture/deep.bam'), **kwargs)
-        eq_(8051, a[70])  # no idea why limit is not exact
+        eq_(8052, a[70])  # no idea why limit is not exact

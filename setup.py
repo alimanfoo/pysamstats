@@ -7,9 +7,9 @@ try:
     import pysam
 except ImportError:
     raise Exception('pysam not found; please install pysam first')
-from distutils.version import StrictVersion
-required_pysam_version = '0.8.4'
-if StrictVersion(pysam.__version__) < StrictVersion(required_pysam_version):
+from distutils.version import LooseVersion
+required_pysam_version = '0.11'
+if LooseVersion(pysam.__version__) < LooseVersion(required_pysam_version):
     raise Exception('pysam version >= %s is required; found %s' %
                     (required_pysam_version, pysam.__version__))
 
