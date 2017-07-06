@@ -6,3 +6,4 @@ __version__ = '1.0.0.dev0'
 
 
 from .pileup import *
+from .binned import *

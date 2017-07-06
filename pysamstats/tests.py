@@ -919,102 +919,102 @@ def test_stat_coverage_gc_uppercase_fasta():
                      fasta_fn='fixture/ref.upper.fa')
 
 
-# from itertools import chain
-#
-#
-# def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
-#                                  end=None, one_based=False, window_size=300,
-#                                  window_offset=150):
-#     if chrom is None:
-#         it = chain(*[
-#             _iter_coverage_binned(samfile, fastafile, chrom, None, None,
-#                                   one_based, window_size, window_offset)
-#             for chrom in samfile.references
-#         ])
-#     else:
-#         it = _iter_coverage_binned(samfile, fastafile, chrom, start, end,
-#                                    one_based, window_size, window_offset)
-#     return it
-#
-#
-# def _gc_percent(fastafile, chrom, start, end):
-#     seq = fastafile.fetch(chrom, start, end).lower()
-#     nc = Counter(seq)
-#     gc_percent = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
-#     return gc_percent
-#
-#
-# def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
-#                           window_size, window_offset):
-#     assert chrom is not None
-#     start, end = normalise_coords(one_based, start, end)
-#     chrlen = samfile.lengths[samfile.references.index(chrom)]
-#     if start is None:
-#         start = 0
-#     if end is None:
-#         end = chrlen
-#     if end > chrlen:
-#         end = chrlen
-#     # setup first bin
-#     bin_start = start
-#     bin_end = bin_start + window_size
-#     reads_all = reads_pp = 0
-#
-#     # iterate over reads
-#     for aln in samfile.fetch(chrom, start, end):
-#         while aln.pos > bin_end:  # end of bin
-#             gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-#             pos = bin_start + window_offset
-#             if one_based:
-#                 pos += 1
-#             rec = {'chrom': chrom, 'pos': pos,
-#                    'gc': gc_percent, 'reads_all': reads_all,
-#                    'reads_pp': reads_pp}
-#             yield rec
-#             reads_all = reads_pp = 0
-#             bin_start = bin_end
-#             bin_end = bin_start + window_size
-#         if not aln.is_unmapped:
-#             reads_all += 1
-#             if aln.is_proper_pair:
-#                 reads_pp += 1
-#
-#     # deal with last non-empty bin
-#     gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-#     pos = bin_start + window_offset
-#     if one_based:
-#         pos += 1
-#     rec = {'chrom': chrom, 'pos': pos,
-#            'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
-#     yield rec
-#
-#     # deal with empty bins up to explicit end
-#     if end is not None:
-#         while bin_end < end:
-#             reads_all = reads_pp = 0
-#             bin_start = bin_end
-#             bin_end = bin_start + window_size
-#             gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-#             pos = bin_start + window_offset
-#             if one_based:
-#                 pos += 1
-#             rec = {'chrom': chrom, 'pos': pos,
-#                    'gc': gc_percent, 'reads_all': reads_all,
-#                    'reads_pp': reads_pp}
-#             yield rec
-#
-#
-# def test_stat_coverage_binned():
-#     _test_withrefseq(pysamstats.stat_coverage_binned,
-#                      stat_coverage_binned_refimpl)
-#
-#
-# def test_stat_coverage_binned_uppercase_fasta():
-#     _test_withrefseq(pysamstats.stat_coverage_binned,
-#                      stat_coverage_binned_refimpl,
-#                      fasta_fn='fixture/ref.upper.fa')
-#
-#
+from itertools import chain
+
+
+def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
+                                 end=None, one_based=False, window_size=300,
+                                 window_offset=150):
+    if chrom is None:
+        it = chain(*[
+            _iter_coverage_binned(samfile, fastafile, chrom, None, None,
+                                  one_based, window_size, window_offset)
+            for chrom in samfile.references
+        ])
+    else:
+        it = _iter_coverage_binned(samfile, fastafile, chrom, start, end,
+                                   one_based, window_size, window_offset)
+    return it
+
+
+def _gc_percent(fastafile, chrom, start, end):
+    seq = fastafile.fetch(chrom, start, end).lower()
+    nc = Counter(seq)
+    gc_percent = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
+    return gc_percent
+
+
+def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
+                          window_size, window_offset):
+    assert chrom is not None
+    start, end = normalise_coords(one_based, start, end)
+    chrlen = samfile.lengths[samfile.references.index(chrom)]
+    if start is None:
+        start = 0
+    if end is None:
+        end = chrlen
+    if end > chrlen:
+        end = chrlen
+    # setup first bin
+    bin_start = start
+    bin_end = bin_start + window_size
+    reads_all = reads_pp = 0
+
+    # iterate over reads
+    for aln in samfile.fetch(chrom, start, end):
+        while aln.pos > bin_end:  # end of bin
+            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': reads_all,
+                   'reads_pp': reads_pp}
+            yield rec
+            reads_all = reads_pp = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+        if not aln.is_unmapped:
+            reads_all += 1
+            if aln.is_proper_pair:
+                reads_pp += 1
+
+    # deal with last non-empty bin
+    gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+    pos = bin_start + window_offset
+    if one_based:
+        pos += 1
+    rec = {'chrom': chrom, 'pos': pos,
+           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+    yield rec
+
+    # deal with empty bins up to explicit end
+    if end is not None:
+        while bin_end < end:
+            reads_all = reads_pp = 0
+            bin_start = bin_end
+            bin_end = bin_start + window_size
+            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            pos = bin_start + window_offset
+            if one_based:
+                pos += 1
+            rec = {'chrom': chrom, 'pos': pos,
+                   'gc': gc_percent, 'reads_all': reads_all,
+                   'reads_pp': reads_pp}
+            yield rec
+
+
+def test_stat_coverage_binned():
+    _test_withrefseq(pysamstats.stat_coverage_binned,
+                     stat_coverage_binned_refimpl)
+
+
+def test_stat_coverage_binned_uppercase_fasta():
+    _test_withrefseq(pysamstats.stat_coverage_binned,
+                     stat_coverage_binned_refimpl,
+                     fasta_fn='fixture/ref.upper.fa')
+
+
 # def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None,
 #                                      start=None, end=None, one_based=False,
 #                                      window_size=300, window_offset=150):

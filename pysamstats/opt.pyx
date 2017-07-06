@@ -2056,21 +2056,11 @@ def frecs_coverage_gc(window_size=300, window_offset=None):
     return rec_coverage_gc, rec_coverage_gc_pad
 
 
-# ###################
-# # BINNED COVERAGE #
-# ###################
-#
-#
-# dtype_coverage_binned = [('chrom', 'a12'),
-#                          ('pos', 'i4'),
-#                          ('gc', 'u1'),
-#                          ('reads_all', 'i4'),
-#                          ('reads_pp', 'i4')]
-#
-#
-# fields_coverage_binned = [t[0] for t in dtype_coverage_binned]
-#
-#
+###################
+# BINNED COVERAGE #
+###################
+
+
 # def stat_coverage_binned(alignmentfile, fafile, **kwargs):
 #     """Generate binned coverage statistics.
 #
@@ -2128,7 +2118,7 @@ cdef int _gc_content(ref_window) except -1:
     return gc_percent
 
 
-cdef class _StatBinned(object):
+cdef class StatBinned(object):
 
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
         return dict()
@@ -2137,42 +2127,42 @@ cdef class _StatBinned(object):
         pass
 
 
-# cdef class _CoverageBinned(_StatBinned):
-#
-#     cdef int reads_all, reads_pp
-#
-#     def __cinit__(self):
-#         self.reads_all = self.reads_pp = 0
-#
-#     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
-#
-#         # determine %GC
-#         ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-#         gc_percent = _gc_content(ref_window)
-#
-#         # make record for bin
-#         rec = {'gc': gc_percent,
-#                'reads_all': self.reads_all,
-#                'reads_pp': self.reads_pp}
-#
-#         # reset counters
-#         self.reads_all = self.reads_pp = 0
-#
-#         return rec
-#
-#     cdef recv(self, bam1_t * b):
-#         cdef uint32_t flag
-#         cdef bint is_unmapped
-#         cdef bint is_proper_pair
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             self.reads_all += 1
-#             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#             if is_proper_pair:
-#                 self.reads_pp += 1
-#
-#
+cdef class CoverageBinned(StatBinned):
+
+    cdef int reads_all, reads_pp
+
+    def __cinit__(self):
+        self.reads_all = self.reads_pp = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
+
+        # determine %GC
+        ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+        gc_percent = _gc_content(ref_window)
+
+        # make record for bin
+        rec = {'gc': gc_percent,
+               'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp}
+
+        # reset counters
+        self.reads_all = self.reads_pp = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_proper_pair
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            self.reads_all += 1
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                self.reads_pp += 1
+
+
 # def load_coverage_binned(*args, **kwargs):
 #     return load_stats(stat_coverage_binned, dtype_coverage_binned,
 #                       *args, **kwargs)
@@ -2778,7 +2768,7 @@ def iter_binned(stat, alignmentfile, fafile=None, chrom=None, start=None, end=No
     return it
 
 
-def iter_binned_chrom(_StatBinned stat, AlignmentFile alignmentfile, FastaFile fafile,
+def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fafile,
                       chrom, start=None, end=None, one_based=False,
                       int window_size=300, int window_offset=150, **kwargs):
 
