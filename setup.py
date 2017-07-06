@@ -17,15 +17,15 @@ if LooseVersion(pysam.__version__) < LooseVersion(required_pysam_version):
 def get_version():
     """Extract version number from source file."""
     from ast import literal_eval
-    with open('pysamstats.pyx') as f:
+    with open('pysamstats/__init__.py') as f:
         for line in f:
             if line.startswith('__version__'):
                 return literal_eval(line.partition('=')[2].lstrip())
     raise ValueError("__version__ not found")
 
 
-extensions = [Extension('pysamstats',
-                        sources=['pysamstats.c'],
+extensions = [Extension('pysamstats.opt',
+                        sources=['pysamstats/opt.c'],
                         include_dirs=pysam.get_include(),
                         define_macros=pysam.get_defines())]
 
