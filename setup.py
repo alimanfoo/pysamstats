@@ -1,5 +1,4 @@
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, Extension, find_packages
 
 
 # require pysam is pre-installed
@@ -24,10 +23,22 @@ def get_version():
     raise ValueError("__version__ not found")
 
 
-extensions = [Extension('pysamstats.opt',
-                        sources=['pysamstats/opt.c'],
-                        include_dirs=pysam.get_include(),
-                        define_macros=pysam.get_defines())]
+try:
+    from Cython.Build import cythonize
+    print('[pysamstats] build with Cython')
+    extensions = cythonize([
+        Extension('pysamstats.opt',
+                  sources=['pysamstats/opt.pyx'],
+                  include_dirs=pysam.get_include(),
+                  define_macros=pysam.get_defines())]
+    )
+
+except ImportError:
+    print('[pysamstats] build from C')
+    extensions = [Extension('pysamstats.opt',
+                            sources=['pysamstats/opt.c'],
+                            include_dirs=pysam.get_include(),
+                            define_macros=pysam.get_defines())]
 
 
 setup(
@@ -41,12 +52,14 @@ setup(
                 'position based on sequence alignments from a SAM, '
                 'BAM or CRAM file.',
     scripts=['scripts/pysamstats'],
+    package_dir={'': '.'},
+    packages=find_packages(),
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     ext_modules=extensions,

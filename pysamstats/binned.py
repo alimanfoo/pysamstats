@@ -52,7 +52,7 @@ def stat_binned(type,
     """
 
     try:
-        stat = stats[type]
+        stat = statsobj_binned[type]
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
@@ -104,7 +104,7 @@ def load_binned(type,
 
     stat = functools.partial(stat_binned, type)
     try:
-        dtype = dtypes[type]
+        dtype = dtypes_binned[type]
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
@@ -113,12 +113,12 @@ def load_binned(type,
                            window_offset=window_offset)
 
 
-stats = {
+statsobj_binned = {
     'coverage': opt.CoverageBinned(),
 }
 
 
-dtypes = {
+dtypes_binned = {
     'coverage': [
         ('chrom', 'a12'),
         ('pos', 'i4'),

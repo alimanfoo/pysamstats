@@ -10,21 +10,7 @@ import pysamstats.util as util
 # TODO factor out docstring parameters
 
 
-# noinspection PyShadowingBuiltins
-def stat_pileup(type,
-                alignmentfile,
-                fafile=None,
-                chrom=None,
-                start=None,
-                end=None,
-                one_based=False,
-                truncate=False,
-                pad=False,
-                max_depth=8000,
-                window_size=300,
-                window_offset=None):
-    """Generate statistics per genome position, based on read pileups.
-
+_doc_params = """
     Parameters
     ----------
     type : string
@@ -53,7 +39,24 @@ def stat_pileup(type,
         Window size to use for percent GC calculation (only applies to coverage_gc).
     window_offset : int
         Distance from window start to record position (only applies to coverage_gc).
+"""
 
+
+# noinspection PyShadowingBuiltins
+def stat_pileup(type,
+                alignmentfile,
+                fafile=None,
+                chrom=None,
+                start=None,
+                end=None,
+                one_based=False,
+                truncate=False,
+                pad=False,
+                max_depth=8000,
+                window_size=300,
+                window_offset=None):
+    """Generate statistics per genome position, based on read pileups.
+    {params}
     Returns
     -------
     recs : iterator
@@ -67,13 +70,16 @@ def stat_pileup(type,
             rec, rec_pad = opt.frecs_coverage_gc(window_size=window_size,
                                                  window_offset=window_offset)
         else:
-            rec, rec_pad = frecs[type]
+            rec, rec_pad = frecs_pileup[type]
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
     return opt.iter_pileup(rec, rec_pad, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
                            max_depth=max_depth)
+
+
+stat_pileup.__doc__ = stat_pileup.__doc__.format(params=_doc_params)
 
 
 # noinspection PyShadowingBuiltins
@@ -90,36 +96,7 @@ def load_pileup(type,
                 window_size=300,
                 window_offset=None):
     """Load statistics per genome position, based on read pileups.
-
-    Parameters
-    ----------
-    type : string
-        Statistics type. One of "coverage", "coverage_strand", "coverage_ext",
-        "coverage_ext_strand", "variation", "variation_strand", "tlen", "tlen_strand", "mapq",
-        "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", "coverage_gc".
-    alignmentfile : pysam.AlignmentFile or string
-        SAM or BAM file or file path.
-    fafile : pysam.FastaFile or string
-        FASTA file or file path, only required for some statistics types.
-    chrom : string
-        Chromosome/contig.
-    start : int
-        Start position.
-    end : int
-        End position.
-    one_based : bool
-        Coordinate system, False if zero-based (default), True if one-based.
-    truncate : bool
-        If True, truncate output to selected region.
-    pad : bool
-        If True, emit records for every position, even if no reads are aligned.
-    max_depth : int
-        Maximum depth to allow in pileup column.
-    window_size : int
-        Window size to use for percent GC calculation (only applies to coverage_gc).
-    window_offset : int
-        Distance from window start to record position (only applies to coverage_gc).
-
+    {params}
     Returns
     -------
     ra : numpy structured array
@@ -129,7 +106,7 @@ def load_pileup(type,
 
     stat = functools.partial(stat_pileup, type)
     try:
-        dtype = dtypes[type]
+        dtype = dtypes_pileup[type]
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
@@ -139,7 +116,10 @@ def load_pileup(type,
                            window_offset=window_offset)
 
 
-frecs = {
+load_pileup.__doc__ = load_pileup.__doc__.format(params=_doc_params)
+
+
+frecs_pileup = {
     'coverage': (opt.rec_coverage, opt.rec_coverage_pad),
     'coverage_strand': (opt.rec_coverage_strand, opt.rec_coverage_strand_pad),
     'coverage_ext': (opt.rec_coverage_ext, opt.rec_coverage_ext_pad),
@@ -157,7 +137,7 @@ frecs = {
 }
 
 
-dtypes = {
+dtypes_pileup = {
     'coverage': [
         ('chrom', 'a12'),
         ('pos', 'i4'),
@@ -462,8 +442,6 @@ dtypes = {
 
 # backwards compatibility
 #########################
-
-
 _stat_doc_lines = stat_pileup.__doc__.split('\n')
 _load_doc_lines = load_pileup.__doc__.split('\n')
 # strip "type" parameter
@@ -530,8 +508,3 @@ stat_coverage_gc = functools.partial(stat_pileup, 'coverage_gc')
 stat_coverage_gc.__doc__ = _stat_doc
 load_coverage_gc = functools.partial(load_pileup, 'coverage_gc')
 load_coverage_gc.__doc__ = _load_doc
-
-
-
-
-
