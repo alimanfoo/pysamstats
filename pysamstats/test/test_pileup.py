@@ -324,20 +324,15 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None,
             'insertions_pp_fwd': len(fwd(insertions_pp)),
             'insertions_pp_rev': len(rev(insertions_pp)),
             'A': len(a), 'A_fwd': len(fwd(a)), 'A_rev': len(rev(a)),
-            'A_pp': len(a_pp), 'A_pp_fwd': len(fwd(a_pp)),
-            'A_pp_rev': len(rev(a_pp)),
+            'A_pp': len(a_pp), 'A_pp_fwd': len(fwd(a_pp)), 'A_pp_rev': len(rev(a_pp)),
             'C': len(c), 'C_fwd': len(fwd(c)), 'C_rev': len(rev(c)),
-            'C_pp': len(c_pp), 'C_pp_fwd': len(fwd(c_pp)),
-            'C_pp_rev': len(rev(c_pp)),
+            'C_pp': len(c_pp), 'C_pp_fwd': len(fwd(c_pp)), 'C_pp_rev': len(rev(c_pp)),
             'T': len(t), 'T_fwd': len(fwd(t)), 'T_rev': len(rev(t)),
-            'T_pp': len(t_pp), 'T_pp_fwd': len(fwd(t_pp)),
-            'T_pp_rev': len(rev(t_pp)),
+            'T_pp': len(t_pp), 'T_pp_fwd': len(fwd(t_pp)), 'T_pp_rev': len(rev(t_pp)),
             'G': len(g), 'G_fwd': len(fwd(g)), 'G_rev': len(rev(g)),
-            'G_pp': len(g_pp), 'G_pp_fwd': len(fwd(g_pp)),
-            'G_pp_rev': len(rev(g_pp)),
+            'G_pp': len(g_pp), 'G_pp_fwd': len(fwd(g_pp)), 'G_pp_rev': len(rev(g_pp)),
             'N': len(n), 'N_fwd': len(fwd(n)), 'N_rev': len(rev(n)),
-            'N_pp': len(n_pp), 'N_pp_fwd': len(fwd(n_pp)),
-            'N_pp_rev': len(rev(n_pp))
+            'N_pp': len(n_pp), 'N_pp_fwd': len(fwd(n_pp)), 'N_pp_rev': len(rev(n_pp))
         }
 
 
