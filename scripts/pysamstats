@@ -177,6 +177,20 @@ Version: {version} (pysam {pysamversion})
 
         else:
 
+            # setup common parameters
+            kwargs = dict(
+                chrom=options.chromosome,
+                start=options.start,
+                end=options.end,
+                one_based=one_based,
+                window_size=options.window_size,
+                window_offset=options.window_offset,
+            )
+            if not options.type.endswith('_binned'):
+                kwargs['truncate'] = options.truncate
+                kwargs['pad'] = options.pad
+                kwargs['max_depth'] = options.max_depth
+
             if options.format.lower() in ['tsv', 'csv']:
 
                 # setup
@@ -196,17 +210,9 @@ Version: {version} (pysam {pysamversion})
                         fafile=options.fasta,
                         write_header=write_header,
                         dialect=dialect,
-                        chrom=options.chromosome,
-                        start=options.start,
-                        end=options.end,
-                        one_based=one_based,
-                        truncate=options.truncate,
-                        pad=options.pad,
-                        max_depth=options.max_depth,
-                        window_size=options.window_size,
-                        window_offset=options.window_offset,
                         progress=options.progress,
                         fields=fields,
+                        **kwargs
                     )
                 finally:
                     if needs_closing:
@@ -221,15 +227,6 @@ Version: {version} (pysam {pysamversion})
                     options.output,
                     samfile,
                     fafile=options.fasta,
-                    chrom=options.chromosome,
-                    start=options.start,
-                    end=options.end,
-                    one_based=one_based,
-                    truncate=options.truncate,
-                    pad=options.pad,
-                    max_depth=options.max_depth,
-                    window_size=options.window_size,
-                    window_offset=options.window_offset,
                     progress=options.progress,
                     hdf5_group=options.hdf5_group,
                     hdf5_dataset=options.hdf5_dataset,
@@ -237,6 +234,7 @@ Version: {version} (pysam {pysamversion})
                     hdf5_complevel=options.hdf5_complevel,
                     hdf5_chunksize=options.hdf5_chunksize,
                     fields=fields,
+                    **kwargs
                 )
 
     except IOError as e:
