@@ -2274,11 +2274,11 @@ cdef class AlignmentBinned(StatBinned):
         is_unmapped = <bint>(flag & BAM_FUNMAP)
         if not is_unmapped:
             cigar_p = pysam_bam_get_cigar(b)
-            cigar = list()
+            # cigar = list()
             for k in range(b.core.n_cigar):
                 op = cigar_p[k] & BAM_CIGAR_MASK
                 l = cigar_p[k] >> BAM_CIGAR_SHIFT
-                cigar.append((op, l))
+                # cigar.append((op, l))
                 if op == BAM_CMATCH:
                     self.M += l
                 elif op == BAM_CINS:
