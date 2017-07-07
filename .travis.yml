@@ -12,6 +12,7 @@ python:
   - "3.6"
 
 install:
+  - pip install -Uv pip setuptools wheel
   - pip install -r requirements_dev.txt
   - pip install .
 
