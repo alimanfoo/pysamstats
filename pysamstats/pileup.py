@@ -7,9 +7,6 @@ import pysamstats.opt as opt
 import pysamstats.util as util
 
 
-# TODO factor out docstring parameters
-
-
 _doc_params = """
     Parameters
     ----------
@@ -442,69 +439,38 @@ dtypes_pileup = {
 
 # backwards compatibility
 #########################
+
+
 _stat_doc_lines = stat_pileup.__doc__.split('\n')
 _load_doc_lines = load_pileup.__doc__.split('\n')
 # strip "type" parameter
 _stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[8:])
 _load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[8:])
+
+
+def _specialize(type):
+    stat = functools.partial(stat_pileup, type)
+    stat.__doc__ = _stat_doc
+    stat.__name__ = 'stat_' + type
+    load = functools.partial(load_pileup, type)
+    load.__doc__ = _load_doc
+    load.__name__ = 'load_' + type
+    return stat, load
+
+
 # named functions
-stat_coverage = functools.partial(stat_pileup, 'coverage')
-stat_coverage.__doc__ = _stat_doc
-load_coverage = functools.partial(load_pileup, 'coverage')
-load_coverage.__doc__ = _load_doc
-stat_coverage_strand = functools.partial(stat_pileup, 'coverage_strand')
-stat_coverage_strand.__doc__ = _stat_doc
-load_coverage_strand = functools.partial(load_pileup, 'coverage_strand')
-load_coverage_strand.__doc__ = _load_doc
-stat_coverage_ext = functools.partial(stat_pileup, 'coverage_ext')
-stat_coverage_ext.__doc__ = _stat_doc
-load_coverage_ext = functools.partial(load_pileup, 'coverage_ext')
-load_coverage_ext.__doc__ = _load_doc
-stat_coverage_ext_strand = functools.partial(stat_pileup, 'coverage_ext_strand')
-stat_coverage_ext_strand.__doc__ = _stat_doc
-load_coverage_ext_strand = functools.partial(load_pileup, 'coverage_ext_strand')
-load_coverage_ext_strand.__doc__ = _load_doc
-stat_variation = functools.partial(stat_pileup, 'variation')
-stat_variation.__doc__ = _stat_doc
-load_variation = functools.partial(load_pileup, 'variation')
-load_variation.__doc__ = _load_doc
-stat_variation_strand = functools.partial(stat_pileup, 'variation_strand')
-stat_variation_strand.__doc__ = _stat_doc
-load_variation_strand = functools.partial(load_pileup, 'variation_strand')
-load_variation_strand.__doc__ = _load_doc
-stat_tlen = functools.partial(stat_pileup, 'tlen')
-stat_tlen.__doc__ = _stat_doc
-load_tlen = functools.partial(load_pileup, 'tlen')
-load_tlen.__doc__ = _load_doc
-stat_tlen_strand = functools.partial(stat_pileup, 'tlen_strand')
-stat_tlen_strand.__doc__ = _stat_doc
-load_tlen_strand = functools.partial(load_pileup, 'tlen_strand')
-load_tlen_strand.__doc__ = _load_doc
-stat_mapq = functools.partial(stat_pileup, 'mapq')
-stat_mapq.__doc__ = _stat_doc
-load_mapq = functools.partial(load_pileup, 'mapq')
-load_mapq.__doc__ = _load_doc
-stat_mapq_strand = functools.partial(stat_pileup, 'mapq_strand')
-stat_mapq_strand.__doc__ = _stat_doc
-load_mapq_strand = functools.partial(load_pileup, 'mapq_strand')
-load_mapq_strand.__doc__ = _load_doc
-stat_baseq = functools.partial(stat_pileup, 'baseq')
-stat_baseq.__doc__ = _stat_doc
-load_baseq = functools.partial(load_pileup, 'baseq')
-load_baseq.__doc__ = _load_doc
-stat_baseq_strand = functools.partial(stat_pileup, 'baseq_strand')
-stat_baseq_strand.__doc__ = _stat_doc
-load_baseq_strand = functools.partial(load_pileup, 'baseq_strand')
-load_baseq_strand.__doc__ = _load_doc
-stat_baseq_ext = functools.partial(stat_pileup, 'baseq_ext')
-stat_baseq_ext.__doc__ = _stat_doc
-load_baseq_ext = functools.partial(load_pileup, 'baseq_ext')
-load_baseq_ext.__doc__ = _load_doc
-stat_baseq_ext_strand = functools.partial(stat_pileup, 'baseq_ext_strand')
-stat_baseq_ext_strand.__doc__ = _stat_doc
-load_baseq_ext_strand = functools.partial(load_pileup, 'baseq_ext_strand')
-load_baseq_ext_strand.__doc__ = _load_doc
-stat_coverage_gc = functools.partial(stat_pileup, 'coverage_gc')
-stat_coverage_gc.__doc__ = _stat_doc
-load_coverage_gc = functools.partial(load_pileup, 'coverage_gc')
-load_coverage_gc.__doc__ = _load_doc
+stat_coverage, load_coverage = _specialize('coverage')
+stat_coverage_strand, load_coverage_strand = _specialize('coverage_strand')
+stat_coverage_ext, load_coverage_ext = _specialize('coverage_ext')
+stat_coverage_ext_strand, load_coverage_ext_strand = _specialize('coverage_ext_strand')
+stat_variation, load_variation = _specialize('variation')
+stat_variation_strand, load_variation_strand = _specialize('variation_strand')
+stat_tlen, load_tlen = _specialize('tlen')
+stat_tlen_strand, load_tlen_strand = _specialize('tlen_strand')
+stat_mapq, load_mapq = _specialize('mapq')
+stat_mapq_strand, load_mapq_strand = _specialize('mapq_strand')
+stat_baseq, load_baseq = _specialize('baseq')
+stat_baseq_strand, load_baseq_strand = _specialize('baseq_strand')
+stat_baseq_ext, load_baseq_ext = _specialize('baseq_ext')
+stat_baseq_ext_strand, load_baseq_ext_strand = _specialize('baseq_ext_strand')
+stat_coverage_gc, load_coverage_gc = _specialize('coverage_gc')
