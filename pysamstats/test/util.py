@@ -72,6 +72,20 @@ def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
 
 
 def normalise_coords(one_based, start, end):
+    """Normalise start and end coordinates.
+
+    Parameters
+    ----------
+    one_based : bool
+    start : int
+    end : int
+
+    Returns
+    -------
+    start : int
+    end : int
+
+    """
     if one_based:
         start = start - 1 if start is not None else None
         end = end - 1 if end is not None else None

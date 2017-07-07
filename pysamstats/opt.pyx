@@ -256,7 +256,7 @@ cpdef dict rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, Pileu
             reads_mate_same_strand += 1
         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
             reads_faceaway += 1
-        if _is_softclipped(aln):
+        if is_softclipped(aln):
             reads_softclipped += 1
 
     return {'chrom': chrom, 'pos': pos,
@@ -383,7 +383,7 @@ cpdef dict rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafile
                 reads_faceaway_rev += 1
             else:
                 reads_faceaway_fwd += 1
-        if _is_softclipped(aln):
+        if is_softclipped(aln):
             reads_softclipped += 1
             if is_reverse:
                 reads_softclipped_rev += 1
@@ -527,7 +527,7 @@ cpdef dict rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
                 deletions_pp += 1
         else:
 #            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
-            alnbase = _get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(aln, read.qpos)
             if alnbase == b'A':
                 a += 1
                 if is_proper_pair:
@@ -604,15 +604,15 @@ cpdef dict rec_variation_pad(FastaFile fafile, chrom, pos,
 #################################
 
 
-cdef struct _CountPpStrand:
+cdef struct CountPpStrand:
     int all, pp, fwd, rev, pp_fwd, pp_rev
 
 
-cdef inline _init_pp_strand(_CountPpStrand* c):
+cdef inline init_pp_strand(CountPpStrand* c):
     c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0
 
 
-cdef inline _incr_pp_strand(_CountPpStrand* c, bint is_reverse,
+cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
                            bint is_proper_pair):
     c.all += 1
     if is_reverse:
@@ -640,22 +640,22 @@ cpdef dict rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
     cdef bint is_proper_pair, is_reverse
     cdef bytes alnbase, refbase_b
     # counting variables
-    cdef _CountPpStrand reads, matches, mismatches, deletions, insertions, \
+    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, \
         A, C, T, G, N
 
     # initialise variables
     n = col.n
     plp = col.plp
-    _init_pp_strand(&reads)
-    _init_pp_strand(&matches)
-    _init_pp_strand(&mismatches)
-    _init_pp_strand(&deletions)
-    _init_pp_strand(&insertions)
-    _init_pp_strand(&A)
-    _init_pp_strand(&T)
-    _init_pp_strand(&C)
-    _init_pp_strand(&G)
-    _init_pp_strand(&N)
+    init_pp_strand(&reads)
+    init_pp_strand(&matches)
+    init_pp_strand(&mismatches)
+    init_pp_strand(&deletions)
+    init_pp_strand(&insertions)
+    init_pp_strand(&A)
+    init_pp_strand(&T)
+    init_pp_strand(&C)
+    init_pp_strand(&G)
+    init_pp_strand(&N)
 
     # get chromosome name and position
     chrom = alignmentfile.getrname(col.tid)
@@ -678,27 +678,27 @@ cpdef dict rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
         flag = aln.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        _incr_pp_strand(&reads, is_reverse, is_proper_pair)
+        incr_pp_strand(&reads, is_reverse, is_proper_pair)
         if read.is_del:
-            _incr_pp_strand(&deletions, is_reverse, is_proper_pair)
+            incr_pp_strand(&deletions, is_reverse, is_proper_pair)
         else:
-            alnbase = _get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(aln, read.qpos)
             if alnbase == b'A':
-                _incr_pp_strand(&A, is_reverse, is_proper_pair)
+                incr_pp_strand(&A, is_reverse, is_proper_pair)
             elif alnbase == b'T':
-                _incr_pp_strand(&T, is_reverse, is_proper_pair)
+                incr_pp_strand(&T, is_reverse, is_proper_pair)
             elif alnbase == b'C':
-                _incr_pp_strand(&C, is_reverse, is_proper_pair)
+                incr_pp_strand(&C, is_reverse, is_proper_pair)
             elif alnbase == b'G':
-                _incr_pp_strand(&G, is_reverse, is_proper_pair)
+                incr_pp_strand(&G, is_reverse, is_proper_pair)
             elif alnbase == b'N':
-                _incr_pp_strand(&N, is_reverse, is_proper_pair)
+                incr_pp_strand(&N, is_reverse, is_proper_pair)
             if read.indel > 0:
-                _incr_pp_strand(&insertions, is_reverse, is_proper_pair)
+                incr_pp_strand(&insertions, is_reverse, is_proper_pair)
             if alnbase == refbase_b:
-                _incr_pp_strand(&matches, is_reverse, is_proper_pair)
+                incr_pp_strand(&matches, is_reverse, is_proper_pair)
             else:
-                _incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
+                incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev,
@@ -843,14 +843,14 @@ cpdef dict rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn 
     # interesting
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
+        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = median_tlen = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
+        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
@@ -1060,42 +1060,42 @@ cpdef dict rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileup
     # interesting
     if reads_p > 0:
         mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = _rootmean(tlen_p_squared_sum, reads_p)
+        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
         variance_tlen = tlen_p_dev_squared_sum / reads_p
         std_tlen = int(round(sqrt(variance_tlen)))
     else:
         rms_tlen = std_tlen = mean_tlen = 0
     if reads_p_rev > 0:
         mean_tlen_rev = int(round(tlen_p_rev_mean))
-        rms_tlen_rev = _rootmean(tlen_p_rev_squared_sum, reads_p_rev)
+        rms_tlen_rev = rootmean(tlen_p_rev_squared_sum, reads_p_rev)
         variance_tlen_rev = tlen_p_rev_dev_squared_sum / reads_p_rev
         std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
     else:
         rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
     if reads_p_fwd > 0:
         mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-        rms_tlen_fwd = _rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
+        rms_tlen_fwd = rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
         variance_tlen_fwd = tlen_p_fwd_dev_squared_sum / reads_p_fwd
         std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
     else:
         rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
     if reads_pp > 0:
         mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = _rootmean(tlen_pp_squared_sum, reads_pp)
+        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
         variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
         std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
     else:
         rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
     if reads_pp_rev > 0:
         mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-        rms_tlen_pp_rev = _rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
+        rms_tlen_pp_rev = rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
         variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum / reads_pp_rev
         std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
     else:
         rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
     if reads_pp_fwd > 0:
         mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-        rms_tlen_pp_fwd = _rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
+        rms_tlen_pp_fwd = rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
         variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum / reads_pp_fwd
         std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
     else:
@@ -1222,10 +1222,10 @@ cpdef dict rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn 
                 reads_mapq0_pp += 1
 
     # construct output variables
-    rms_mapq = _rootmean(mapq_squared_sum, n)
+    rms_mapq = rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_pp > 0:
-        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
+        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
         rms_mapq_pp = max_mapq_pp = 0
@@ -1365,30 +1365,30 @@ cpdef dict rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileup
                     reads_mapq0_pp_fwd += 1
 
     # construct output variables
-    rms_mapq = _rootmean(mapq_squared_sum, n)
+    rms_mapq = rootmean(mapq_squared_sum, n)
     max_mapq = mapq_max
     if reads_rev > 0:
-        rms_mapq_rev = _rootmean(mapq_rev_squared_sum, reads_rev)
+        rms_mapq_rev = rootmean(mapq_rev_squared_sum, reads_rev)
         max_mapq_rev = mapq_rev_max
     else:
         rms_mapq_rev = max_mapq_rev = 0
     if reads_fwd > 0:
-        rms_mapq_fwd = _rootmean(mapq_fwd_squared_sum, reads_fwd)
+        rms_mapq_fwd = rootmean(mapq_fwd_squared_sum, reads_fwd)
         max_mapq_fwd = mapq_fwd_max
     else:
         rms_mapq_fwd = max_mapq_fwd = 0
     if reads_pp > 0:
-        rms_mapq_pp = _rootmean(mapq_pp_squared_sum, reads_pp)
+        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
         max_mapq_pp = mapq_pp_max
     else:
         rms_mapq_pp = max_mapq_pp = 0
     if reads_pp_fwd > 0:
-        rms_mapq_pp_fwd = _rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
+        rms_mapq_pp_fwd = rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
         max_mapq_pp_fwd = mapq_pp_fwd_max
     else:
         rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
     if reads_pp_rev > 0:
-        rms_mapq_pp_rev = _rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
+        rms_mapq_pp_rev = rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
         max_mapq_pp_rev = mapq_pp_rev_max
     else:
         rms_mapq_pp_rev = max_mapq_pp_rev = 0
@@ -1504,8 +1504,8 @@ cpdef dict rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn
                 baseq_pp_squared_sum += baseq_squared
 
     # output variables
-    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
 
     return {'chrom': chrom,
             'pos': pos,
@@ -1616,12 +1616,12 @@ cpdef dict rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, Pileu
                     baseq_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
 
     return {'chrom': chrom,
             'pos': pos,
@@ -1727,7 +1727,7 @@ cpdef dict rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
             if is_proper_pair:
                 reads_pp_nodel += 1
                 baseq_pp_squared_sum += baseq_squared
-            alnbase = _get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(aln, read.qpos)
             if alnbase == refbase_b:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
@@ -1742,13 +1742,13 @@ cpdef dict rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
                     baseq_mismatches_pp_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
-                                        mismatches_pp)
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum,
+                                       mismatches_pp)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_pp': reads_pp,
@@ -1902,7 +1902,7 @@ cpdef dict rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
                 else:
                     reads_pp_fwd_nodel += 1
                     baseq_pp_fwd_squared_sum += baseq_squared
-            alnbase = _get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(aln, read.qpos)
             if alnbase == refbase_b:
                 matches += 1
                 baseq_matches_squared_sum += baseq_squared
@@ -1943,33 +1943,33 @@ cpdef dict rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
                         baseq_mismatches_pp_fwd_squared_sum += baseq_squared
 
     # construct output variables
-    rms_baseq = _rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_fwd = _rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_rev = _rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_pp = _rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = _rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = _rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
-    rms_baseq_matches = _rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_fwd = _rootmean(baseq_matches_fwd_squared_sum,
-                                      matches_fwd)
-    rms_baseq_matches_rev = _rootmean(baseq_matches_rev_squared_sum,
-                                      matches_rev)
-    rms_baseq_matches_pp = _rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_matches_pp_fwd = _rootmean(baseq_matches_pp_fwd_squared_sum,
-                                         matches_pp_fwd)
-    rms_baseq_matches_pp_rev = _rootmean(baseq_matches_pp_rev_squared_sum,
-                                         matches_pp_rev)
-    rms_baseq_mismatches = _rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_fwd = _rootmean(baseq_mismatches_fwd_squared_sum,
-                                         mismatches_fwd)
-    rms_baseq_mismatches_rev = _rootmean(baseq_mismatches_rev_squared_sum,
-                                         mismatches_rev)
-    rms_baseq_mismatches_pp = _rootmean(baseq_mismatches_pp_squared_sum,
-                                        mismatches_pp)
-    rms_baseq_mismatches_pp_fwd = _rootmean(baseq_mismatches_pp_fwd_squared_sum,
-                                            mismatches_pp_fwd)
-    rms_baseq_mismatches_pp_rev = _rootmean(baseq_mismatches_pp_rev_squared_sum,
-                                            mismatches_pp_rev)
+    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
+    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
+    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
+    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
+    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
+    rms_baseq_matches_fwd = rootmean(baseq_matches_fwd_squared_sum,
+                                     matches_fwd)
+    rms_baseq_matches_rev = rootmean(baseq_matches_rev_squared_sum,
+                                     matches_rev)
+    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
+    rms_baseq_matches_pp_fwd = rootmean(baseq_matches_pp_fwd_squared_sum,
+                                        matches_pp_fwd)
+    rms_baseq_matches_pp_rev = rootmean(baseq_matches_pp_rev_squared_sum,
+                                        matches_pp_rev)
+    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
+    rms_baseq_mismatches_fwd = rootmean(baseq_mismatches_fwd_squared_sum,
+                                        mismatches_fwd)
+    rms_baseq_mismatches_rev = rootmean(baseq_mismatches_rev_squared_sum,
+                                        mismatches_rev)
+    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum,
+                                       mismatches_pp)
+    rms_baseq_mismatches_pp_fwd = rootmean(baseq_mismatches_pp_fwd_squared_sum,
+                                           mismatches_pp_fwd)
+    rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum,
+                                           mismatches_pp_rev)
 
     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
             'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
@@ -2028,12 +2028,12 @@ def frecs_coverage_gc(window_size=300, window_offset=None):
             .fetch(chrom, ref_window_start, ref_window_end)\
             .lower()
         if len(ref_window) == 0:
-            gc_percent = -1
+            gc = -1
         else:
-            gc_percent = _gc_content(ref_window)
+            gc = gc_content(ref_window)
 
         rec = rec_coverage(alignmentfile, fafile, col, one_based)
-        rec['gc'] = gc_percent
+        rec['gc'] = gc
         return rec
 
     def rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
@@ -2046,11 +2046,11 @@ def frecs_coverage_gc(window_size=300, window_offset=None):
             .fetch(chrom, ref_window_start, ref_window_end)\
             .lower()
         if len(ref_window) == 0:
-            gc_percent = -1
+            gc = -1
         else:
-            gc_percent = _gc_content(ref_window)
+            gc = gc_content(ref_window)
         rec = rec_coverage_pad(fafile, chrom, pos, one_based)
-        rec['gc'] = gc_percent
+        rec['gc'] = gc
         return rec
 
     return rec_coverage_gc, rec_coverage_gc_pad
@@ -2061,20 +2061,19 @@ def frecs_coverage_gc(window_size=300, window_offset=None):
 ###################
 
 
-cdef int _gc_content(ref_window) except -1:
+cdef int gc_content(ref_window) except -1:
     cdef Py_ssize_t i, n
     cdef char* seq
     cdef int gc_count = 0
     n = len(ref_window)
     if not PY2:
-        # TODO optimise?
         ref_window = ref_window.encode('ascii')
     seq = ref_window
     for i in range(n):
         if seq[i] == b'g' or seq[i] == b'c':
             gc_count += 1
-    gc_percent = int(round(gc_count * 100. / n))
-    return gc_percent
+    gc = int(round(gc_count * 100. / n))
+    return gc
 
 
 cdef class StatBinned(object):
@@ -2090,17 +2089,17 @@ cdef class CoverageBinned(StatBinned):
 
     cdef int reads_all, reads_pp
 
-    def __cinit__(self):
+    def __init__(self):
         self.reads_all = self.reads_pp = 0
 
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
 
         # determine %GC
         ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-        gc_percent = _gc_content(ref_window)
+        gc = gc_content(ref_window)
 
         # make record for bin
-        rec = {'gc': gc_percent,
+        rec = {'gc': gc,
                'reads_all': self.reads_all,
                'reads_pp': self.reads_pp}
 
@@ -2122,487 +2121,240 @@ cdef class CoverageBinned(StatBinned):
                 self.reads_pp += 1
 
 
-# def load_coverage_binned(*args, **kwargs):
-#     return load_stats(stat_coverage_binned, dtype_coverage_binned,
-#                       *args, **kwargs)
-#
-#
-# ############################################
-# # BINNED COVERAGE WITH EXTENDED PROPERTIES #
-# ############################################
-#
-#
-# dtype_coverage_ext_binned = [('chrom', 'a12'),
-#                              ('pos', 'i4'),
-#                              ('gc', 'u1'),
-#                              ('reads_all', 'i4'),
-#                              ('reads_pp', 'i4'),
-#                              ('reads_mate_unmapped', 'i4'),
-#                              ('reads_mate_other_chr', 'i4'),
-#                              ('reads_mate_same_strand', 'i4'),
-#                              ('reads_faceaway', 'i4'),
-#                              ('reads_softclipped', 'i4'),
-#                              ('reads_duplicate', 'i4')]
-#
-#
-# fields_coverage_ext_binned = [t[0] for t in dtype_coverage_ext_binned]
-#
-#
-# def stat_coverage_ext_binned(alignmentfile, fafile, **kwargs):
-#     """Generate binned extended coverage statistics.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     stat = _CoverageExtBinned()
-#     return iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile,
-#                        **kwargs)
-#
-#
-# cdef class _CoverageExtBinned(_StatBinned):
-#
-#     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
-#         reads_mate_same_strand, reads_faceaway, reads_softclipped, \
-#         reads_duplicate
-#
-#     def __cinit__(self):
-#         self.reads_all = self.reads_pp = self.reads_mate_unmapped \
-#             = self.reads_mate_other_chr = self.reads_mate_same_strand\
-#             = self.reads_faceaway = self.reads_softclipped \
-#             = self.reads_duplicate = 0
-#
-#     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
-#
-#         # determine %GC
-#         ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
-#         gc_percent = _gc_content(ref_window)
-#
-#         # make record for bin
-#         rec = {'gc': gc_percent,
-#                'reads_all': self.reads_all,
-#                'reads_pp': self.reads_pp,
-#                'reads_mate_unmapped': self.reads_mate_unmapped,
-#                'reads_mate_other_chr': self.reads_mate_other_chr,
-#                'reads_mate_same_strand': self.reads_mate_same_strand,
-#                'reads_faceaway': self.reads_faceaway,
-#                'reads_softclipped': self.reads_softclipped,
-#                'reads_duplicate': self.reads_duplicate}
-#
-#         # reset counters
-#         self.reads_all = self.reads_pp = self.reads_mate_unmapped \
-#             = self.reads_mate_other_chr = self.reads_mate_same_strand\
-#             = self.reads_faceaway = self.reads_softclipped \
-#             = self.reads_duplicate = 0
-#
-#         return rec
-#
-#     cdef recv(self, bam1_t * b):
-#         cdef uint32_t flag
-#         cdef bint is_unmapped
-#         cdef bint is_reverse
-#         cdef bint is_proper_pair
-#         cdef bint is_duplicate
-#         cdef bint mate_is_unmappped
-#         cdef bint mate_is_reverse
-#         cdef int tlen
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             self.reads_all += 1
-#             is_reverse = <bint>(flag & BAM_FREVERSE)
-#             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#             is_duplicate = <bint>(flag & BAM_FDUP)
-#             mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#             mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-#             tlen = b.core.isize
-#             if is_duplicate:
-#                 self.reads_duplicate += 1
-#             if is_proper_pair:
-#                 self.reads_pp += 1
-#             if mate_is_unmapped:
-#                 self.reads_mate_unmapped += 1
-#             elif b.core.tid != b.core.mtid:
-#                 self.reads_mate_other_chr += 1
-#             elif (is_reverse and mate_is_reverse) \
-#                     or (not is_reverse and not mate_is_reverse):
-#                 self.reads_mate_same_strand += 1
-#             elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-#                 self.reads_faceaway += 1
-#             if _is_softclipped(b):
-#                 self.reads_softclipped += 1
-#
-#
-# def load_coverage_ext_binned(*args, **kwargs):
-#     return load_stats(stat_coverage_ext_binned, dtype_coverage_ext_binned,
-#                       *args, **kwargs)
-#
-#
-# ###############
-# # BINNED MAPQ #
-# ###############
-#
-#
-# dtype_mapq_binned = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_mapq0', 'i4'),
-#     ('rms_mapq', 'i4'),
-# ]
-#
-#
-# fields_mapq_binned = [t[0] for t in dtype_mapq_binned]
-#
-#
-# def stat_mapq_binned(alignmentfile, **kwargs):
-#     """Generate binned mapping quality statistics.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     stat = _MapqBinned()
-#     return iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
-#
-#
-# cdef class _MapqBinned(_StatBinned):
-#
-#     cdef int reads_all, reads_mapq0
-#     cdef uint64_t mapq, mapq_squared_sum
-#
-#     def __cinit__(self):
-#         self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
-#
-#     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
-#
-#         # make record for bin
-#         rec = {'reads_all': self.reads_all,
-#                'reads_mapq0': self.reads_mapq0,
-#                'rms_mapq': _rootmean(self.mapq_squared_sum, self.reads_all)}
-#
-#         # reset counters
-#         self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
-#
-#         return rec
-#
-#     cdef recv(self, bam1_t * b):
-#         cdef uint32_t flag
-#         cdef bint is_unmapped
-#         cdef uint64_t mapq
-#         cdef uint64_t mapq_squared
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             self.reads_all += 1
-#             mapq = b.core.qual
-#             mapq_squared = mapq**2
-#             self.mapq_squared_sum += mapq_squared
-#             if mapq == 0:
-#                 self.reads_mapq0 += 1
-#
-#
-# def load_mapq_binned(*args, **kwargs):
-#     return load_stats(stat_mapq_binned, dtype_mapq_binned, *args, **kwargs)
-#
-#
-# ################
-# # BINNED CIGAR #
-# ################
-#
-#
-# dtype_alignment_binned = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('bases_all', 'i4'),
-#     ('M', 'i4'),
-#     ('I', 'i4'),
-#     ('D', 'i4'),
-#     ('N', 'i4'),
-#     ('S', 'i4'),
-#     ('H', 'i4'),
-#     ('P', 'i4'),
-#     ('=', 'i4'),
-#     ('X', 'i4')
-# ]
-#
-#
-# fields_alignment_binned = [t[0] for t in dtype_alignment_binned]
-#
-#
-# def stat_alignment_binned(alignmentfile, **kwargs):
-#     """Generate binned alignment statistics.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     fafile : pysam.FastaFile or string
-#         FASTA file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     stat = _AlignmentBinned()
-#     return iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
-#
-#
-# cdef class _AlignmentBinned(_StatBinned):
-#
-#     cdef int reads_all, M, I, D, N, S, H, P, EQ, X
-#
-#     def __cinit__(self):
-#         self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
-#             = self.P = self.EQ = self.X = 0
-#
-#     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
-#
-#         # make record for bin
-#         rec = {'reads_all': self.reads_all,
-#                'M': self.M, 'I': self.I, 'D': self.D, 'N': self.N, 'S': self.S,
-#                'H': self.H, 'P': self.P, '=': self.EQ, 'X': self.X,
-#                'bases_all': self.M + self.I + self.S + self.EQ + self.X}
-#
-#         # reset counters
-#         self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
-#             = self.P = self.EQ = self.X = 0
-#
-#         return rec
-#
-#     cdef recv(self, bam1_t * b):
-#         cdef uint32_t flag
-#         cdef bint is_unmapped
-#         cdef int k, op, l
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             cigar_p = pysam_bam_get_cigar(b)
-#             cigar = list()
-#             for k in range(b.core.n_cigar):
-#                 op = cigar_p[k] & BAM_CIGAR_MASK
-#                 l = cigar_p[k] >> BAM_CIGAR_SHIFT
-#                 cigar.append((op, l))
-#                 if op == BAM_CMATCH:
-#                     self.M += l
-#                 elif op == BAM_CINS:
-#                     self.I += l
-#                 elif op == BAM_CDEL:
-#                     self.D += l
-#                 elif op == BAM_CREF_SKIP:
-#                     self.N += l
-#                 elif op == BAM_CSOFT_CLIP:
-#                     self.S += l
-#                 elif op == BAM_CHARD_CLIP:
-#                     self.H += l
-#                 elif op == BAM_CPAD:
-#                     self.P += l
-#                 elif op == BAM_CEQUAL:
-#                     self.EQ += l
-#                 elif op == BAM_CDIFF:
-#                     self.X += l
-#             self.reads_all += 1
-#
-#
-# def load_alignment_binned(*args, **kwargs):
-#     return load_stats(stat_alignment_binned, dtype_alignment_binned,
-#                       *args, **kwargs)
-#
-#
-# ###############
-# # BINNED TLEN #
-# ###############
-#
-#
-# dtype_tlen_binned = [
-#     ('chrom', 'a12'),
-#     ('pos', 'i4'),
-#     ('reads_all', 'i4'),
-#     ('reads_pp', 'i4'),
-#     ('mean_tlen', 'i4'),
-#     ('mean_tlen_pp', 'i4'),
-#     ('rms_tlen', 'i4'),
-#     ('rms_tlen_pp', 'i4'),
-# ]
-#
-#
-# fields_tlen_binned = [t[0] for t in dtype_tlen_binned]
-#
-#
-# def stat_tlen_binned(alignmentfile, **kwargs):
-#     """Generate binned insert size statistics.
-#
-#     Parameters
-#     ----------
-#
-#     alignmentfile : pysam.AlignmentFile or string
-#         SAM or BAM file or file path
-#     chrom : string
-#         chromosome/contig
-#     start : int
-#         start position
-#     end : int
-#         end position
-#     one_based : bool
-#         coordinate system
-#     truncate : bool
-#         if True, truncate output to selected region
-#     pad : bool
-#         if True, emit records for every position, even if no reads are aligned
-#     max_depth : int
-#         maximum depth to allow in pileup column
-#     window_size : int
-#         size of surrounding window in base pairs
-#     window_offset :
-#         distance from window start to record position
-#
-#     Returns
-#     -------
-#
-#     recs : iterator
-#         record generator
-#
-#     """
-#
-#     stat = _TlenBinned()
-#     return iter_binned(stat, alignmentfile=alignmentfile, **kwargs)
-#
-#
-# cdef class _TlenBinned(_StatBinned):
-#
-#     cdef int reads_all
-#     cdef int reads_pp
-#     cdef int64_t tlen_sum
-#     cdef int64_t tlen_pp_sum
-#     cdef int64_t tlen_squared_sum
-#     cdef int64_t tlen_pp_squared_sum
-#
-#     def __cinit__(self):
-#         self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
-#             self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
-#
-#     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
-#
-#         # make record for bin
-#         rec = {'reads_all': self.reads_all, 'reads_pp': self.reads_pp,
-#                'mean_tlen': _mean(self.tlen_sum, self.reads_all),
-#                'mean_tlen_pp': _mean(self.tlen_pp_sum, self.reads_pp),
-#                'rms_tlen': _rootmean(self.tlen_squared_sum, self.reads_all),
-#                'rms_tlen_pp': _rootmean(self.tlen_pp_squared_sum,
-#                                         self.reads_pp)}
-#
-#         # reset counters
-#         self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
-#             self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
-#
-#         return rec
-#
-#     cdef recv(self, bam1_t * b):
-#         cdef uint32_t flag
-#         cdef bint is_unmapped
-#         cdef bint is_proper_pair
-#         cdef int64_t tlen
-#         cdef int64_t tlen_squared
-#         flag = b.core.flag
-#         is_unmapped = <bint>(flag & BAM_FUNMAP)
-#         if not is_unmapped:
-#             self.reads_all += 1
-#             tlen = b.core.isize
-#             self.tlen_sum += tlen
-#             tlen_squared = tlen**2
-#             self.tlen_squared_sum += tlen_squared
-#             is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#             if is_proper_pair:
-#                 self.reads_pp += 1
-#                 self.tlen_pp_sum += tlen
-#                 self.tlen_pp_squared_sum += tlen_squared
-#
-#
-# def load_tlen_binned(*args, **kwargs):
-#     return load_stats(stat_tlen_binned, dtype_tlen_binned, *args, **kwargs)
-#
+############################################
+# BINNED COVERAGE WITH EXTENDED PROPERTIES #
+############################################
+
+
+cdef class CoverageExtBinned(StatBinned):
+
+    cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
+        reads_mate_same_strand, reads_faceaway, reads_softclipped, \
+        reads_duplicate
+
+    def __init__(self):
+        self.reads_all = self.reads_pp = self.reads_mate_unmapped \
+            = self.reads_mate_other_chr = self.reads_mate_same_strand\
+            = self.reads_faceaway = self.reads_softclipped \
+            = self.reads_duplicate = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
+
+        # determine %GC
+        ref_window = fafile.fetch(chrom, bin_start, bin_end).lower()
+        gc = gc_content(ref_window)
+
+        # make record for bin
+        rec = {'gc': gc,
+               'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'reads_mate_unmapped': self.reads_mate_unmapped,
+               'reads_mate_other_chr': self.reads_mate_other_chr,
+               'reads_mate_same_strand': self.reads_mate_same_strand,
+               'reads_faceaway': self.reads_faceaway,
+               'reads_softclipped': self.reads_softclipped,
+               'reads_duplicate': self.reads_duplicate}
+
+        # reset counters
+        self.reads_all = self.reads_pp = self.reads_mate_unmapped \
+            = self.reads_mate_other_chr = self.reads_mate_same_strand\
+            = self.reads_faceaway = self.reads_softclipped \
+            = self.reads_duplicate = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_reverse
+        cdef bint is_proper_pair
+        cdef bint is_duplicate
+        cdef bint mate_is_unmappped
+        cdef bint mate_is_reverse
+        cdef int tlen
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            self.reads_all += 1
+            is_reverse = <bint>(flag & BAM_FREVERSE)
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            is_duplicate = <bint>(flag & BAM_FDUP)
+            mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+            mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+            tlen = b.core.isize
+            if is_duplicate:
+                self.reads_duplicate += 1
+            if is_proper_pair:
+                self.reads_pp += 1
+            if mate_is_unmapped:
+                self.reads_mate_unmapped += 1
+            elif b.core.tid != b.core.mtid:
+                self.reads_mate_other_chr += 1
+            elif (is_reverse and mate_is_reverse) \
+                    or (not is_reverse and not mate_is_reverse):
+                self.reads_mate_same_strand += 1
+            elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+                self.reads_faceaway += 1
+            if is_softclipped(b):
+                self.reads_softclipped += 1
+
+
+###############
+# BINNED MAPQ #
+###############
+
+
+cdef class MapqBinned(StatBinned):
+
+    cdef int reads_all, reads_mapq0
+    cdef uint64_t mapq, mapq_squared_sum
+
+    def __init__(self):
+        self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all,
+               'reads_mapq0': self.reads_mapq0,
+               'rms_mapq': rootmean(self.mapq_squared_sum, self.reads_all)}
+
+        # reset counters
+        self.reads_all = self.reads_mapq0 = self.mapq_squared_sum = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef uint64_t mapq
+        cdef uint64_t mapq_squared
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            self.reads_all += 1
+            mapq = b.core.qual
+            mapq_squared = mapq**2
+            self.mapq_squared_sum += mapq_squared
+            if mapq == 0:
+                self.reads_mapq0 += 1
+
+
+################
+# BINNED CIGAR #
+################
+
+
+cdef class AlignmentBinned(StatBinned):
+
+    cdef int reads_all, M, I, D, N, S, H, P, EQ, X
+
+    def __init__(self):
+        self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
+            = self.P = self.EQ = self.X = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all,
+               'M': self.M, 'I': self.I, 'D': self.D, 'N': self.N, 'S': self.S,
+               'H': self.H, 'P': self.P, '=': self.EQ, 'X': self.X,
+               'bases_all': self.M + self.I + self.S + self.EQ + self.X}
+
+        # reset counters
+        self.reads_all = self.M = self.I = self.D = self.N = self.S = self.H\
+            = self.P = self.EQ = self.X = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef int k, op, l
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            cigar_p = pysam_bam_get_cigar(b)
+            cigar = list()
+            for k in range(b.core.n_cigar):
+                op = cigar_p[k] & BAM_CIGAR_MASK
+                l = cigar_p[k] >> BAM_CIGAR_SHIFT
+                cigar.append((op, l))
+                if op == BAM_CMATCH:
+                    self.M += l
+                elif op == BAM_CINS:
+                    self.I += l
+                elif op == BAM_CDEL:
+                    self.D += l
+                elif op == BAM_CREF_SKIP:
+                    self.N += l
+                elif op == BAM_CSOFT_CLIP:
+                    self.S += l
+                elif op == BAM_CHARD_CLIP:
+                    self.H += l
+                elif op == BAM_CPAD:
+                    self.P += l
+                elif op == BAM_CEQUAL:
+                    self.EQ += l
+                elif op == BAM_CDIFF:
+                    self.X += l
+            self.reads_all += 1
+
+
+###############
+# BINNED TLEN #
+###############
+
+
+cdef class TlenBinned(StatBinned):
+
+    cdef int reads_all
+    cdef int reads_pp
+    cdef int64_t tlen_sum
+    cdef int64_t tlen_pp_sum
+    cdef int64_t tlen_squared_sum
+    cdef int64_t tlen_pp_squared_sum
+
+    def __init__(self):
+        self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
+            self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
+
+    cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
+
+        # make record for bin
+        rec = {'reads_all': self.reads_all, 'reads_pp': self.reads_pp,
+               'mean_tlen': mean(self.tlen_sum, self.reads_all),
+               'mean_tlen_pp': mean(self.tlen_pp_sum, self.reads_pp),
+               'rms_tlen': rootmean(self.tlen_squared_sum, self.reads_all),
+               'rms_tlen_pp': rootmean(self.tlen_pp_squared_sum,
+                                       self.reads_pp)}
+
+        # reset counters
+        self.tlen_sum = self.tlen_squared_sum = self.tlen_pp_sum = \
+            self.tlen_pp_squared_sum = self.reads_all = self.reads_pp = 0
+
+        return rec
+
+    cdef recv(self, bam1_t * b):
+        cdef uint32_t flag
+        cdef bint is_unmapped
+        cdef bint is_proper_pair
+        cdef int64_t tlen
+        cdef int64_t tlen_squared
+        flag = b.core.flag
+        is_unmapped = <bint>(flag & BAM_FUNMAP)
+        if not is_unmapped:
+            self.reads_all += 1
+            tlen = b.core.isize
+            self.tlen_sum += tlen
+            tlen_squared = tlen**2
+            self.tlen_squared_sum += tlen_squared
+            is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+            if is_proper_pair:
+                self.reads_pp += 1
+                self.tlen_pp_sum += tlen
+                self.tlen_pp_squared_sum += tlen_squared
+
 
 #####################
 # UTILITY FUNCTIONS #
@@ -2641,7 +2393,7 @@ def iter_pileup_default(frec, alignmentfile, fafile=None,
                         chrom=None, start=None, end=None,
                         one_based=False, truncate=False,
                         max_depth=8000, **kwargs):
-    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
+    start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
     it = alignmentfile.pileup(reference=chrom, start=start, end=end,
                         truncate=truncate, max_depth=max_depth)
     for col in it:
@@ -2679,7 +2431,7 @@ def iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile, chrom, start=Non
     cdef PileupColumn col
     cdef int curpos
     assert chrom is not None, 'chromosome is None'
-    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
+    start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
     it = alignmentfile.pileup(reference=chrom, start=start, end=end,
                         truncate=truncate, max_depth=max_depth)
     curpos = start
@@ -2734,7 +2486,7 @@ def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fa
     # setup
 
     assert chrom is not None, 'chromosome is None'
-    start, end = _normalise_coords(alignmentfile, chrom, start, end, one_based)
+    start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
 
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
     has_coord, rtid, rstart, rend = \
@@ -2800,7 +2552,7 @@ def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fa
             yield rec
 
 
-def _normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based):
+def normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based):
     """Convert to zero-based coordinates and deal with unspecified start
     and/or end.
 
@@ -2828,7 +2580,7 @@ def _normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based)
         return start, end
 
 
-cdef inline bint _is_softclipped(bam1_t * aln):
+cdef inline bint is_softclipped(bam1_t * aln):
     cdef int k
     cigar_p = pysam_bam_get_cigar(aln)
     for k in range(aln.core.n_cigar):
@@ -2838,7 +2590,7 @@ cdef inline bint _is_softclipped(bam1_t * aln):
     return 0
 
 
-cdef inline object _get_seq_base(bam1_t *src, uint32_t k):
+cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     cdef uint8_t * p
     cdef char * s
 
@@ -2854,14 +2606,14 @@ cdef inline object _get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
-cdef inline int _rootmean(uint64_t sqsum, int count):
+cdef inline int rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum / count)))
     else:
         return 0
 
 
-cdef inline int _mean(int64_t total, int count):
+cdef inline int mean(int64_t total, int count):
     if count > 0:
         return int(round(total / count))
     else:

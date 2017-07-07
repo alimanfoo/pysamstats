@@ -13,28 +13,31 @@ def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
                                  end=None, one_based=False, window_size=300,
                                  window_offset=150):
     if chrom is None:
+        # noinspection PyTypeChecker
         it = chain(*[
-            _iter_coverage_binned(samfile, fastafile, chrom, None, None,
-                                  one_based, window_size, window_offset)
+            iter_coverage_binned(samfile, fastafile, chrom, None, None,
+                                 one_based, window_size, window_offset)
             for chrom in samfile.references
         ])
     else:
-        it = _iter_coverage_binned(samfile, fastafile, chrom, start, end,
-                                   one_based, window_size, window_offset)
+        it = iter_coverage_binned(samfile, fastafile, chrom, start, end,
+                                  one_based, window_size, window_offset)
     return it
 
 
-def _gc_percent(fastafile, chrom, start, end):
+def gc_content(fastafile, chrom, start, end):
     seq = fastafile.fetch(chrom, start, end).lower()
     nc = Counter(seq)
-    gc_percent = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
-    return gc_percent
+    gc = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
+    return gc
 
 
-def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
-                          window_size, window_offset):
+def iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
+                         window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
+    assert isinstance(start, int)
+    assert isinstance(end, int)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
@@ -50,12 +53,12 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
         while aln.pos > bin_end:  # end of bin
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all,
+                   'gc': gc, 'reads_all': reads_all,
                    'reads_pp': reads_pp}
             yield rec
             reads_all = reads_pp = 0
@@ -67,12 +70,12 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
                 reads_pp += 1
 
     # deal with last non-empty bin
-    gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+    gc = gc_content(fastafile, chrom, bin_start, bin_end)
     pos = bin_start + window_offset
     if one_based:
         pos += 1
     rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
+           'gc': gc, 'reads_all': reads_all, 'reads_pp': reads_pp}
     yield rec
 
     # deal with empty bins up to explicit end
@@ -81,12 +84,12 @@ def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
             reads_all = reads_pp = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all,
+                   'gc': gc, 'reads_all': reads_all,
                    'reads_pp': reads_pp}
             yield rec
 
@@ -106,19 +109,20 @@ def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None,
                                      start=None, end=None, one_based=False,
                                      window_size=300, window_offset=150):
     if chrom is None:
+        # noinspection PyTypeChecker
         it = chain(*[
-            _iter_coverage_ext_binned(samfile, fastafile, chrom, None, None,
-                                      one_based, window_size, window_offset)
+            iter_coverage_ext_binned(samfile, fastafile, chrom, None, None,
+                                     one_based, window_size, window_offset)
             for chrom in samfile.references
         ])
     else:
-        it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end,
-                                       one_based, window_size, window_offset)
+        it = iter_coverage_ext_binned(samfile, fastafile, chrom, start, end,
+                                      one_based, window_size, window_offset)
     return it
 
 
-def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
-                              window_size, window_offset):
+def iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
+                             window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -138,12 +142,12 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
     # iterate over reads
     for aln in samfile.fetch(chrom, start, end):
         while aln.pos > bin_end:  # end of bin
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent,
+                   'gc': gc,
                    'reads_all': reads_all,
                    'reads_pp': reads_pp,
                    'reads_mate_unmapped': reads_mate_unmapped,
@@ -183,12 +187,12 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
                 reads_faceaway += 1
 
     # deal with last non-empty bin
-    gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+    gc = gc_content(fastafile, chrom, bin_start, bin_end)
     pos = bin_start + window_offset
     if one_based:
         pos += 1
     rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent,
+           'gc': gc,
            'reads_all': reads_all,
            'reads_pp': reads_pp,
            'reads_mate_unmapped': reads_mate_unmapped,
@@ -207,12 +211,12 @@ def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
                 = reads_duplicate = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
+            gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
             if one_based:
                 pos += 1
             rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent,
+                   'gc': gc,
                    'reads_all': reads_all,
                    'reads_pp': reads_pp,
                    'reads_mate_unmapped': reads_mate_unmapped,
@@ -239,17 +243,18 @@ def stat_mapq_binned_refimpl(samfile,
                              chrom=None, start=None, end=None, one_based=False,
                              window_size=300, window_offset=150):
     if chrom is None:
-        it = chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based,
-                                       window_size, window_offset)
+        # noinspection PyTypeChecker
+        it = chain(*[iter_mapq_binned(samfile, chrom, None, None, one_based,
+                                      window_size, window_offset)
                      for chrom in samfile.references])
     else:
-        it = _iter_mapq_binned(samfile, chrom, start, end, one_based,
-                               window_size, window_offset)
+        it = iter_mapq_binned(samfile, chrom, start, end, one_based,
+                              window_size, window_offset)
     return it
 
 
-def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size,
-                      window_offset):
+def iter_mapq_binned(samfile, chrom, start, end, one_based, window_size,
+                     window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -318,22 +323,23 @@ def stat_alignment_binned_refimpl(samfile, chrom=None, start=None, end=None,
                                   one_based=False, window_size=300,
                                   window_offset=150):
     if chrom is None:
+        # noinspection PyTypeChecker
         it = chain(*[
-            _iter_alignment_binned(samfile, chrom, None, None, one_based,
-                                   window_size, window_offset)
+            iter_alignment_binned(samfile, chrom, None, None, one_based,
+                                  window_size, window_offset)
             for chrom in samfile.references]
         )
     else:
-        it = _iter_alignment_binned(samfile, chrom, start, end, one_based,
-                                    window_size, window_offset)
+        it = iter_alignment_binned(samfile, chrom, start, end, one_based,
+                                   window_size, window_offset)
     return it
 
 
 CIGAR = 'MIDNSHP=X'
 
 
-def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
-                           window_offset):
+def iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
+                          window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -413,17 +419,18 @@ def stat_tlen_binned_refimpl(samfile,
                              chrom=None, start=None, end=None, one_based=False,
                              window_size=300, window_offset=150):
     if chrom is None:
-        it = chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based,
-                                       window_size, window_offset)
+        # noinspection PyTypeChecker
+        it = chain(*[iter_tlen_binned(samfile, chrom, None, None, one_based,
+                                      window_size, window_offset)
                      for chrom in samfile.references])
     else:
-        it = _iter_tlen_binned(samfile, chrom, start, end, one_based,
-                               window_size, window_offset)
+        it = iter_tlen_binned(samfile, chrom, start, end, one_based,
+                              window_size, window_offset)
     return it
 
 
-def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size,
-                      window_offset):
+def iter_tlen_binned(samfile, chrom, start, end, one_based, window_size,
+                     window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -512,12 +519,3 @@ def rootmean(sqsum, count):
         return int(round(sqrt(sqsum / count)))
     else:
         return 0
-
-
-def _mean(total, count):
-    if count > 0:
-        return int(round(total / count))
-    else:
-        return 0
-
-
