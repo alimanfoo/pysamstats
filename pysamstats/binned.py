@@ -5,6 +5,7 @@ import functools
 
 import pysamstats.opt as opt
 import pysamstats.util as util
+import pysamstats.config as config
 
 
 _doc_params = """
@@ -67,16 +68,23 @@ stat_binned.__doc__ = stat_binned.__doc__.format(params=_doc_params)
 # noinspection PyShadowingBuiltins
 def load_binned(type,
                 alignmentfile,
-                fafile,
+                fafile=None,
                 chrom=None,
                 start=None,
                 end=None,
                 one_based=False,
                 window_size=300,
-                window_offset=None):
+                window_offset=None,
+                dtype=None,
+                fields=None):
     """Load statistics per genome window, based on all reads whose alignment starts within
     the window.
     {params}
+    dtype : dtype
+        Override default dtype.
+    fields : string or list of strings
+        Select a subset of fields to load.
+
     Returns
     -------
     ra : numpy structured array
@@ -86,11 +94,12 @@ def load_binned(type,
 
     stat = functools.partial(stat_binned, type)
     try:
-        dtype = dtypes_binned[type]
+        default_dtype = getattr(config, 'dtype_' + type + '_binned')
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, dtype, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
+    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype, user_fields=fields,
+                           alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, window_size=window_size,
                            window_offset=window_offset)
 
@@ -107,87 +116,30 @@ statsobj_binned = {
 }
 
 
-dtypes_binned = {
-    'coverage': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('gc', 'u1'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4')
-    ],
-    'coverage_ext': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('gc', 'u1'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_mate_unmapped', 'i4'),
-        ('reads_mate_other_chr', 'i4'),
-        ('reads_mate_same_strand', 'i4'),
-        ('reads_faceaway', 'i4'),
-        ('reads_softclipped', 'i4'),
-        ('reads_duplicate', 'i4')
-    ],
-    'mapq': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_mapq0', 'i4'),
-        ('rms_mapq', 'i4'),
-    ],
-    'alignment': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('bases_all', 'i4'),
-        ('M', 'i4'),
-        ('I', 'i4'),
-        ('D', 'i4'),
-        ('N', 'i4'),
-        ('S', 'i4'),
-        ('H', 'i4'),
-        ('P', 'i4'),
-        ('=', 'i4'),
-        ('X', 'i4')
-    ],
-    'tlen': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('mean_tlen', 'i4'),
-        ('mean_tlen_pp', 'i4'),
-        ('rms_tlen', 'i4'),
-        ('rms_tlen_pp', 'i4'),
-    ],
-}
-
-
 # backwards compatibility
 #########################
+
+
 _stat_doc_lines = stat_binned.__doc__.split('\n')
 _load_doc_lines = load_binned.__doc__.split('\n')
 # strip "type" parameter
 _stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[6:])
 _load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[6:])
+
+
+def _specialize(type):
+    stat = functools.partial(stat_binned, type)
+    stat.__doc__ = _stat_doc
+    stat.__name__ = 'stat_' + type
+    load = functools.partial(load_binned, type)
+    load.__doc__ = _load_doc
+    load.__name__ = 'load_' + type
+    return stat, load
+
+
 # named functions
-stat_coverage_binned = functools.partial(stat_binned, 'coverage')
-stat_coverage_binned.__doc__ = _stat_doc
-load_coverage_binned = functools.partial(load_binned, 'coverage')
-load_coverage_binned.__doc__ = _load_doc
-stat_coverage_ext_binned = functools.partial(stat_binned, 'coverage_ext')
-stat_coverage_ext_binned.__doc__ = _stat_doc
-load_coverage_ext_binned = functools.partial(load_binned, 'coverage_ext')
-load_coverage_ext_binned.__doc__ = _load_doc
-stat_mapq_binned = functools.partial(stat_binned, 'mapq')
-stat_mapq_binned.__doc__ = _stat_doc
-load_mapq_binned = functools.partial(load_binned, 'mapq')
-load_mapq_binned.__doc__ = _load_doc
-stat_alignment_binned = functools.partial(stat_binned, 'alignment')
-stat_alignment_binned.__doc__ = _stat_doc
-load_alignment_binned = functools.partial(load_binned, 'alignment')
-load_alignment_binned.__doc__ = _load_doc
-stat_tlen_binned = functools.partial(stat_binned, 'tlen')
-stat_tlen_binned.__doc__ = _stat_doc
-load_tlen_binned = functools.partial(load_binned, 'tlen')
-load_tlen_binned.__doc__ = _load_doc
+stat_coverage_binned, load_coverage_binned = _specialize('coverage')
+stat_coverage_ext_binned, load_coverage_ext_binned = _specialize('coverage_ext')
+stat_mapq_binned, load_mapq_binned = _specialize('mapq')
+stat_alignment_binned, load_alignment_binned = _specialize('alignment')
+stat_tlen_binned, load_tlen_binned = _specialize('tlen')

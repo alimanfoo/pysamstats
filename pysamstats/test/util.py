@@ -130,3 +130,10 @@ def vmax(a):
         return max(a)
     else:
         return 0
+
+
+def rootmean(sqsum, count):
+    if count > 0:
+        return int(round(sqrt(sqsum / count)))
+    else:
+        return 0

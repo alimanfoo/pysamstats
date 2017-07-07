@@ -2,11 +2,20 @@
 from __future__ import absolute_import, print_function, division
 from itertools import chain
 from collections import Counter
-from math import sqrt
+import logging
+
+
+from pysam import Samfile, Fastafile
+from nose.tools import eq_
 
 
 import pysamstats
-from .util import normalise_coords, compare_stats, compare_stats_withref, mean, rms
+from .util import normalise_coords, compare_stats, compare_stats_withref, mean, rms, rootmean, \
+    compare_iterators
+
+
+logger = logging.getLogger(__name__)
+debug = logger.debug
 
 
 def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
@@ -36,8 +45,6 @@ def iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
                          window_size, window_offset):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
-    assert isinstance(start, int)
-    assert isinstance(end, int)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
     if start is None:
         start = 0
@@ -514,8 +521,56 @@ def test_stat_tlen_binned():
     compare_stats(pysamstats.stat_tlen_binned, stat_tlen_binned_refimpl)
 
 
-def rootmean(sqsum, count):
-    if count > 0:
-        return int(round(sqrt(sqsum / count)))
-    else:
-        return 0
+binned_functions = [
+    (pysamstats.load_coverage_binned, 1),
+    (pysamstats.load_coverage_ext_binned, 1),
+    (pysamstats.load_mapq_binned, 0),
+    (pysamstats.load_alignment_binned, 0),
+    (pysamstats.load_tlen_binned, 0),
+]
+
+
+def test_binned_pad_region():
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 1000,
+              'end': 20000,
+              'one_based': False,
+              'window_size': 200,
+              'window_offset': 100}
+    for f, needs_ref in binned_functions:
+        debug(f.__name__)
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+                  **kwargs)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs)
+        assert set(a['chrom']) == {b'Pf3D7_01_v3'}
+        eq_(1100, a['pos'][0])
+        eq_(19900, a['pos'][-1])
+
+
+def test_binned_pad_wg():
+    expected = stat_coverage_binned_refimpl(
+        Samfile('fixture/test.bam'),
+        Fastafile('fixture/ref.fa'))
+
+    actual = pysamstats.stat_coverage_binned(Samfile('fixture/test.bam'),
+                                             Fastafile('fixture/ref.fa'))
+    compare_iterators(expected, actual)
+    kwargs = {'window_size': 200,
+              'window_offset': 100}
+    for f, needs_ref in binned_functions:
+        debug(f.__name__)
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+                  **kwargs)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs)
+        assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3',
+                                           b'Pf3D7_03_v3']
+        eq_(100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0])
+        eq_(50100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1])
+        eq_(100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][0])
+        eq_(60100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1])
+        eq_(100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][0])
+        eq_(70100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1])

@@ -5,6 +5,7 @@ import functools
 
 import pysamstats.opt as opt
 import pysamstats.util as util
+import pysamstats.config as config
 
 
 _doc_params = """
@@ -35,8 +36,7 @@ _doc_params = """
     window_size : int
         Window size to use for percent GC calculation (only applies to coverage_gc).
     window_offset : int
-        Distance from window start to record position (only applies to coverage_gc).
-"""
+        Distance from window start to record position (only applies to coverage_gc)."""
 
 
 # noinspection PyShadowingBuiltins
@@ -54,6 +54,7 @@ def stat_pileup(type,
                 window_offset=None):
     """Generate statistics per genome position, based on read pileups.
     {params}
+
     Returns
     -------
     recs : iterator
@@ -91,9 +92,16 @@ def load_pileup(type,
                 pad=False,
                 max_depth=8000,
                 window_size=300,
-                window_offset=None):
+                window_offset=None,
+                dtype=None,
+                fields=None):
     """Load statistics per genome position, based on read pileups.
     {params}
+    dtype : dtype
+        Override default dtype.
+    fields : string or list of strings
+        Select a subset of fields to load.
+
     Returns
     -------
     ra : numpy structured array
@@ -103,13 +111,14 @@ def load_pileup(type,
 
     stat = functools.partial(stat_pileup, type)
     try:
-        dtype = dtypes_pileup[type]
-    except KeyError:
+        default_dtype = getattr(config, 'dtype_' + type)
+    except AttributeError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, dtype, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
-                           start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
-                           max_depth=max_depth, window_size=window_size,
+    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype,
+                           user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
+                           chrom=chrom, start=start, end=end, one_based=one_based,
+                           truncate=truncate, pad=pad, max_depth=max_depth, window_size=window_size,
                            window_offset=window_offset)
 
 
@@ -131,309 +140,6 @@ frecs_pileup = {
     'baseq_strand': (opt.rec_baseq_strand, opt.rec_baseq_strand_pad),
     'baseq_ext': (opt.rec_baseq_ext, opt.rec_baseq_ext_pad),
     'baseq_ext_strand': (opt.rec_baseq_ext_strand, opt.rec_baseq_ext_strand_pad),
-}
-
-
-dtypes_pileup = {
-    'coverage': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4')
-    ],
-    'coverage_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-    ],
-    'coverage_ext': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_mate_unmapped', 'i4'),
-        ('reads_mate_other_chr', 'i4'),
-        ('reads_mate_same_strand', 'i4'),
-        ('reads_faceaway', 'i4'),
-        ('reads_softclipped', 'i4'),
-        ('reads_duplicate', 'i4')
-    ],
-    'coverage_ext_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('reads_mate_unmapped', 'i4'),
-        ('reads_mate_unmapped_fwd', 'i4'),
-        ('reads_mate_unmapped_rev', 'i4'),
-        ('reads_mate_other_chr', 'i4'),
-        ('reads_mate_other_chr_fwd', 'i4'),
-        ('reads_mate_other_chr_rev', 'i4'),
-        ('reads_mate_same_strand', 'i4'),
-        ('reads_mate_same_strand_fwd', 'i4'),
-        ('reads_mate_same_strand_rev', 'i4'),
-        ('reads_faceaway', 'i4'),
-        ('reads_faceaway_fwd', 'i4'),
-        ('reads_faceaway_rev', 'i4'),
-        ('reads_softclipped', 'i4'),
-        ('reads_softclipped_fwd', 'i4'),
-        ('reads_softclipped_rev', 'i4'),
-        ('reads_duplicate', 'i4'),
-        ('reads_duplicate_fwd', 'i4'),
-        ('reads_duplicate_rev', 'i4'),
-    ],
-    'variation': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('ref', 'a1'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('matches', 'i4'),
-        ('matches_pp', 'i4'),
-        ('mismatches', 'i4'),
-        ('mismatches_pp', 'i4'),
-        ('deletions', 'i4'),
-        ('deletions_pp', 'i4'),
-        ('insertions', 'i4'),
-        ('insertions_pp', 'i4'),
-        ('A', 'i4'),
-        ('A_pp', 'i4'),
-        ('C', 'i4'),
-        ('C_pp', 'i4'),
-        ('T', 'i4'),
-        ('T_pp', 'i4'),
-        ('G', 'i4'),
-        ('G_pp', 'i4'),
-        ('N', 'i4'),
-        ('N_pp', 'i4')
-    ],
-    'variation_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('ref', 'a1'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('matches', 'i4'),
-        ('matches_fwd', 'i4'),
-        ('matches_rev', 'i4'),
-        ('matches_pp', 'i4'),
-        ('matches_pp_fwd', 'i4'),
-        ('matches_pp_rev', 'i4'),
-        ('mismatches', 'i4'),
-        ('mismatches_fwd', 'i4'),
-        ('mismatches_rev', 'i4'),
-        ('mismatches_pp', 'i4'),
-        ('mismatches_pp_fwd', 'i4'),
-        ('mismatches_pp_rev', 'i4'),
-        ('deletions', 'i4'),
-        ('deletions_fwd', 'i4'),
-        ('deletions_rev', 'i4'),
-        ('deletions_pp', 'i4'),
-        ('deletions_pp_fwd', 'i4'),
-        ('deletions_pp_rev', 'i4'),
-        ('insertions', 'i4'),
-        ('insertions_fwd', 'i4'),
-        ('insertions_rev', 'i4'),
-        ('insertions_pp', 'i4'),
-        ('insertions_pp_fwd', 'i4'),
-        ('insertions_pp_rev', 'i4'),
-        ('A', 'i4'), ('A_fwd', 'i4'), ('A_rev', 'i4'),
-        ('A_pp', 'i4'), ('A_pp_fwd', 'i4'), ('A_pp_rev', 'i4'),
-        ('C', 'i4'), ('C_fwd', 'i4'), ('C_rev', 'i4'),
-        ('C_pp', 'i4'), ('C_pp_fwd', 'i4'), ('C_pp_rev', 'i4'),
-        ('T', 'i4'), ('T_fwd', 'i4'), ('T_rev', 'i4'),
-        ('T_pp', 'i4'), ('T_pp_fwd', 'i4'), ('T_pp_rev', 'i4'),
-        ('G', 'i4'), ('G_fwd', 'i4'), ('G_rev', 'i4'),
-        ('G_pp', 'i4'), ('G_pp_fwd', 'i4'), ('G_pp_rev', 'i4'),
-        ('N', 'i4'), ('N_fwd', 'i4'), ('N_rev', 'i4'),
-        ('N_pp', 'i4'), ('N_pp_fwd', 'i4'), ('N_pp_rev', 'i4')
-    ],
-    'tlen': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_paired', 'i4'),
-        ('reads_pp', 'i4'),
-        ('mean_tlen', 'i4'),
-        ('mean_tlen_pp', 'i4'),
-        ('rms_tlen', 'i4'),
-        ('rms_tlen_pp', 'i4'),
-        ('std_tlen', 'i4'),
-        ('std_tlen_pp', 'i4')
-    ],
-    'tlen_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_paired', 'i4'),
-        ('reads_paired_fwd', 'i4'),
-        ('reads_paired_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('mean_tlen', 'i4'),
-        ('mean_tlen_fwd', 'i4'),
-        ('mean_tlen_rev', 'i4'),
-        ('mean_tlen_pp', 'i4'),
-        ('mean_tlen_pp_fwd', 'i4'),
-        ('mean_tlen_pp_rev', 'i4'),
-        ('rms_tlen', 'i4'),
-        ('rms_tlen_fwd', 'i4'),
-        ('rms_tlen_rev', 'i4'),
-        ('rms_tlen_pp', 'i4'),
-        ('rms_tlen_pp_fwd', 'i4'),
-        ('rms_tlen_pp_rev', 'i4'),
-        ('std_tlen', 'i4'),
-        ('std_tlen_fwd', 'i4'),
-        ('std_tlen_rev', 'i4'),
-        ('std_tlen_pp', 'i4'),
-        ('std_tlen_pp_fwd', 'i4'),
-        ('std_tlen_pp_rev', 'i4')
-    ],
-    'mapq': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_mapq0', 'i4'),
-        ('reads_mapq0_pp', 'i4'),
-        ('rms_mapq', 'i4'),
-        ('rms_mapq_pp', 'i4'),
-        ('max_mapq', 'i4'),
-        ('max_mapq_pp', 'i4')
-    ],
-    'mapq_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('reads_mapq0', 'i4'),
-        ('reads_mapq0_fwd', 'i4'),
-        ('reads_mapq0_rev', 'i4'),
-        ('reads_mapq0_pp', 'i4'),
-        ('reads_mapq0_pp_fwd', 'i4'),
-        ('reads_mapq0_pp_rev', 'i4'),
-        ('rms_mapq', 'i4'),
-        ('rms_mapq_fwd', 'i4'),
-        ('rms_mapq_rev', 'i4'),
-        ('rms_mapq_pp', 'i4'),
-        ('rms_mapq_pp_fwd', 'i4'),
-        ('rms_mapq_pp_rev', 'i4'),
-        ('max_mapq', 'i4'),
-        ('max_mapq_fwd', 'i4'),
-        ('max_mapq_rev', 'i4'),
-        ('max_mapq_pp', 'i4'),
-        ('max_mapq_pp_fwd', 'i4'),
-        ('max_mapq_pp_rev', 'i4'),
-    ],
-    'baseq': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('rms_baseq', 'i4'),
-        ('rms_baseq_pp', 'i4'),
-    ],
-    'baseq_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('rms_baseq', 'i4'),
-        ('rms_baseq_fwd', 'i4'),
-        ('rms_baseq_rev', 'i4'),
-        ('rms_baseq_pp', 'i4'),
-        ('rms_baseq_pp_fwd', 'i4'),
-        ('rms_baseq_pp_rev', 'i4'),
-    ],
-    'baseq_ext': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('ref', 'a1'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4'),
-        ('matches', 'i4'),
-        ('matches_pp', 'i4'),
-        ('mismatches', 'i4'),
-        ('mismatches_pp', 'i4'),
-        ('rms_baseq', 'i4'),
-        ('rms_baseq_pp', 'i4'),
-        ('rms_baseq_matches', 'i4'),
-        ('rms_baseq_matches_pp', 'i4'),
-        ('rms_baseq_mismatches', 'i4'),
-        ('rms_baseq_mismatches_pp', 'i4'),
-    ],
-    'baseq_ext_strand': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('ref', 'a1'),
-        ('reads_all', 'i4'),
-        ('reads_fwd', 'i4'),
-        ('reads_rev', 'i4'),
-        ('reads_pp', 'i4'),
-        ('reads_pp_fwd', 'i4'),
-        ('reads_pp_rev', 'i4'),
-        ('matches', 'i4'),
-        ('matches_fwd', 'i4'),
-        ('matches_rev', 'i4'),
-        ('matches_pp', 'i4'),
-        ('matches_pp_fwd', 'i4'),
-        ('matches_pp_rev', 'i4'),
-        ('mismatches', 'i4'),
-        ('mismatches_fwd', 'i4'),
-        ('mismatches_rev', 'i4'),
-        ('mismatches_pp', 'i4'),
-        ('mismatches_pp_fwd', 'i4'),
-        ('mismatches_pp_rev', 'i4'),
-        ('rms_baseq', 'i4'),
-        ('rms_baseq_fwd', 'i4'),
-        ('rms_baseq_rev', 'i4'),
-        ('rms_baseq_pp', 'i4'),
-        ('rms_baseq_pp_fwd', 'i4'),
-        ('rms_baseq_pp_rev', 'i4'),
-        ('rms_baseq_matches', 'i4'),
-        ('rms_baseq_matches_fwd', 'i4'),
-        ('rms_baseq_matches_rev', 'i4'),
-        ('rms_baseq_matches_pp', 'i4'),
-        ('rms_baseq_matches_pp_fwd', 'i4'),
-        ('rms_baseq_matches_pp_rev', 'i4'),
-        ('rms_baseq_mismatches', 'i4'),
-        ('rms_baseq_mismatches_fwd', 'i4'),
-        ('rms_baseq_mismatches_rev', 'i4'),
-        ('rms_baseq_mismatches_pp', 'i4'),
-        ('rms_baseq_mismatches_pp_fwd', 'i4'),
-        ('rms_baseq_mismatches_pp_rev', 'i4')
-    ],
-    'coverage_gc': [
-        ('chrom', 'a12'),
-        ('pos', 'i4'),
-        ('gc', 'u1'),
-        ('reads_all', 'i4'),
-        ('reads_pp', 'i4')
-    ],
 }
 
 

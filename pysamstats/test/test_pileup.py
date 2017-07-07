@@ -931,3 +931,36 @@ def test_pileup_pad_wg():
         eq_(60000, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1])
         eq_(0, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][0])
         eq_(70000, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1])
+
+
+def test_pileup_limit():
+
+    for f, needs_ref in pileup_functions:
+        debug(f.__name__)
+
+        # test with effectively no limit
+        kwargs = dict(fields=['reads_all'], max_depth=1000000)
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+                  **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(26169, a[70])
+
+        # test with specific limit
+        kwargs = dict(fields=['reads_all'], max_depth=12000)
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+                  **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(12046, a[70])  # no idea why limit is not exact
+
+        # test with default limit
+        kwargs = dict(fields=['reads_all'])
+        if needs_ref:
+            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+                  **kwargs)
+        else:
+            a = f(Samfile('fixture/deep.bam'), **kwargs)
+        eq_(8052, a[70])  # no idea why limit is not exact
