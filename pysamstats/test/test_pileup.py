@@ -50,12 +50,13 @@ def test_stat_coverage():
 
 
 def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                                 one_based=False):
+                                 one_based=False, min_mapq=0, min_baseq=0, no_del=False,
+                                 no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos,
                'reads_all': len(reads),
                'reads_fwd': len(fwd(reads)),

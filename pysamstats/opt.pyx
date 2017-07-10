@@ -71,11 +71,6 @@ cdef char* CODE2CIGAR= "MIDNSHP=X"
 cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 
-#############################
-# BASIC COVERAGE STATISTICS #
-#############################
-
-
 cdef class PileupStat(object):
 
     cdef dict rec(self, chrom, pos, FastaFile fafile):
@@ -85,12 +80,33 @@ cdef class PileupStat(object):
         pass
 
 
+#############################
+# BASIC COVERAGE STATISTICS #
+#############################
+
+
+# noinspection PyAttributeOutsideInit
 cdef class Coverage(PileupStat):
 
-    cdef int reads_all, reads_pp
+    cdef:
+        int reads_all
+        int reads_pp
 
     def __init__(self):
-        self.reads_all = self.reads_pp = 0
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+
+    cdef recv(self, bam1_t* b):
+        cdef:
+            bint is_proper_pair
+
+        self.reads_all += 1
+        is_proper_pair = <bint>(b.core.flag & BAM_FPROPER_PAIR)
+        if is_proper_pair:
+            self.reads_pp += 1
 
     cdef dict rec(self, chrom, pos, FastaFile fafile):
 
@@ -99,70 +115,76 @@ cdef class Coverage(PileupStat):
                'reads_pp': self.reads_pp}
 
         # reset counters
-        self.reads_all = self.reads_pp = 0
+        self.reset()
 
         return rec
 
+
+################################
+# STRANDED COVERAGE STATISTICS #
+################################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageStrand(PileupStat):
+
+    cdef:
+        int reads_all
+        int reads_fwd
+        int reads_rev
+        int reads_pp
+        int reads_pp_fwd
+        int reads_pp_rev
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+        self.reads_fwd = 0
+        self.reads_rev = 0
+        self.reads_pp = 0
+        self.reads_pp_fwd = 0
+        self.reads_pp_rev = 0
+
     cdef recv(self, bam1_t* b):
-        cdef uint32_t flag
-        cdef bint is_proper_pair
-        flag = b.core.flag
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+
         self.reads_all += 1
+        flag = b.core.flag
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        if is_reverse:
+            self.reads_rev += 1
+        else:
+            self.reads_fwd += 1
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         if is_proper_pair:
             self.reads_pp += 1
+            if is_reverse:
+                self.reads_pp_rev += 1
+            else:
+                self.reads_pp_fwd += 1
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile):
+
+        # make record
+        rec = {'reads_all': self.reads_all,
+               'reads_fwd': self.reads_fwd,
+               'reads_rev': self.reads_rev,
+               'reads_pp': self.reads_pp,
+               'reads_pp_fwd': self.reads_pp_fwd,
+               'reads_pp_rev': self.reads_pp_rev}
+
+        # reset counters
+        self.reset()
+
+        return rec
 
 
-# cpdef dict rec_coverage(AlignmentFile alignmentfile, FastaFile fafile,
-#                         PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i, n  # loop index
-#     cdef int reads_all  # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef int reads_pp = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         if is_proper_pair:
-#             reads_pp += 1
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_pp': reads_pp}
-#
-#
-# cpdef dict rec_coverage_pad(FastaFile fafile, chrom, pos,
-#                             bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_pp': 0}
-#
-#
-# ################################
-# # STRANDED COVERAGE STATISTICS #
-# ################################
-#
-#
 # cpdef dict rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
 #                                PileupColumn col, bint one_based=False):
 #

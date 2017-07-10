@@ -143,6 +143,7 @@ load_pileup.__doc__ = load_pileup.__doc__.format(params=_doc_params)
 
 stats_classes_pileup = {
     'coverage': opt.Coverage,
+    'coverage_strand': opt.CoverageStrand,
 }
 
 
