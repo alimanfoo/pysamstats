@@ -21,13 +21,25 @@ debug = logger.debug
 PY2 = sys.version_info[0] == 2
 
 
-def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None,
-                          one_based=False):
+def filter_reads(reads, min_mapq, min_baseq, no_del, no_dup):
+    if min_mapq > 0:
+        reads = [r for r in reads if r.alignment.mapq >= min_mapq]
+    if min_baseq > 0:
+        reads = [r for r, q in zip(reads, baseq(reads)) if q >= min_baseq]
+    if no_del:
+        reads = nodel(reads)
+    if no_dup:
+        reads = nodup(reads)
+    return reads
+
+
+def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
+                          min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos, 'reads_all': len(reads),
                'reads_pp': len(pp(reads))}
 
@@ -547,13 +559,16 @@ def test_stat_mapq_strand():
 
 
 def baseq(reads):
-    l = [ord(read.alignment.qual[read.query_position]) - 33
-         for read in reads]
+    l = [ord(read.alignment.qual[read.query_position]) - 33 for read in reads]
     return l
 
 
 def nodel(reads):
     return [read for read in reads if not read.is_del]
+
+
+def nodup(reads):
+    return [read for read in reads if not read.alignment.is_duplicate]
 
 
 def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None,

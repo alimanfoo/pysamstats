@@ -51,10 +51,19 @@ def compare_iterators(expected, actual):
 
 
 def compare_stats(impl, refimpl):
+    # no read filters
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
               'end': 2000,
               'one_based': False}
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
     expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
     actual = impl(Samfile('fixture/test.bam'), **kwargs)
     compare_iterators(expected, actual)
@@ -66,6 +75,14 @@ def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
               'start': 0,
               'end': 2000,
               'one_based': False}
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
     expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
