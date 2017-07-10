@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division
-import sys
-import csv
-import time
-import itertools
 from operator import itemgetter
 
 
@@ -29,53 +25,6 @@ def flatten(recs, *fields):
     getter = itemgetter(*fields)
     it = (getter(rec) for rec in recs)
     return it
-
-
-def tabulate(stat, *args, **kwargs):
-    """Tabulate statistics.
-
-    Parameters
-    ----------
-
-    stat : string
-        statistics type
-    *args
-        passed through to statistics function
-    fields : list of strings
-        names of fields to select
-    **args
-        passed through to statistics function
-
-    Returns
-    -------
-
-    table : row container
-
-    """
-
-    return _StatsTable(stat, *args, **kwargs)
-
-
-class _StatsTable(object):
-
-    def __init__(self, stats_type, *args, **kwargs):
-        try:
-            self.stats_function = globals()['stat_' + stats_type]
-            self.fields = kwargs.pop('fields', None)
-            if self.fields is None:
-                self.fields = globals()['fields_' + stats_type]
-            self.args = args
-            self.kwargs = kwargs
-        except KeyError:
-            raise Exception('statistics type not found: %r' % stats_type)
-
-    def __iter__(self):
-        recs = self.stats_function(*self.args, **self.kwargs)
-        fields = tuple(self.fields)
-        rows = flatten(recs, *fields)
-        yield fields
-        for row in rows:
-            yield row
 
 
 def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):

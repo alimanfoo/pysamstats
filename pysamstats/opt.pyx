@@ -76,7 +76,7 @@ cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 #############################
 
 
-cdef class StatPileup(object):
+cdef class PileupStat(object):
 
     cdef dict rec(self, chrom, pos, FastaFile fafile):
         return dict()
@@ -85,7 +85,7 @@ cdef class StatPileup(object):
         pass
 
 
-cdef class CoveragePileup(StatPileup):
+cdef class Coverage(PileupStat):
 
     cdef int reads_all, reads_pp
 
@@ -2112,7 +2112,7 @@ cdef int gc_content(ref_window) except -1:
     return gc
 
 
-cdef class StatBinned(object):
+cdef class BinnedStat(object):
 
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
         return dict()
@@ -2121,7 +2121,7 @@ cdef class StatBinned(object):
         pass
 
 
-cdef class CoverageBinned(StatBinned):
+cdef class CoverageBinned(BinnedStat):
 
     cdef int reads_all, reads_pp
 
@@ -2162,7 +2162,7 @@ cdef class CoverageBinned(StatBinned):
 ############################################
 
 
-cdef class CoverageExtBinned(StatBinned):
+cdef class CoverageExtBinned(BinnedStat):
 
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
         reads_mate_same_strand, reads_faceaway, reads_softclipped, \
@@ -2240,7 +2240,7 @@ cdef class CoverageExtBinned(StatBinned):
 ###############
 
 
-cdef class MapqBinned(StatBinned):
+cdef class MapqBinned(BinnedStat):
 
     cdef int reads_all, reads_mapq0
     cdef uint64_t mapq, mapq_squared_sum
@@ -2281,7 +2281,7 @@ cdef class MapqBinned(StatBinned):
 ################
 
 
-cdef class AlignmentBinned(StatBinned):
+cdef class AlignmentBinned(BinnedStat):
 
     cdef int reads_all, M, I, D, N, S, H, P, EQ, X
 
@@ -2342,7 +2342,7 @@ cdef class AlignmentBinned(StatBinned):
 ###############
 
 
-cdef class TlenBinned(StatBinned):
+cdef class TlenBinned(BinnedStat):
 
     cdef int reads_all
     cdef int reads_pp
@@ -2417,99 +2417,126 @@ def iter_pileup(stat, alignmentfile, fafile, pad, **kwargs):
 
 
 def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,
-                        max_depth, min_mapq, min_baseq, no_del, no_dup):
+                        max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
+    cdef:
+        PileupColumn col
+
+    # obtain pileup iterator
+    start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
+                              max_depth=max_depth)
+
+    # iterate over pileup columns
+    for col in it:
+
+        rec = stat_pileup(stat, col, fafile=fafile, chrom=chrom, one_based=one_based,
+                          min_mapq=min_mapq, min_baseq=min_baseq, no_del=no_del,
+                          no_dup=no_dup)
+
+        yield rec
+
+
+def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based, int min_mapq,
+                int min_baseq, bint no_del, bint no_dup):
     cdef:
         bam_pileup1_t** plp
         bam_pileup1_t* read
         bam1_t* b
         int i, n
+
+    n = col.n
+    plp = col.plp
+    # TODO check this doesn't foul-up GC window centre
+    pos = col.pos + 1 if one_based else col.pos
+
+    # iterate over reads in the column
+    for i in range(n):
+        read = &(plp[0][i])
+        b = read.b
+
+        # read filters
+        if min_mapq > 0:
+            if b.core.qual < min_mapq:
+                continue
+        if min_baseq > 0:
+            if not read.is_del:
+                if pysam_bam_get_qual(read.b)[read.qpos] < min_baseq:
+                    continue
+        if no_del:
+            if read.is_del:
+                continue
+        if no_dup:
+            if b.core.flag & BAM_FDUP:
+                continue
+
+        # accumulate statistics
+        stat.recv(b)
+
+    # construct record
+    rec = stat.rec(chrom, pos, fafile)
+    rec['chrom'] = chrom
+    rec['pos'] = pos
+    return rec
+
+
+def iter_pileup_padded(stat, alignmentfile, fafile, chrom, **kwargs):
+    if chrom is not None:
+        it = iter_pileup_padded_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
+                                      chrom=chrom, **kwargs)
+    else:
+        its = list()
+        for chrom in alignmentfile.references:
+            itc = iter_pileup_padded_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
+                                           chrom=chrom, **kwargs)
+            its.append(itc)
+        it = itertools.chain(*its)
+    return it
+
+
+def iter_pileup_padded_chrom(stat, alignmentfile, fafile, chrom, start, end,
+                             one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+    cdef:
+        PileupColumn col
+        int curpos
+
+    # obtain pileup iterator
+    assert chrom is not None, 'chromosome is None'
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
                               max_depth=max_depth)
+
+    # keep track of current position
+    curpos = start
+
+    # iterate over pileup columns
     for col in it:
-        n = col.n
-        plp = col.plp
-        # TODO check this doesn't foul-up GC window centre
-        pos = col.pos + 1 if one_based else col.pos
 
-        # accumulate statistics
-        for i in range(n):
-            # TODO read filters
-            read = &(plp[0][i])
-            b = read.b
-            stat.recv(b)
+        # pad up to next pileup column
+        while curpos < col.pos:
+            # construct record
+            rec = stat.rec(chrom, curpos, fafile)
+            rec['chrom'] = chrom
+            rec['pos'] = curpos
+            yield rec
+            curpos += 1
 
-        # yield record
-        rec = stat.rec(chrom, pos, fafile)
-        rec['chrom'] = chrom
-        rec['pos'] = pos
-
+        # construct and yield statistics record for current pileup column
+        rec = stat_pileup(stat, col, fafile=fafile, chrom=chrom, one_based=one_based,
+                          min_mapq=min_mapq, min_baseq=min_baseq, no_del=no_del,
+                          no_dup=no_dup)
         yield rec
 
+        # advance current position
+        curpos = col.pos + 1
 
-# def iter_pileup(frec, fpad, alignmentfile, fafile, pad, **kwargs):
-#     """General purpose function to generate statistics, where one record is
-#     generated for each genome position in the selected range, based on a
-#     pileup column.
-#
-#     """
-#
-#     if isinstance(alignmentfile, _string_types):
-#         alignmentfile = AlignmentFile(alignmentfile)
-#
-#     if isinstance(fafile, _string_types):
-#         fafile = FastaFile(fafile)
-#
-#     if pad:
-#         return iter_pileup_padded(frec, fpad, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
-#     else:
-#         return iter_pileup_default(frec, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
-#
-#
-# def iter_pileup_default(frec, alignmentfile, fafile, chrom, start, end, one_based, truncate,
-#                         max_depth, min_mapq, min_baseq, no_del, no_dup):
-#     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-#     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
-#                               max_depth=max_depth)
-#     for col in it:
-#         yield frec(alignmentfile, fafile, col, one_based, min_mapq=min_mapq, min_baseq=min_baseq,
-#                    no_del=no_del, no_dup=no_dup)
-#
-#
-# def iter_pileup_padded(frec, fpad, alignmentfile, fafile, chrom, **kwargs):
-#
-#     if chrom is not None:
-#         it = iter_pileup_padded_chrom(frec, fpad, alignmentfile=alignmentfile, fafile=fafile,
-#                                       chrom=chrom, **kwargs)
-#     else:
-#         its = list()
-#         for chrom in alignmentfile.references:
-#             itc = iter_pileup_padded_chrom(frec, fpad, alignmentfile=alignmentfile, fafile=fafile,
-#                                            chrom=chrom, **kwargs)
-#             its.append(itc)
-#         it = itertools.chain(*its)
-#     return it
-#
-#
-# def iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile, chrom, start, end,
-#                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
-#     cdef PileupColumn col
-#     cdef int curpos
-#     assert chrom is not None, 'chromosome is None'
-#     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-#     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
-#                               max_depth=max_depth)
-#     curpos = start
-#     for col in it:
-#         while curpos < col.pos:
-#             yield fpad(fafile, chrom, curpos, one_based)
-#             curpos += 1
-#         yield frec(alignmentfile, fafile, col, one_based, min_mapq=min_mapq, min_baseq=min_baseq,
-#                    no_del=no_del, no_dup=no_dup)
-#         curpos = col.pos + 1
-#     while curpos < end:
-#         yield fpad(fafile, chrom, curpos, one_based)
-#         curpos += 1
+    while curpos < end:
+
+        # pad out to end position
+        rec = stat.rec(chrom, curpos, fafile)
+        rec['chrom'] = chrom
+        rec['pos'] = curpos
+        yield rec
+        curpos += 1
 
 
 def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offset=None,
@@ -2541,7 +2568,7 @@ def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offs
     return it
 
 
-def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fafile,
+def iter_binned_chrom(BinnedStat stat, AlignmentFile alignmentfile, FastaFile fafile,
                       chrom, start, end, one_based, int window_size, int window_offset,
                       int min_mapq, int no_dup):
 

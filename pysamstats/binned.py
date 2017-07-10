@@ -53,7 +53,7 @@ def stat_binned(type,
     """
 
     try:
-        stat = statsobj_binned[type]
+        stat = stats_classes_binned[type]()
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
@@ -92,13 +92,13 @@ def load_binned(type,
 
     """
 
-    stat = functools.partial(stat_binned, type)
+    statfun = functools.partial(stat_binned, type)
     try:
         default_dtype = getattr(config, 'dtype_' + type + '_binned')
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype, user_fields=fields,
+    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype, user_fields=fields,
                            alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, window_size=window_size,
                            window_offset=window_offset)
@@ -107,12 +107,12 @@ def load_binned(type,
 load_binned.__doc__ = load_binned.__doc__.format(params=_doc_params)
 
 
-statsobj_binned = {
-    'coverage': opt.CoverageBinned(),
-    'coverage_ext': opt.CoverageExtBinned(),
-    'mapq': opt.MapqBinned(),
-    'alignment': opt.AlignmentBinned(),
-    'tlen': opt.TlenBinned(),
+stats_classes_binned = {
+    'coverage': opt.CoverageBinned,
+    'coverage_ext': opt.CoverageExtBinned,
+    'mapq': opt.MapqBinned,
+    'alignment': opt.AlignmentBinned,
+    'tlen': opt.TlenBinned,
 }
 
 
@@ -124,17 +124,17 @@ _stat_doc_lines = stat_binned.__doc__.split('\n')
 _load_doc_lines = load_binned.__doc__.split('\n')
 # strip "type" parameter
 _stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[6:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[6:])
+_load_doc = '\n'.join(_load_doc_lines[:4] + _load_doc_lines[6:])
 
 
 def _specialize(type):
-    stat = functools.partial(stat_binned, type)
-    stat.__doc__ = _stat_doc
-    stat.__name__ = 'stat_' + type
-    load = functools.partial(load_binned, type)
-    load.__doc__ = _load_doc
-    load.__name__ = 'load_' + type
-    return stat, load
+    statfun = functools.partial(stat_binned, type)
+    statfun.__doc__ = _stat_doc
+    statfun.__name__ = 'stat_' + type
+    loadfun = functools.partial(load_binned, type)
+    loadfun.__doc__ = _load_doc
+    loadfun.__name__ = 'load_' + type
+    return statfun, loadfun
 
 
 # named functions

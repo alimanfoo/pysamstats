@@ -79,14 +79,15 @@ def stat_pileup(type,
     try:
         if type == 'coverage_gc':
             # special case needed to handle window parameters
+            # TODO fix this
             rec, rec_pad = opt.frecs_coverage_gc(window_size=window_size,
                                                  window_offset=window_offset)
         else:
-            rec, rec_pad = frecs_pileup[type]
+            stat = stats_classes_pileup[type]()
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return opt.iter_pileup(rec, rec_pad, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
+    return opt.iter_pileup(stat, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
                            max_depth=max_depth, min_mapq=min_mapq, min_baseq=min_baseq,
                            no_del=no_del, no_dup=no_dup)
@@ -124,13 +125,13 @@ def load_pileup(type,
 
     """
 
-    stat = functools.partial(stat_pileup, type)
+    statfun = functools.partial(stat_pileup, type)
     try:
         default_dtype = getattr(config, 'dtype_' + type)
     except AttributeError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype,
+    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype,
                            user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
                            chrom=chrom, start=start, end=end, one_based=one_based,
                            truncate=truncate, pad=pad, max_depth=max_depth, window_size=window_size,
@@ -140,22 +141,27 @@ def load_pileup(type,
 load_pileup.__doc__ = load_pileup.__doc__.format(params=_doc_params)
 
 
-frecs_pileup = {
-    'coverage': (opt.rec_coverage, opt.rec_coverage_pad),
-    'coverage_strand': (opt.rec_coverage_strand, opt.rec_coverage_strand_pad),
-    'coverage_ext': (opt.rec_coverage_ext, opt.rec_coverage_ext_pad),
-    'coverage_ext_strand': (opt.rec_coverage_ext_strand, opt.rec_coverage_ext_strand_pad),
-    'variation': (opt.rec_variation, opt.rec_variation_pad),
-    'variation_strand': (opt.rec_variation_strand, opt.rec_variation_strand_pad),
-    'tlen': (opt.rec_tlen, opt.rec_tlen_pad),
-    'tlen_strand': (opt.rec_tlen_strand, opt.rec_tlen_strand_pad),
-    'mapq': (opt.rec_mapq, opt.rec_mapq_pad),
-    'mapq_strand': (opt.rec_mapq_strand, opt.rec_mapq_strand_pad),
-    'baseq': (opt.rec_baseq, opt.rec_baseq_pad),
-    'baseq_strand': (opt.rec_baseq_strand, opt.rec_baseq_strand_pad),
-    'baseq_ext': (opt.rec_baseq_ext, opt.rec_baseq_ext_pad),
-    'baseq_ext_strand': (opt.rec_baseq_ext_strand, opt.rec_baseq_ext_strand_pad),
+stats_classes_pileup = {
+    'coverage': opt.Coverage,
 }
+
+
+# frecs_pileup = {
+#     'coverage': (opt.rec_coverage, opt.rec_coverage_pad),
+#     'coverage_strand': (opt.rec_coverage_strand, opt.rec_coverage_strand_pad),
+#     'coverage_ext': (opt.rec_coverage_ext, opt.rec_coverage_ext_pad),
+#     'coverage_ext_strand': (opt.rec_coverage_ext_strand, opt.rec_coverage_ext_strand_pad),
+#     'variation': (opt.rec_variation, opt.rec_variation_pad),
+#     'variation_strand': (opt.rec_variation_strand, opt.rec_variation_strand_pad),
+#     'tlen': (opt.rec_tlen, opt.rec_tlen_pad),
+#     'tlen_strand': (opt.rec_tlen_strand, opt.rec_tlen_strand_pad),
+#     'mapq': (opt.rec_mapq, opt.rec_mapq_pad),
+#     'mapq_strand': (opt.rec_mapq_strand, opt.rec_mapq_strand_pad),
+#     'baseq': (opt.rec_baseq, opt.rec_baseq_pad),
+#     'baseq_strand': (opt.rec_baseq_strand, opt.rec_baseq_strand_pad),
+#     'baseq_ext': (opt.rec_baseq_ext, opt.rec_baseq_ext_pad),
+#     'baseq_ext_strand': (opt.rec_baseq_ext_strand, opt.rec_baseq_ext_strand_pad),
+# }
 
 
 # backwards compatibility
@@ -166,7 +172,7 @@ _stat_doc_lines = stat_pileup.__doc__.split('\n')
 _load_doc_lines = load_pileup.__doc__.split('\n')
 # strip "type" parameter
 _stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[8:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[8:])
+_load_doc = '\n'.join(_load_doc_lines[:4] + _load_doc_lines[8:])
 
 
 def _specialize(type):

@@ -25,7 +25,8 @@ def filter_reads(reads, min_mapq, min_baseq, no_del, no_dup):
     if min_mapq > 0:
         reads = [r for r in reads if r.alignment.mapq >= min_mapq]
     if min_baseq > 0:
-        reads = [r for r, q in zip(reads, baseq(reads)) if q >= min_baseq]
+        reads = [r for r, q in zip(reads, baseq(reads))
+                 if q is not None and q >= min_baseq]
     if no_del:
         reads = nodel(reads)
     if no_dup:
@@ -559,7 +560,10 @@ def test_stat_mapq_strand():
 
 
 def baseq(reads):
-    l = [ord(read.alignment.qual[read.query_position]) - 33 for read in reads]
+    l = [ord(read.alignment.qual[read.query_position]) - 33
+         if read.query_position is not None
+         else None
+         for read in reads]
     return l
 
 
