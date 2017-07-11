@@ -73,10 +73,10 @@ cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 cdef class PileupStat(object):
 
-    cdef dict rec(self, chrom, pos, FastaFile fafile):
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
         return dict()
 
-    cdef void recv(self, PileupColumn col, bam1_t* b):
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
         pass
 
 
@@ -99,16 +99,19 @@ cdef class Coverage(PileupStat):
         self.reads_all = 0
         self.reads_pp = 0
 
-    cdef void recv(self, PileupColumn col, bam1_t* b):
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             bint is_proper_pair
 
+        # convenience variables
+        is_proper_pair = <bint>(read.b.core.flag & BAM_FPROPER_PAIR)
+
+        # do the counting
         self.reads_all += 1
-        is_proper_pair = <bint>(b.core.flag & BAM_FPROPER_PAIR)
         if is_proper_pair:
             self.reads_pp += 1
 
-    cdef dict rec(self, chrom, pos, FastaFile fafile):
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
         rec = {'reads_all': self.reads_all,
@@ -148,20 +151,23 @@ cdef class CoverageStrand(PileupStat):
         self.reads_pp_fwd = 0
         self.reads_pp_rev = 0
 
-    cdef void recv(self, PileupColumn col, bam1_t* b):
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
             bint is_reverse
 
-        self.reads_all += 1
-        flag = b.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads_all += 1
         if is_reverse:
             self.reads_rev += 1
         else:
             self.reads_fwd += 1
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         if is_proper_pair:
             self.reads_pp += 1
             if is_reverse:
@@ -169,7 +175,7 @@ cdef class CoverageStrand(PileupStat):
             else:
                 self.reads_pp_fwd += 1
 
-    cdef dict rec(self, chrom, pos, FastaFile fafile):
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
         rec = {'reads_all': self.reads_all,
@@ -216,7 +222,7 @@ cdef class CoverageExt(PileupStat):
         self.reads_softclipped = 0
         self.reads_duplicate = 0
 
-    cdef void recv(self, PileupColumn col, bam1_t* b):
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -226,30 +232,33 @@ cdef class CoverageExt(PileupStat):
             bint mate_is_reverse
             int tlen
 
-        self.reads_all += 1
-        flag = b.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_duplicate = <bint>(flag & BAM_FDUP)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-        tlen = b.core.isize
+        tlen = read.b.core.isize
+
+        # do the counting
+        self.reads_all += 1
         if is_duplicate:
             self.reads_duplicate += 1
         if is_proper_pair:
             self.reads_pp += 1
         if mate_is_unmapped:
             self.reads_mate_unmapped += 1
-        elif col.tid != b.core.mtid:
+        elif col.tid != read.b.core.mtid:
             self.reads_mate_other_chr += 1
         elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
             self.reads_mate_same_strand += 1
         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
             self.reads_faceaway += 1
-        if is_softclipped(b):
+        if is_softclipped(read.b):
             self.reads_softclipped += 1
 
-    cdef dict rec(self, chrom, pos, FastaFile fafile):
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
         rec = {'reads_all': self.reads_all,
@@ -267,267 +276,309 @@ cdef class CoverageExt(PileupStat):
         return rec
 
 
-# cpdef dict rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-#                             bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i, n  # loop index
-#     cdef int reads_all  # total number of reads in column
-#     cdef bint is_reverse
-#     cdef bint is_proper_pair
-#     cdef bint is_duplicate
-#     cdef bint mate_is_unmappped
-#     cdef bint mate_is_reverse
-#     cdef int tlen
-#     # counting variables
-#     cdef int reads_pp = 0
-#     cdef int reads_mate_unmapped = 0
-#     cdef int reads_mate_other_chr = 0
-#     cdef int reads_mate_same_strand = 0
-#     cdef int reads_faceaway = 0
-#     cdef int reads_softclipped = 0
-#     cdef int reads_duplicate = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     tid = col.tid
-#     chrom = alignmentfile.getrname(tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_duplicate = <bint>(flag & BAM_FDUP)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-#         tlen = aln.core.isize
-#         if is_duplicate:
-#             reads_duplicate += 1
-#         if is_proper_pair:
-#             reads_pp += 1
-#         if mate_is_unmapped:
-#             reads_mate_unmapped += 1
-#         elif tid != aln.core.mtid:
-#             reads_mate_other_chr += 1
-#         elif (is_reverse and mate_is_reverse) \
-#                 or (not is_reverse and not mate_is_reverse):
-#             reads_mate_same_strand += 1
-#         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-#             reads_faceaway += 1
-#         if is_softclipped(aln):
-#             reads_softclipped += 1
-#
-#     return {'chrom': chrom, 'pos': pos,
-#             'reads_all': n,
-#             'reads_pp': reads_pp,
-#             'reads_mate_unmapped': reads_mate_unmapped,
-#             'reads_mate_other_chr': reads_mate_other_chr,
-#             'reads_mate_same_strand': reads_mate_same_strand,
-#             'reads_faceaway': reads_faceaway,
-#             'reads_softclipped': reads_softclipped,
-#             'reads_duplicate': reads_duplicate}
-#
-#
-# cpdef dict rec_coverage_ext_pad(FastaFile fafile, chrom, pos,
-#                                 bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos,
-#             'reads_all': 0,
-#             'reads_pp': 0,
-#             'reads_mate_unmapped': 0,
-#             'reads_mate_other_chr': 0,
-#             'reads_mate_same_strand': 0,
-#             'reads_faceaway': 0,
-#             'reads_softclipped': 0,
-#             'reads_duplicate': 0}
-#
-#
-# ##########################################
-# # EXTENDED COVERAGE STATISTICS BY STRAND #
-# ##########################################
-#
-#
-# cpdef dict rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
-#                                    PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i, n # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef bint is_reverse
-#     cdef bint is_proper_pair
-#     cdef bint is_duplicate
-#     cdef bint mate_is_unmappped
-#     cdef bint mate_is_reverse
-#     cdef int tlen
-#     # counting variables
-#     cdef int reads_rev = 0
-#     cdef int reads_fwd = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_rev = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_mate_unmapped = 0
-#     cdef int reads_mate_unmapped_rev = 0
-#     cdef int reads_mate_unmapped_fwd = 0
-#     cdef int reads_mate_other_chr = 0
-#     cdef int reads_mate_other_chr_rev = 0
-#     cdef int reads_mate_other_chr_fwd = 0
-#     cdef int reads_mate_same_strand = 0
-#     cdef int reads_mate_same_strand_rev = 0
-#     cdef int reads_mate_same_strand_fwd = 0
-#     cdef int reads_faceaway = 0
-#     cdef int reads_faceaway_rev = 0
-#     cdef int reads_faceaway_fwd = 0
-#     cdef int reads_softclipped = 0
-#     cdef int reads_softclipped_rev = 0
-#     cdef int reads_softclipped_fwd = 0
-#     cdef int reads_duplicate = 0
-#     cdef int reads_duplicate_rev = 0
-#     cdef int reads_duplicate_fwd = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     tid = col.tid
-#     chrom = alignmentfile.getrname(tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_duplicate = <bint>(flag & BAM_FDUP)
-#         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-#         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-#         tlen = aln.core.isize
-#         if is_reverse:
-#             reads_rev += 1
-#         else:
-#             reads_fwd += 1
-#         if is_proper_pair:
-#             reads_pp += 1
-#             if is_reverse:
-#                 reads_pp_rev += 1
-#             else:
-#                 reads_pp_fwd += 1
-#         if mate_is_unmapped:
-#             reads_mate_unmapped += 1
-#             if is_reverse:
-#                 reads_mate_unmapped_rev += 1
-#             else:
-#                 reads_mate_unmapped_fwd += 1
-#         elif tid != aln.core.mtid:
-#             reads_mate_other_chr += 1
-#             if is_reverse:
-#                 reads_mate_other_chr_rev += 1
-#             else:
-#                 reads_mate_other_chr_fwd += 1
-#         elif is_reverse and mate_is_reverse:
-#             reads_mate_same_strand += 1
-#             reads_mate_same_strand_rev += 1
-#         elif not is_reverse and not mate_is_reverse:
-#             reads_mate_same_strand += 1
-#             reads_mate_same_strand_fwd += 1
-#         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-#             reads_faceaway += 1
-#             if is_reverse:
-#                 reads_faceaway_rev += 1
-#             else:
-#                 reads_faceaway_fwd += 1
-#         if is_softclipped(aln):
-#             reads_softclipped += 1
-#             if is_reverse:
-#                 reads_softclipped_rev += 1
-#             else:
-#                 reads_softclipped_fwd += 1
-#         if is_duplicate:
-#             reads_duplicate += 1
-#             if is_reverse:
-#                 reads_duplicate_rev += 1
-#             else:
-#                 reads_duplicate_fwd += 1
-#
-#     return {'chrom': chrom, 'pos': pos,
-#            'reads_all': n,
-#            'reads_fwd': reads_fwd,
-#            'reads_rev': reads_rev,
-#            'reads_pp': reads_pp,
-#            'reads_pp_fwd': reads_pp_fwd,
-#            'reads_pp_rev': reads_pp_rev,
-#            'reads_mate_unmapped': reads_mate_unmapped,
-#            'reads_mate_unmapped_fwd': reads_mate_unmapped_fwd,
-#            'reads_mate_unmapped_rev': reads_mate_unmapped_rev,
-#            'reads_mate_other_chr': reads_mate_other_chr,
-#            'reads_mate_other_chr_fwd': reads_mate_other_chr_fwd,
-#            'reads_mate_other_chr_rev': reads_mate_other_chr_rev,
-#            'reads_mate_same_strand': reads_mate_same_strand,
-#            'reads_mate_same_strand_fwd': reads_mate_same_strand_fwd,
-#            'reads_mate_same_strand_rev': reads_mate_same_strand_rev,
-#            'reads_faceaway': reads_faceaway,
-#            'reads_faceaway_fwd': reads_faceaway_fwd,
-#            'reads_faceaway_rev': reads_faceaway_rev,
-#            'reads_softclipped': reads_softclipped,
-#            'reads_softclipped_fwd': reads_softclipped_fwd,
-#            'reads_softclipped_rev': reads_softclipped_rev,
-#            'reads_duplicate': reads_duplicate,
-#            'reads_duplicate_fwd': reads_duplicate_fwd,
-#            'reads_duplicate_rev': reads_duplicate_rev,
-#            }
-#
-#
-# cpdef dict rec_coverage_ext_strand_pad(FastaFile fafile, chrom, pos,
-#                                        bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos,
-#            'reads_all': 0,
-#            'reads_fwd': 0,
-#            'reads_rev': 0,
-#            'reads_pp': 0,
-#            'reads_pp_fwd': 0,
-#            'reads_pp_rev': 0,
-#            'reads_mate_unmapped': 0,
-#            'reads_mate_unmapped_fwd': 0,
-#            'reads_mate_unmapped_rev': 0,
-#            'reads_mate_other_chr': 0,
-#            'reads_mate_other_chr_fwd': 0,
-#            'reads_mate_other_chr_rev': 0,
-#            'reads_mate_same_strand': 0,
-#            'reads_mate_same_strand_fwd': 0,
-#            'reads_mate_same_strand_rev': 0,
-#            'reads_faceaway': 0,
-#            'reads_faceaway_fwd': 0,
-#            'reads_faceaway_rev': 0,
-#            'reads_softclipped': 0,
-#            'reads_softclipped_fwd': 0,
-#            'reads_softclipped_rev': 0,
-#            'reads_duplicate': 0,
-#            'reads_duplicate_fwd': 0,
-#            'reads_duplicate_rev': 0,
-#            }
-#
-#
-# ########################
-# # VARIATION STATISTICS #
-# ########################
-#
-#
+##########################################
+# EXTENDED COVERAGE STATISTICS BY STRAND #
+##########################################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageExtStrand(PileupStat):
+
+    cdef:
+        int reads_all
+        int reads_rev
+        int reads_fwd
+        int reads_pp
+        int reads_pp_rev
+        int reads_pp_fwd
+        int reads_mate_unmapped
+        int reads_mate_unmapped_rev
+        int reads_mate_unmapped_fwd
+        int reads_mate_other_chr
+        int reads_mate_other_chr_rev
+        int reads_mate_other_chr_fwd
+        int reads_mate_same_strand
+        int reads_mate_same_strand_rev
+        int reads_mate_same_strand_fwd
+        int reads_faceaway
+        int reads_faceaway_rev
+        int reads_faceaway_fwd
+        int reads_softclipped
+        int reads_softclipped_rev
+        int reads_softclipped_fwd
+        int reads_duplicate
+        int reads_duplicate_rev
+        int reads_duplicate_fwd
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_rev = 0
+        self.reads_fwd = 0
+        self.reads_pp = 0
+        self.reads_pp_rev = 0
+        self.reads_pp_fwd = 0
+        self.reads_mate_unmapped = 0
+        self.reads_mate_unmapped_rev = 0
+        self.reads_mate_unmapped_fwd = 0
+        self.reads_mate_other_chr = 0
+        self.reads_mate_other_chr_rev = 0
+        self.reads_mate_other_chr_fwd = 0
+        self.reads_mate_same_strand = 0
+        self.reads_mate_same_strand_rev = 0
+        self.reads_mate_same_strand_fwd = 0
+        self.reads_faceaway = 0
+        self.reads_faceaway_rev = 0
+        self.reads_faceaway_fwd = 0
+        self.reads_softclipped = 0
+        self.reads_softclipped_rev = 0
+        self.reads_softclipped_fwd = 0
+        self.reads_duplicate = 0
+        self.reads_duplicate_rev = 0
+        self.reads_duplicate_fwd = 0
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            bint is_duplicate
+            bint mate_is_unmappped
+            bint mate_is_reverse
+            int tlen
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_duplicate = <bint>(flag & BAM_FDUP)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        tlen = read.b.core.isize
+
+        # do the counting
+        self.reads_all += 1
+        if is_reverse:
+            self.reads_rev += 1
+        else:
+            self.reads_fwd += 1
+        if is_proper_pair:
+            self.reads_pp += 1
+            if is_reverse:
+                self.reads_pp_rev += 1
+            else:
+                self.reads_pp_fwd += 1
+        if mate_is_unmapped:
+            self.reads_mate_unmapped += 1
+            if is_reverse:
+                self.reads_mate_unmapped_rev += 1
+            else:
+                self.reads_mate_unmapped_fwd += 1
+        elif col.tid != read.b.core.mtid:
+            self.reads_mate_other_chr += 1
+            if is_reverse:
+                self.reads_mate_other_chr_rev += 1
+            else:
+                self.reads_mate_other_chr_fwd += 1
+        elif is_reverse and mate_is_reverse:
+            self.reads_mate_same_strand += 1
+            self.reads_mate_same_strand_rev += 1
+        elif not is_reverse and not mate_is_reverse:
+            self.reads_mate_same_strand += 1
+            self.reads_mate_same_strand_fwd += 1
+        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+            self.reads_faceaway += 1
+            if is_reverse:
+                self.reads_faceaway_rev += 1
+            else:
+                self.reads_faceaway_fwd += 1
+        if is_softclipped(read.b):
+            self.reads_softclipped += 1
+            if is_reverse:
+                self.reads_softclipped_rev += 1
+            else:
+                self.reads_softclipped_fwd += 1
+        if is_duplicate:
+            self.reads_duplicate += 1
+            if is_reverse:
+                self.reads_duplicate_rev += 1
+            else:
+                self.reads_duplicate_fwd += 1
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        rec = {'reads_all': self.reads_all,
+               'reads_fwd': self.reads_fwd,
+               'reads_rev': self.reads_rev,
+               'reads_pp': self.reads_pp,
+               'reads_pp_fwd': self.reads_pp_fwd,
+               'reads_pp_rev': self.reads_pp_rev,
+               'reads_mate_unmapped': self.reads_mate_unmapped,
+               'reads_mate_unmapped_fwd': self.reads_mate_unmapped_fwd,
+               'reads_mate_unmapped_rev': self.reads_mate_unmapped_rev,
+               'reads_mate_other_chr': self.reads_mate_other_chr,
+               'reads_mate_other_chr_fwd': self.reads_mate_other_chr_fwd,
+               'reads_mate_other_chr_rev': self.reads_mate_other_chr_rev,
+               'reads_mate_same_strand': self.reads_mate_same_strand,
+               'reads_mate_same_strand_fwd': self.reads_mate_same_strand_fwd,
+               'reads_mate_same_strand_rev': self.reads_mate_same_strand_rev,
+               'reads_faceaway': self.reads_faceaway,
+               'reads_faceaway_fwd': self.reads_faceaway_fwd,
+               'reads_faceaway_rev': self.reads_faceaway_rev,
+               'reads_softclipped': self.reads_softclipped,
+               'reads_softclipped_fwd': self.reads_softclipped_fwd,
+               'reads_softclipped_rev': self.reads_softclipped_rev,
+               'reads_duplicate': self.reads_duplicate,
+               'reads_duplicate_fwd': self.reads_duplicate_fwd,
+               'reads_duplicate_rev': self.reads_duplicate_rev}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
+########################
+# VARIATION STATISTICS #
+########################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class Variation(PileupStat):
+
+    cdef:
+        int reads_all
+        int reads_pp
+        int matches
+        int matches_pp
+        int mismatches
+        int mismatches_pp
+        int deletions
+        int deletions_pp
+        int insertions
+        int insertions_pp
+        int a
+        int a_pp
+        int c
+        int c_pp
+        int t
+        int t_pp
+        int g
+        int g_pp
+        int n
+        int n_pp
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+        self.matches = 0
+        self.matches_pp = 0
+        self.mismatches = 0
+        self.mismatches_pp = 0
+        self.deletions = 0
+        self.deletions_pp = 0
+        self.insertions = 0
+        self.insertions_pp = 0
+        self.a = 0
+        self.a_pp = 0
+        self.c = 0
+        self.c_pp = 0
+        self.t = 0
+        self.t_pp = 0
+        self.g = 0
+        self.g_pp = 0
+        self.n = 0
+        self.n_pp = 0
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bytes alnbase
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads_all += 1
+        if is_proper_pair:
+            self.reads_pp += 1
+        if read.is_del:
+            self.deletions += 1
+            if is_proper_pair:
+                self.deletions_pp += 1
+        else:
+            alnbase = get_seq_base(read.b, read.qpos)
+            if alnbase == b'A':
+                self.a += 1
+                if is_proper_pair:
+                    self.a_pp += 1
+            elif alnbase == b'T':
+                self.t += 1
+                if is_proper_pair:
+                    self.t_pp += 1
+            elif alnbase == b'C':
+                self.c += 1
+                if is_proper_pair:
+                    self.c_pp += 1
+            elif alnbase == b'G':
+                self.g += 1
+                if is_proper_pair:
+                    self.g_pp += 1
+            elif alnbase == b'N':
+                self.n += 1
+                if is_proper_pair:
+                    self.n_pp += 1
+            if read.indel > 0:
+                self.insertions += 1
+                if is_proper_pair:
+                    self.insertions_pp += 1
+            if alnbase == refbase:
+                self.matches += 1
+                if is_proper_pair:
+                    self.matches_pp += 1
+            else:
+                self.mismatches += 1
+                if is_proper_pair:
+                    self.mismatches_pp += 1
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        if not PY2:
+            ref = str(refbase, 'ascii')
+        else:
+            ref = refbase
+        rec = {'ref': ref,
+               'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'matches': self.matches,
+               'matches_pp': self.matches_pp,
+               'mismatches': self.mismatches,
+               'mismatches_pp': self.mismatches_pp,
+               'deletions': self.deletions,
+               'deletions_pp': self.deletions_pp,
+               'insertions': self.insertions,
+               'insertions_pp': self.insertions_pp,
+               'A': self.a, 'A_pp': self.a_pp,
+               'C': self.c, 'C_pp': self.c_pp,
+               'T': self.t, 'T_pp': self.t_pp,
+               'G': self.g, 'G_pp': self.g_pp,
+               'N': self.n, 'N_pp': self.n_pp}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
 # cpdef dict rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
 #                          PileupColumn col, bint one_based=False):
 #
@@ -2476,8 +2527,17 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
         bam1_t* b
         int i, n
 
+    # setup intermediate variables
     n = col.n
     plp = col.plp
+
+    # setup reference base
+    if fafile is not None:
+        refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
+        if not PY2:
+            refbase = refbase.encode('ascii')
+    else:
+        refbase = None
 
     # iterate over reads in the column
     for i in range(n):
@@ -2500,12 +2560,12 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
                 continue
 
         # accumulate statistics
-        stat.recv(col, b)
+        stat.recv(read, col, refbase)
 
     # construct record
     # TODO check this doesn't foul-up GC window centre
     pos = col.pos + 1 if one_based else col.pos
-    rec = stat.rec(chrom, pos, fafile)
+    rec = stat.rec(chrom, pos, fafile, refbase)
     rec['chrom'] = chrom
     rec['pos'] = pos
     return rec

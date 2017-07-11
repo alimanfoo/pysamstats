@@ -76,12 +76,12 @@ def stat_pileup(type,
 
     """
 
+    if type in config.stats_types_withref and fafile is None:
+        raise ValueError('reference sequence is required; please provide fafile argument')
+
     try:
         if type == 'coverage_gc':
-            # special case needed to handle window parameters
-            # TODO fix this
-            rec, rec_pad = opt.frecs_coverage_gc(window_size=window_size,
-                                                 window_offset=window_offset)
+            stat = stats_classes_pileup[type](window_size=window_size, window_offset=window_offset)
         else:
             stat = stats_classes_pileup[type]()
     except KeyError:
@@ -145,25 +145,19 @@ stats_classes_pileup = {
     'coverage': opt.Coverage,
     'coverage_strand': opt.CoverageStrand,
     'coverage_ext': opt.CoverageExt,
+    'coverage_ext_strand': opt.CoverageExtStrand,
+    'variation': opt.Variation,
+    # 'variation_strand': opt.VariationStrand,
+    # 'tlen': opt.Tlen,
+    # 'tlen_strand': opt.TlenStrand,
+    # 'mapq': opt.Mapq,
+    # 'mapq_strand': opt.MapqStrand,
+    # 'baseq': opt.Baseq,
+    # 'baseq_strand': opt.BaseqStrand,
+    # 'baseq_ext': opt.BaseqExt,
+    # 'baseq_ext_strand': opt.BaseqExtStrand,
+    # 'coverage_gc': opt.CoverageGC,
 }
-
-
-# frecs_pileup = {
-#     'coverage': (opt.rec_coverage, opt.rec_coverage_pad),
-#     'coverage_strand': (opt.rec_coverage_strand, opt.rec_coverage_strand_pad),
-#     'coverage_ext': (opt.rec_coverage_ext, opt.rec_coverage_ext_pad),
-#     'coverage_ext_strand': (opt.rec_coverage_ext_strand, opt.rec_coverage_ext_strand_pad),
-#     'variation': (opt.rec_variation, opt.rec_variation_pad),
-#     'variation_strand': (opt.rec_variation_strand, opt.rec_variation_strand_pad),
-#     'tlen': (opt.rec_tlen, opt.rec_tlen_pad),
-#     'tlen_strand': (opt.rec_tlen_strand, opt.rec_tlen_strand_pad),
-#     'mapq': (opt.rec_mapq, opt.rec_mapq_pad),
-#     'mapq_strand': (opt.rec_mapq_strand, opt.rec_mapq_strand_pad),
-#     'baseq': (opt.rec_baseq, opt.rec_baseq_pad),
-#     'baseq_strand': (opt.rec_baseq_strand, opt.rec_baseq_strand_pad),
-#     'baseq_ext': (opt.rec_baseq_ext, opt.rec_baseq_ext_pad),
-#     'baseq_ext_strand': (opt.rec_baseq_ext_strand, opt.rec_baseq_ext_strand_pad),
-# }
 
 
 # backwards compatibility

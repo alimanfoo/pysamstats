@@ -8,7 +8,7 @@ import errno
 
 import pysam
 import pysamstats
-from pysamstats import stats_types, stats_types_withref
+from pysamstats.config import stats_types, stats_types_withref
 from pysamstats.io import write_csv, write_hdf5
 
 
