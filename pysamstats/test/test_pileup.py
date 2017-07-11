@@ -70,13 +70,13 @@ def test_stat_coverage_strand():
     compare_stats(pysamstats.stat_coverage_strand, stat_coverage_strand_refimpl)
 
 
-def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None,
-                              one_based=False):
+def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                              min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_mate_unmapped = [read for read in reads
                                if read.alignment.mate_is_unmapped]
         reads_mate_mapped = [read for read in reads

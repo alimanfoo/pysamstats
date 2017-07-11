@@ -76,7 +76,7 @@ cdef class PileupStat(object):
     cdef dict rec(self, chrom, pos, FastaFile fafile):
         return dict()
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, PileupColumn col, bam1_t* b):
         pass
 
 
@@ -99,7 +99,7 @@ cdef class Coverage(PileupStat):
         self.reads_all = 0
         self.reads_pp = 0
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, PileupColumn col, bam1_t* b):
         cdef:
             bint is_proper_pair
 
@@ -148,7 +148,7 @@ cdef class CoverageStrand(PileupStat):
         self.reads_pp_fwd = 0
         self.reads_pp_rev = 0
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, PileupColumn col, bam1_t* b):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -185,78 +185,88 @@ cdef class CoverageStrand(PileupStat):
         return rec
 
 
-# cpdef dict rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
-#                                PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i, n # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_reverse
-#     cdef bint is_proper_pair
-#     cdef int reads_fwd = 0
-#     cdef int reads_rev = 0
-#     cdef int reads_pp = 0
-#     cdef int reads_pp_fwd = 0
-#     cdef int reads_pp_rev = 0
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         if is_reverse:
-#             reads_rev += 1
-#         else:
-#             reads_fwd += 1
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         if is_proper_pair:
-#             reads_pp += 1
-#             if is_reverse:
-#                 reads_pp_rev += 1
-#             else:
-#                 reads_pp_fwd += 1
-#
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': n,
-#             'reads_fwd': reads_fwd,
-#             'reads_rev': reads_rev,
-#             'reads_pp': reads_pp,
-#             'reads_pp_fwd': reads_pp_fwd,
-#             'reads_pp_rev': reads_pp_rev}
-#
-#
-# cpdef dict rec_coverage_strand_pad(FastaFile fafile, chrom, pos,
-#                                    bint one_based=False):
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom,
-#             'pos': pos,
-#             'reads_all': 0,
-#             'reads_fwd': 0,
-#             'reads_rev': 0,
-#             'reads_pp': 0,
-#             'reads_pp_fwd': 0,
-#             'reads_pp_rev': 0}
-#
-#
-# ################################
-# # EXTENDED COVERAGE STATISTICS #
-# ################################
-#
-#
+################################
+# EXTENDED COVERAGE STATISTICS #
+################################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageExt(PileupStat):
+
+    cdef:
+        int reads_all
+        int reads_pp
+        int reads_mate_unmapped
+        int reads_mate_other_chr
+        int reads_mate_same_strand
+        int reads_faceaway
+        int reads_softclipped
+        int reads_duplicate
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+        self.reads_mate_unmapped = 0
+        self.reads_mate_other_chr = 0
+        self.reads_mate_same_strand = 0
+        self.reads_faceaway = 0
+        self.reads_softclipped = 0
+        self.reads_duplicate = 0
+
+    cdef void recv(self, PileupColumn col, bam1_t* b):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            bint is_duplicate
+            bint mate_is_unmappped
+            bint mate_is_reverse
+            int tlen
+
+        self.reads_all += 1
+        flag = b.core.flag
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_duplicate = <bint>(flag & BAM_FDUP)
+        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
+        mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
+        tlen = b.core.isize
+        if is_duplicate:
+            self.reads_duplicate += 1
+        if is_proper_pair:
+            self.reads_pp += 1
+        if mate_is_unmapped:
+            self.reads_mate_unmapped += 1
+        elif col.tid != b.core.mtid:
+            self.reads_mate_other_chr += 1
+        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+            self.reads_mate_same_strand += 1
+        elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
+            self.reads_faceaway += 1
+        if is_softclipped(b):
+            self.reads_softclipped += 1
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile):
+
+        # make record
+        rec = {'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'reads_mate_unmapped': self.reads_mate_unmapped,
+               'reads_mate_other_chr': self.reads_mate_other_chr,
+               'reads_mate_same_strand': self.reads_mate_same_strand,
+               'reads_faceaway': self.reads_faceaway,
+               'reads_softclipped': self.reads_softclipped,
+               'reads_duplicate': self.reads_duplicate}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
 # cpdef dict rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
 #                             bint one_based=False):
 #
@@ -2139,7 +2149,7 @@ cdef class BinnedStat(object):
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
         return dict()
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         pass
 
 
@@ -2166,7 +2176,7 @@ cdef class CoverageBinned(BinnedStat):
 
         return rec
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_proper_pair
@@ -2221,7 +2231,7 @@ cdef class CoverageExtBinned(BinnedStat):
 
         return rec
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_reverse
@@ -2282,7 +2292,7 @@ cdef class MapqBinned(BinnedStat):
 
         return rec
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef uint64_t mapq
@@ -2325,7 +2335,7 @@ cdef class AlignmentBinned(BinnedStat):
 
         return rec
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef int k, op, l
@@ -2393,7 +2403,7 @@ cdef class TlenBinned(BinnedStat):
 
         return rec
 
-    cdef recv(self, bam1_t* b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_proper_pair
@@ -2468,8 +2478,6 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
 
     n = col.n
     plp = col.plp
-    # TODO check this doesn't foul-up GC window centre
-    pos = col.pos + 1 if one_based else col.pos
 
     # iterate over reads in the column
     for i in range(n):
@@ -2492,9 +2500,11 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
                 continue
 
         # accumulate statistics
-        stat.recv(b)
+        stat.recv(col, b)
 
     # construct record
+    # TODO check this doesn't foul-up GC window centre
+    pos = col.pos + 1 if one_based else col.pos
     rec = stat.rec(chrom, pos, fafile)
     rec['chrom'] = chrom
     rec['pos'] = pos
