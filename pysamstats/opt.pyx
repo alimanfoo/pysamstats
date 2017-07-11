@@ -460,16 +460,16 @@ cdef class Variation(PileupStat):
         int deletions_pp
         int insertions
         int insertions_pp
-        int a
-        int a_pp
-        int c
-        int c_pp
-        int t
-        int t_pp
-        int g
-        int g_pp
-        int n
-        int n_pp
+        int A
+        int A_pp
+        int C
+        int C_pp
+        int T
+        int T_pp
+        int G
+        int G_pp
+        int N
+        int N_pp
 
     def __init__(self):
         self.reset()
@@ -485,16 +485,16 @@ cdef class Variation(PileupStat):
         self.deletions_pp = 0
         self.insertions = 0
         self.insertions_pp = 0
-        self.a = 0
-        self.a_pp = 0
-        self.c = 0
-        self.c_pp = 0
-        self.t = 0
-        self.t_pp = 0
-        self.g = 0
-        self.g_pp = 0
-        self.n = 0
-        self.n_pp = 0
+        self.A = 0
+        self.A_pp = 0
+        self.C = 0
+        self.C_pp = 0
+        self.T = 0
+        self.T_pp = 0
+        self.G = 0
+        self.G_pp = 0
+        self.N = 0
+        self.N_pp = 0
 
     cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
@@ -517,25 +517,25 @@ cdef class Variation(PileupStat):
         else:
             alnbase = get_seq_base(read.b, read.qpos)
             if alnbase == b'A':
-                self.a += 1
+                self.A += 1
                 if is_proper_pair:
-                    self.a_pp += 1
+                    self.A_pp += 1
             elif alnbase == b'T':
-                self.t += 1
+                self.T += 1
                 if is_proper_pair:
-                    self.t_pp += 1
+                    self.T_pp += 1
             elif alnbase == b'C':
-                self.c += 1
+                self.C += 1
                 if is_proper_pair:
-                    self.c_pp += 1
+                    self.C_pp += 1
             elif alnbase == b'G':
-                self.g += 1
+                self.G += 1
                 if is_proper_pair:
-                    self.g_pp += 1
+                    self.G_pp += 1
             elif alnbase == b'N':
-                self.n += 1
+                self.N += 1
                 if is_proper_pair:
-                    self.n_pp += 1
+                    self.N_pp += 1
             if read.indel > 0:
                 self.insertions += 1
                 if is_proper_pair:
@@ -567,11 +567,11 @@ cdef class Variation(PileupStat):
                'deletions_pp': self.deletions_pp,
                'insertions': self.insertions,
                'insertions_pp': self.insertions_pp,
-               'A': self.a, 'A_pp': self.a_pp,
-               'C': self.c, 'C_pp': self.c_pp,
-               'T': self.t, 'T_pp': self.t_pp,
-               'G': self.g, 'G_pp': self.g_pp,
-               'N': self.n, 'N_pp': self.n_pp}
+               'A': self.A, 'A_pp': self.A_pp,
+               'C': self.C, 'C_pp': self.C_pp,
+               'T': self.T, 'T_pp': self.T_pp,
+               'G': self.G, 'G_pp': self.G_pp,
+               'N': self.N, 'N_pp': self.N_pp}
 
         # reset counters
         self.reset()
@@ -579,298 +579,157 @@ cdef class Variation(PileupStat):
         return rec
 
 
-# cpdef dict rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
-#                          PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i  # loop index
-#     cdef int reads_all  # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair
-#     cdef bytes alnbase, refbase_b
-#     # counting variables
-#     cdef int reads_pp = 0
-#     cdef int matches = 0
-#     cdef int matches_pp = 0
-#     cdef int mismatches = 0
-#     cdef int mismatches_pp = 0
-#     cdef int deletions = 0
-#     cdef int deletions_pp = 0
-#     cdef int insertions = 0
-#     cdef int insertions_pp = 0
-#     cdef int a = 0
-#     cdef int a_pp = 0
-#     cdef int c = 0
-#     cdef int c_pp = 0
-#     cdef int t = 0
-#     cdef int t_pp = 0
-#     cdef int g = 0
-#     cdef int g_pp = 0
-#     cdef int n = 0
-#     cdef int n_pp = 0
-#
-#     # initialise variables
-#     reads_all = col.n
-#     plp = col.plp
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # reference base
-#     refbase = fafile\
-#         .fetch(reference=chrom, start=col.pos, end=col.pos+1)\
-#         .upper()
-#     if not PY2:
-#         refbase_b = refbase.encode('ascii')
-#     else:
-#         refbase_b = refbase
-#
-#     # loop over reads, extract what we need
-#     for i in range(reads_all):
-#         read = &(plp[0][i])
-#         # read.qpos
-#         # read.is_del
-#         # read.indel
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         if is_proper_pair:
-#             reads_pp += 1
-#         if read.is_del:
-#             deletions += 1
-#             if is_proper_pair:
-#                 deletions_pp += 1
-#         else:
-# #            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
-#             alnbase = get_seq_base(aln, read.qpos)
-#             if alnbase == b'A':
-#                 a += 1
-#                 if is_proper_pair:
-#                     a_pp += 1
-#             elif alnbase == b'T':
-#                 t += 1
-#                 if is_proper_pair:
-#                     t_pp += 1
-#             elif alnbase == b'C':
-#                 c += 1
-#                 if is_proper_pair:
-#                     c_pp += 1
-#             elif alnbase == b'G':
-#                 g += 1
-#                 if is_proper_pair:
-#                     g_pp += 1
-#             elif alnbase == b'N':
-#                 n += 1
-#                 if is_proper_pair:
-#                     n_pp += 1
-#             if read.indel > 0:
-#                 insertions += 1
-#                 if is_proper_pair:
-#                     insertions_pp += 1
-#             if alnbase == refbase_b:
-#                 matches += 1
-#                 if is_proper_pair:
-#                     matches_pp += 1
-#             else:
-#                 mismatches += 1
-#                 if is_proper_pair:
-#                     mismatches_pp += 1
-#
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': reads_all, 'reads_pp': reads_pp,
-#             'matches': matches,
-#             'matches_pp': matches_pp,
-#             'mismatches': mismatches,
-#             'mismatches_pp': mismatches_pp,
-#             'deletions': deletions,
-#             'deletions_pp': deletions_pp,
-#             'insertions': insertions,
-#             'insertions_pp': insertions_pp,
-#             'A': a, 'A_pp': a_pp,
-#             'C': c, 'C_pp': c_pp,
-#             'T': t, 'T_pp': t_pp,
-#             'G': g, 'G_pp': g_pp,
-#             'N': n, 'N_pp': n_pp}
-#
-#
-# cpdef dict rec_variation_pad(FastaFile fafile, chrom, pos,
-#                              bint one_based=False):
-#     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': 0, 'reads_pp': 0,
-#             'matches': 0,
-#             'matches_pp': 0,
-#             'mismatches': 0,
-#             'mismatches_pp': 0,
-#             'deletions': 0,
-#             'deletions_pp': 0,
-#             'insertions': 0,
-#             'insertions_pp': 0,
-#             'A': 0, 'A_pp': 0,
-#             'C': 0, 'C_pp': 0,
-#             'T': 0, 'T_pp': 0,
-#             'G': 0, 'G_pp': 0,
-#             'N': 0, 'N_pp': 0}
-#
-#
-# #################################
-# # STRANDED VARIATION STATISTICS #
-# #################################
-#
-#
-# cdef struct CountPpStrand:
-#     int all, pp, fwd, rev, pp_fwd, pp_rev
-#
-#
-# cdef inline init_pp_strand(CountPpStrand* c):
-#     c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0
-#
-#
-# cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
-#                            bint is_proper_pair):
-#     c.all += 1
-#     if is_reverse:
-#         c.rev += 1
-#         if is_proper_pair:
-#             c.pp += 1
-#             c.pp_rev += 1
-#     else:
-#         c.fwd += 1
-#         if is_proper_pair:
-#             c.pp += 1
-#             c.pp_fwd += 1
-#
-#
-# cpdef dict rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
-#                                 PileupColumn col, bint one_based=False):
-#
-#     # statically typed variables
-#     cdef bam_pileup1_t** plp
-#     cdef bam_pileup1_t* read
-#     cdef bam1_t* aln
-#     cdef int i, n # loop index
-#     cdef int reads_all # total number of reads in column
-#     cdef uint32_t flag
-#     cdef bint is_proper_pair, is_reverse
-#     cdef bytes alnbase, refbase_b
-#     # counting variables
-#     cdef CountPpStrand reads, matches, mismatches, deletions, insertions, \
-#         A, C, T, G, N
-#
-#     # initialise variables
-#     n = col.n
-#     plp = col.plp
-#     init_pp_strand(&reads)
-#     init_pp_strand(&matches)
-#     init_pp_strand(&mismatches)
-#     init_pp_strand(&deletions)
-#     init_pp_strand(&insertions)
-#     init_pp_strand(&A)
-#     init_pp_strand(&T)
-#     init_pp_strand(&C)
-#     init_pp_strand(&G)
-#     init_pp_strand(&N)
-#
-#     # get chromosome name and position
-#     chrom = alignmentfile.getrname(col.tid)
-#     pos = col.pos + 1 if one_based else col.pos
-#
-#     # reference base
-#     refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-#     if not PY2:
-#         refbase_b = refbase.encode('ascii')
-#     else:
-#         refbase_b = refbase
-#
-#     # loop over reads, extract what we need
-#     for i in range(n):
-#         read = &(plp[0][i])
-#         # read.qpos
-#         # read.is_del
-#         # read.indel
-#         aln = read.b
-#         flag = aln.core.flag
-#         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-#         is_reverse = <bint>(flag & BAM_FREVERSE)
-#         incr_pp_strand(&reads, is_reverse, is_proper_pair)
-#         if read.is_del:
-#             incr_pp_strand(&deletions, is_reverse, is_proper_pair)
-#         else:
-#             alnbase = get_seq_base(aln, read.qpos)
-#             if alnbase == b'A':
-#                 incr_pp_strand(&A, is_reverse, is_proper_pair)
-#             elif alnbase == b'T':
-#                 incr_pp_strand(&T, is_reverse, is_proper_pair)
-#             elif alnbase == b'C':
-#                 incr_pp_strand(&C, is_reverse, is_proper_pair)
-#             elif alnbase == b'G':
-#                 incr_pp_strand(&G, is_reverse, is_proper_pair)
-#             elif alnbase == b'N':
-#                 incr_pp_strand(&N, is_reverse, is_proper_pair)
-#             if read.indel > 0:
-#                 incr_pp_strand(&insertions, is_reverse, is_proper_pair)
-#             if alnbase == refbase_b:
-#                 incr_pp_strand(&matches, is_reverse, is_proper_pair)
-#             else:
-#                 incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
-#
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev,
-#             'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
-#             'matches': matches.all, 'matches_fwd': matches.fwd, 'matches_rev': matches.rev,
-#             'matches_pp': matches.pp, 'matches_pp_fwd': matches.pp_fwd, 'matches_pp_rev': matches.pp_rev,
-#             'mismatches': mismatches.all, 'mismatches_fwd': mismatches.fwd, 'mismatches_rev': mismatches.rev,
-#             'mismatches_pp': mismatches.pp, 'mismatches_pp_fwd': mismatches.pp_fwd, 'mismatches_pp_rev': mismatches.pp_rev,
-#             'deletions': deletions.all, 'deletions_fwd': deletions.fwd, 'deletions_rev': deletions.rev,
-#             'deletions_pp': deletions.pp, 'deletions_pp_fwd': deletions.pp_fwd, 'deletions_pp_rev': deletions.pp_rev,
-#             'insertions': insertions.all, 'insertions_fwd': insertions.fwd, 'insertions_rev': insertions.rev,
-#             'insertions_pp': insertions.pp, 'insertions_pp_fwd': insertions.pp_fwd, 'insertions_pp_rev': insertions.pp_rev,
-#             'A': A.all, 'A_fwd': A.fwd, 'A_rev': A.rev, 'A_pp': A.pp, 'A_pp_fwd': A.pp_fwd, 'A_pp_rev': A.pp_rev,
-#             'C': C.all, 'C_fwd': C.fwd, 'C_rev': C.rev, 'C_pp': C.pp, 'C_pp_fwd': C.pp_fwd, 'C_pp_rev': C.pp_rev,
-#             'T': T.all, 'T_fwd': T.fwd, 'T_rev': T.rev, 'T_pp': T.pp, 'T_pp_fwd': T.pp_fwd, 'T_pp_rev': T.pp_rev,
-#             'G': G.all, 'G_fwd': G.fwd, 'G_rev': G.rev, 'G_pp': G.pp, 'G_pp_fwd': G.pp_fwd, 'G_pp_rev': G.pp_rev,
-#             'N': N.all, 'N_fwd': N.fwd, 'N_rev': N.rev, 'N_pp': N.pp, 'N_pp_fwd': N.pp_fwd, 'N_pp_rev': N.pp_rev,
-#             }
-#
-#
-# cpdef dict rec_variation_strand_pad(FastaFile fafile, chrom, pos,
-#                                     bint one_based=False):
-#     refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-#     pos = pos + 1 if one_based else pos
-#     return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-#             'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0,
-#             'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
-#             'matches': 0, 'matches_fwd': 0, 'matches_rev': 0,
-#             'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
-#             'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0,
-#             'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
-#             'deletions': 0, 'deletions_fwd': 0, 'deletions_rev': 0,
-#             'deletions_pp': 0, 'deletions_pp_fwd': 0, 'deletions_pp_rev': 0,
-#             'insertions': 0, 'insertions_fwd': 0, 'insertions_rev': 0,
-#             'insertions_pp': 0, 'insertions_pp_fwd': 0, 'insertions_pp_rev': 0,
-#             'A': 0, 'A_fwd': 0, 'A_rev': 0,
-#             'A_pp': 0, 'A_pp_fwd': 0, 'A_pp_rev': 0,
-#             'C': 0, 'C_fwd': 0, 'C_rev': 0,
-#             'C_pp': 0, 'C_pp_fwd': 0, 'C_pp_rev': 0,
-#             'T': 0, 'T_fwd': 0, 'T_rev': 0,
-#             'T_pp': 0, 'T_pp_fwd': 0, 'T_pp_rev': 0,
-#             'G': 0, 'G_fwd': 0, 'G_rev': 0,
-#             'G_pp': 0, 'G_pp_fwd': 0, 'G_pp_rev': 0,
-#             'N': 0, 'N_fwd': 0, 'N_rev': 0,
-#             'N_pp': 0, 'N_pp_fwd': 0, 'N_pp_rev': 0,
-#             }
-#
-#
-# ##########################
-# # INSERT SIZE STATISTICS #
-# ##########################
-#
-#
+#################################
+# STRANDED VARIATION STATISTICS #
+#################################
+
+
+cdef struct CountPpStrand:
+    int all, pp, fwd, rev, pp_fwd, pp_rev
+
+
+cdef inline init_pp_strand(CountPpStrand* c):
+    c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0
+
+
+cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse, bint is_proper_pair):
+    c.all += 1
+    if is_reverse:
+        c.rev += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_rev += 1
+    else:
+        c.fwd += 1
+        if is_proper_pair:
+            c.pp += 1
+            c.pp_fwd += 1
+
+
+# noinspection PyAttributeOutsideInit
+cdef class VariationStrand(PileupStat):
+
+    cdef:
+        CountPpStrand reads
+        CountPpStrand matches
+        CountPpStrand mismatches
+        CountPpStrand deletions
+        CountPpStrand insertions
+        CountPpStrand A
+        CountPpStrand C
+        CountPpStrand T
+        CountPpStrand G
+        CountPpStrand N
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        init_pp_strand(&self.reads)
+        init_pp_strand(&self.matches)
+        init_pp_strand(&self.mismatches)
+        init_pp_strand(&self.deletions)
+        init_pp_strand(&self.insertions)
+        init_pp_strand(&self.A)
+        init_pp_strand(&self.T)
+        init_pp_strand(&self.C)
+        init_pp_strand(&self.G)
+        init_pp_strand(&self.N)
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bytes alnbase
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+
+        # do the counting
+        incr_pp_strand(&self.reads, is_reverse, is_proper_pair)
+        if read.is_del:
+            incr_pp_strand(&self.deletions, is_reverse, is_proper_pair)
+        else:
+            alnbase = get_seq_base(read.b, read.qpos)
+            if alnbase == b'A':
+                incr_pp_strand(&self.A, is_reverse, is_proper_pair)
+            elif alnbase == b'T':
+                incr_pp_strand(&self.T, is_reverse, is_proper_pair)
+            elif alnbase == b'C':
+                incr_pp_strand(&self.C, is_reverse, is_proper_pair)
+            elif alnbase == b'G':
+                incr_pp_strand(&self.G, is_reverse, is_proper_pair)
+            elif alnbase == b'N':
+                incr_pp_strand(&self.N, is_reverse, is_proper_pair)
+            if read.indel > 0:
+                incr_pp_strand(&self.insertions, is_reverse, is_proper_pair)
+            if alnbase == refbase:
+                incr_pp_strand(&self.matches, is_reverse, is_proper_pair)
+            else:
+                incr_pp_strand(&self.mismatches, is_reverse, is_proper_pair)
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        if not PY2:
+            ref = str(refbase, 'ascii')
+        else:
+            ref = refbase
+        rec = {'ref': ref,
+               'reads_all': self.reads.all,
+               'reads_fwd': self.reads.fwd,
+               'reads_rev': self.reads.rev,
+               'reads_pp': self.reads.pp,
+               'reads_pp_fwd': self.reads.pp_fwd,
+               'reads_pp_rev': self.reads.pp_rev,
+               'matches': self.matches.all,
+               'matches_fwd': self.matches.fwd,
+               'matches_rev': self.matches.rev,
+               'matches_pp': self.matches.pp,
+               'matches_pp_fwd': self.matches.pp_fwd,
+               'matches_pp_rev': self.matches.pp_rev,
+               'mismatches': self.mismatches.all,
+               'mismatches_fwd': self.mismatches.fwd,
+               'mismatches_rev': self.mismatches.rev,
+               'mismatches_pp': self.mismatches.pp,
+               'mismatches_pp_fwd': self.mismatches.pp_fwd,
+               'mismatches_pp_rev': self.mismatches.pp_rev,
+               'deletions': self.deletions.all,
+               'deletions_fwd': self.deletions.fwd,
+               'deletions_rev': self.deletions.rev,
+               'deletions_pp': self.deletions.pp,
+               'deletions_pp_fwd': self.deletions.pp_fwd,
+               'deletions_pp_rev': self.deletions.pp_rev,
+               'insertions': self.insertions.all,
+               'insertions_fwd': self.insertions.fwd,
+               'insertions_rev': self.insertions.rev,
+               'insertions_pp': self.insertions.pp,
+               'insertions_pp_fwd': self.insertions.pp_fwd,
+               'insertions_pp_rev': self.insertions.pp_rev,
+               'A': self.A.all, 'A_fwd': self.A.fwd, 'A_rev': self.A.rev,
+               'A_pp': self.A.pp, 'A_pp_fwd': self.A.pp_fwd, 'A_pp_rev': self.A.pp_rev,
+               'C': self.C.all, 'C_fwd': self.C.fwd, 'C_rev': self.C.rev,
+               'C_pp': self.C.pp, 'C_pp_fwd': self.C.pp_fwd, 'C_pp_rev': self.C.pp_rev,
+               'T': self.T.all, 'T_fwd': self.T.fwd, 'T_rev': self.T.rev,
+               'T_pp': self.T.pp, 'T_pp_fwd': self.T.pp_fwd, 'T_pp_rev': self.T.pp_rev,
+               'G': self.G.all, 'G_fwd': self.G.fwd, 'G_rev': self.G.rev,
+               'G_pp': self.G.pp, 'G_pp_fwd': self.G.pp_fwd, 'G_pp_rev': self.G.pp_rev,
+               'N': self.N.all, 'N_fwd': self.N.fwd, 'N_rev': self.N.rev,
+               'N_pp': self.N.pp, 'N_pp_fwd': self.N.pp_fwd, 'N_pp_rev': self.N.pp_rev}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
+##########################
+# INSERT SIZE STATISTICS #
+##########################
+
+
 # cpdef dict rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
 #                     bint one_based=False):
 #

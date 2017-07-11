@@ -147,7 +147,7 @@ stats_classes_pileup = {
     'coverage_ext': opt.CoverageExt,
     'coverage_ext_strand': opt.CoverageExtStrand,
     'variation': opt.Variation,
-    # 'variation_strand': opt.VariationStrand,
+    'variation_strand': opt.VariationStrand,
     # 'tlen': opt.Tlen,
     # 'tlen_strand': opt.TlenStrand,
     # 'mapq': opt.Mapq,
