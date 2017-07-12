@@ -958,11 +958,86 @@ cdef class TlenStrand(PileupStat):
         return rec
 
 
-# ##############################
-# # MAPPING QUALITY STATISTICS #
-# ##############################
-#
-#
+##############################
+# MAPPING QUALITY STATISTICS #
+##############################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class Mapq(PileupStat):
+
+    cdef:
+        int reads_all
+        int reads_pp
+        uint64_t mapq_max
+        uint64_t mapq_pp_max
+        uint64_t mapq_squared_sum
+        uint64_t mapq_pp_squared_sum
+        bint is_proper_pair
+        int reads_mapq0
+        int reads_mapq0_pp
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+        self.mapq_max = 0
+        self.mapq_pp_max = 0
+        self.mapq_squared_sum = 0
+        self.mapq_pp_squared_sum = 0
+        self.reads_mapq0 = 0
+        self.reads_mapq0_pp = 0
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            uint64_t mapq
+            uint64_t mapq_squared
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads_all += 1
+        mapq = read.b.core.qual
+        mapq_squared = mapq**2
+        self.mapq_squared_sum += mapq_squared
+        if mapq == 0:
+            self.reads_mapq0 += 1
+        if mapq > self.mapq_max:
+            self.mapq_max = mapq
+        if is_proper_pair:
+            self.reads_pp += 1
+            self.mapq_pp_squared_sum += mapq_squared
+            if mapq > self.mapq_pp_max:
+                self.mapq_pp_max = mapq
+            if mapq == 0:
+                self.reads_mapq0_pp += 1
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        rms_mapq = rootmean(self.mapq_squared_sum, self.reads_all)
+        rms_mapq_pp = rootmean(self.mapq_pp_squared_sum, self.reads_pp)
+        rec = {'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'reads_mapq0': self.reads_mapq0,
+               'reads_mapq0_pp': self.reads_mapq0_pp,
+               'rms_mapq': rms_mapq,
+               'rms_mapq_pp': rms_mapq_pp,
+               'max_mapq': self.mapq_max,
+               'max_mapq_pp': self.mapq_pp_max}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
 # cpdef dict rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
 #                     bint one_based=False):
 #

@@ -150,7 +150,7 @@ stats_classes_pileup = {
     'variation_strand': opt.VariationStrand,
     'tlen': opt.Tlen,
     'tlen_strand': opt.TlenStrand,
-    # 'mapq': opt.Mapq,
+    'mapq': opt.Mapq,
     # 'mapq_strand': opt.MapqStrand,
     # 'baseq': opt.Baseq,
     # 'baseq_strand': opt.BaseqStrand,
