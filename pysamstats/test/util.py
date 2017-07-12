@@ -36,17 +36,17 @@ def compare_iterators(expected, actual):
                 else:
                     eq_(v, a[k])
             except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
+                debug('mismatch %r' % k)
+                debug('expected: %r' % sorted(e.items()))
+                debug('actual: %r' % sorted(a.items()))
                 raise
         for k in a:  # check no unexpected fields
             try:
                 assert k in e
             except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
+                debug('missing %r' % k)
+                debug('expected: %r' % sorted(e.items()))
+                debug('actual: %r' % sorted(a.items()))
                 raise
 
 
@@ -137,7 +137,10 @@ def mean(a):
 
 def std(a):
     if a:
-        return int(round(np.std(a)))
+        std = np.std(a, ddof=1)
+        if np.isnan(std):
+            return 0
+        return int(round(std))
     else:
         return 0
 

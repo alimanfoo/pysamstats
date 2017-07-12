@@ -372,10 +372,9 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
         reads_pp = pp(reads)
         tlen_pp = [read.alignment.tlen for read in reads_pp]
-        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = \
-            mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
+        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_paired': len(reads_paired),
                'reads_pp': len(reads_pp),
                'mean_tlen': mean_tlen,
@@ -429,7 +428,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
 
         # yield record
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_fwd': len(fwd(reads)),
                'reads_rev': len(rev(reads)),
                'reads_paired': len(reads_paired),
@@ -485,7 +484,7 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
         mapq_pp = mapq(reads_pp)
         rms_mapq_pp, max_mapq_pp = rms(mapq_pp), vmax(mapq_pp)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_pp': len(reads_pp),
                'reads_mapq0': len(reads_mapq0),
                'reads_mapq0_pp': len(reads_mapq0_pp),
@@ -531,7 +530,7 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
         mapq_pp_rev = mapq(reads_pp_rev)
         rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), vmax(mapq_pp_rev)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_fwd': len(reads_fwd),
                'reads_rev': len(reads_rev),
                'reads_pp': len(reads_pp),
