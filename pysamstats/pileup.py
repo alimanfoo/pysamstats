@@ -152,10 +152,10 @@ stats_classes_pileup = {
     'tlen_strand': opt.TlenStrand,
     'mapq': opt.Mapq,
     'mapq_strand': opt.MapqStrand,
-    # 'baseq': opt.Baseq,
-    # 'baseq_strand': opt.BaseqStrand,
-    # 'baseq_ext': opt.BaseqExt,
-    # 'baseq_ext_strand': opt.BaseqExtStrand,
+    'baseq': opt.Baseq,
+    'baseq_strand': opt.BaseqStrand,
+    'baseq_ext': opt.BaseqExt,
+    'baseq_ext_strand': opt.BaseqExtStrand,
     # 'coverage_gc': opt.CoverageGC,
 }
 

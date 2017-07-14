@@ -36,7 +36,7 @@ def compare_iterators(expected, actual):
                 else:
                     eq_(v, a[k])
             except:
-                debug('mismatch %r' % k)
+                debug('mismatch %r, expected %r, found %r' % (k, v, a[k]))
                 debug('expected: %r' % sorted(e.items()))
                 debug('actual: %r' % sorted(a.items()))
                 raise
@@ -136,7 +136,7 @@ def mean(a):
 
 
 def std(a):
-    if a:
+    if len(a) >= 2:
         std = np.std(a, ddof=1)
         if np.isnan(std):
             return 0
