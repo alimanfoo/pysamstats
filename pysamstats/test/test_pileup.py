@@ -1,22 +1,15 @@
-from __future__ import print_function, division, absolute_import
-
-
-"""
-Tests for the pysamstats module.
-
-The strategy here is to compare the outputs of the functions under test with
-unoptimised, pure-python reference implementations of the same functions, over
-an example dataset. 
-
-"""
-
-
-import sys
-from pysam import Samfile, Fastafile
-from nose.tools import eq_, assert_almost_equal
-import numpy as np
-from math import sqrt
+# -*- coding: utf-8 -*-
+from __future__ import absolute_import, print_function, division
 import logging
+import sys
+
+
+from nose.tools import eq_
+from pysam import Samfile, Fastafile
+
+
+from .util import normalise_coords, compare_stats, compare_stats_withref, fwd, rev, pp, mean, \
+    std, rms, vmax, compare_iterators
 import pysamstats
 
 
@@ -26,75 +19,6 @@ debug = logger.debug
 
 # PY2/3 compatibility
 PY2 = sys.version_info[0] == 2
-if PY2:
-    from itertools import izip_longest
-else:
-    from itertools import zip_longest as izip_longest
-
-
-def _compare_iterators(expected, actual):
-    for e, a in izip_longest(expected, actual, fillvalue=None):
-        assert e is not None, ('expected value is None', e, a)
-        assert a is not None, ('actual value is None', e, a)
-        for k, v in e.items():
-            try:
-                if isinstance(v, float):
-                    assert_almost_equal(v, a[k])
-                else:
-                    eq_(v, a[k])
-            except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
-                raise
-        for k in a:  # check no unexpected fields
-            try:
-                assert k in e
-            except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
-                raise
-
-
-def _test(impl, refimpl):
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
-    _compare_iterators(expected, actual)
-
-
-def _test_withrefseq(impl, refimpl, bam_fn='fixture/test.bam',
-                     fasta_fn='fixture/ref.fa'):
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    _compare_iterators(expected, actual)
-
-
-def normalise_coords(one_based, start, end):
-    if one_based:
-        start = start - 1 if start is not None else None
-        end = end - 1 if end is not None else None
-    return start, end
-
-
-def fwd(reads):
-    return [read for read in reads if not read.alignment.is_reverse]
-
-
-def rev(reads):
-    return [read for read in reads if read.alignment.is_reverse]
-
-
-def pp(reads):
-    return [read for read in reads if read.alignment.is_proper_pair]
 
 
 def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None,
@@ -109,7 +33,7 @@ def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_coverage():
-    _test(pysamstats.stat_coverage, stat_coverage_refimpl)
+    compare_stats(pysamstats.stat_coverage, stat_coverage_refimpl)
 
 
 def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
@@ -129,7 +53,7 @@ def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_coverage_strand():
-    _test(pysamstats.stat_coverage_strand, stat_coverage_strand_refimpl)
+    compare_stats(pysamstats.stat_coverage_strand, stat_coverage_strand_refimpl)
 
 
 def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None,
@@ -177,7 +101,7 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_coverage_ext():
-    _test(pysamstats.stat_coverage_ext, stat_coverage_ext_refimpl)
+    compare_stats(pysamstats.stat_coverage_ext, stat_coverage_ext_refimpl)
 
 
 def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None,
@@ -243,7 +167,7 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_coverage_ext_strand():
-    _test(pysamstats.stat_coverage_ext_strand, stat_coverage_ext_strand_refimpl)
+    compare_stats(pysamstats.stat_coverage_ext_strand, stat_coverage_ext_strand_refimpl)
 
 
 def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None,
@@ -316,7 +240,7 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None,
 
 
 def test_stat_variation():
-    _test_withrefseq(pysamstats.stat_variation, stat_variation_refimpl)
+    compare_stats_withref(pysamstats.stat_variation, stat_variation_refimpl)
 
 
 def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None,
@@ -400,54 +324,21 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None,
             'insertions_pp_fwd': len(fwd(insertions_pp)),
             'insertions_pp_rev': len(rev(insertions_pp)),
             'A': len(a), 'A_fwd': len(fwd(a)), 'A_rev': len(rev(a)),
-            'A_pp': len(a_pp), 'A_pp_fwd': len(fwd(a_pp)),
-            'A_pp_rev': len(rev(a_pp)),
+            'A_pp': len(a_pp), 'A_pp_fwd': len(fwd(a_pp)), 'A_pp_rev': len(rev(a_pp)),
             'C': len(c), 'C_fwd': len(fwd(c)), 'C_rev': len(rev(c)),
-            'C_pp': len(c_pp), 'C_pp_fwd': len(fwd(c_pp)),
-            'C_pp_rev': len(rev(c_pp)),
+            'C_pp': len(c_pp), 'C_pp_fwd': len(fwd(c_pp)), 'C_pp_rev': len(rev(c_pp)),
             'T': len(t), 'T_fwd': len(fwd(t)), 'T_rev': len(rev(t)),
-            'T_pp': len(t_pp), 'T_pp_fwd': len(fwd(t_pp)),
-            'T_pp_rev': len(rev(t_pp)),
+            'T_pp': len(t_pp), 'T_pp_fwd': len(fwd(t_pp)), 'T_pp_rev': len(rev(t_pp)),
             'G': len(g), 'G_fwd': len(fwd(g)), 'G_rev': len(rev(g)),
-            'G_pp': len(g_pp), 'G_pp_fwd': len(fwd(g_pp)),
-            'G_pp_rev': len(rev(g_pp)),
+            'G_pp': len(g_pp), 'G_pp_fwd': len(fwd(g_pp)), 'G_pp_rev': len(rev(g_pp)),
             'N': len(n), 'N_fwd': len(fwd(n)), 'N_rev': len(rev(n)),
-            'N_pp': len(n_pp), 'N_pp_fwd': len(fwd(n_pp)),
-            'N_pp_rev': len(rev(n_pp))
+            'N_pp': len(n_pp), 'N_pp_fwd': len(fwd(n_pp)), 'N_pp_rev': len(rev(n_pp))
         }
 
 
 def test_stat_variation_strand():
-    _test_withrefseq(pysamstats.stat_variation_strand,
-                     stat_variation_strand_refimpl)
-
-
-def rms(a):
-    if a:
-        return int(round(sqrt(np.mean(np.power(a, 2)))))
-    else:
-        return 0
-
-
-def mean(a):
-    if a:
-        return int(round(np.mean(a)))
-    else:
-        return 0
-
-
-def std(a):
-    if a:
-        return int(round(np.std(a)))
-    else:
-        return 0
-
-
-def vmax(a):
-    if a:
-        return max(a)
-    else:
-        return 0
+    compare_stats_withref(pysamstats.stat_variation_strand,
+                          stat_variation_strand_refimpl)
 
 
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None,
@@ -480,7 +371,7 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_tlen():
-    _test(pysamstats.stat_tlen, stat_tlen_refimpl)
+    compare_stats(pysamstats.stat_tlen, stat_tlen_refimpl)
 
 
 def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None,
@@ -552,7 +443,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_tlen_strand():
-    _test(pysamstats.stat_tlen_strand, stat_tlen_strand_refimpl)
+    compare_stats(pysamstats.stat_tlen_strand, stat_tlen_strand_refimpl)
 
 
 def mapq0(reads):
@@ -590,7 +481,7 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_mapq():
-    _test(pysamstats.stat_mapq, stat_mapq_refimpl)
+    compare_stats(pysamstats.stat_mapq, stat_mapq_refimpl)
 
 
 def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None,
@@ -652,16 +543,12 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_mapq_strand():
-    _test(pysamstats.stat_mapq_strand, stat_mapq_strand_refimpl)
+    compare_stats(pysamstats.stat_mapq_strand, stat_mapq_strand_refimpl)
 
 
 def baseq(reads):
-    if PY2:
-        l = [ord(read.alignment.qual[read.query_position])-33
-             for read in reads]
-    else:
-        l = [read.alignment.qual[read.query_position]-33
-             for read in reads]
+    l = [ord(read.alignment.qual[read.query_position]) - 33
+         for read in reads]
     return l
 
 
@@ -690,7 +577,7 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_baseq():
-    _test(pysamstats.stat_baseq, stat_baseq_refimpl)
+    compare_stats(pysamstats.stat_baseq, stat_baseq_refimpl)
 
 
 def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None,
@@ -735,7 +622,7 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
 
 def test_stat_baseq_strand():
-    _test(pysamstats.stat_baseq_strand, stat_baseq_strand_refimpl)
+    compare_stats(pysamstats.stat_baseq_strand, stat_baseq_strand_refimpl)
 
 
 def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None,
@@ -781,7 +668,7 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None,
 
 
 def test_stat_baseq_ext():
-    _test_withrefseq(pysamstats.stat_baseq_ext, stat_baseq_ext_refimpl)
+    compare_stats_withref(pysamstats.stat_baseq_ext, stat_baseq_ext_refimpl)
 
 
 def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None,
@@ -874,8 +761,8 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None,
 
 
 def test_stat_baseq_ext_strand():
-    _test_withrefseq(pysamstats.stat_baseq_ext_strand,
-                     stat_baseq_ext_strand_refimpl)
+    compare_stats_withref(pysamstats.stat_baseq_ext_strand,
+                          stat_baseq_ext_strand_refimpl)
 
 
 from collections import Counter
@@ -915,527 +802,12 @@ def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None,
 
 
 def test_stat_coverage_gc():
-    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
+    compare_stats_withref(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl)
 
 
 def test_stat_coverage_gc_uppercase_fasta():
-    _test_withrefseq(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
-                     fasta_fn='fixture/ref.upper.fa')
-
-
-from itertools import chain
-
-
-def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
-                                 end=None, one_based=False, window_size=300,
-                                 window_offset=150):
-    if chrom is None:
-        it = chain(*[
-            _iter_coverage_binned(samfile, fastafile, chrom, None, None,
-                                  one_based, window_size, window_offset)
-            for chrom in samfile.references
-        ])
-    else:
-        it = _iter_coverage_binned(samfile, fastafile, chrom, start, end,
-                                   one_based, window_size, window_offset)
-    return it
-
-
-def _gc_percent(fastafile, chrom, start, end):
-    seq = fastafile.fetch(chrom, start, end).lower()
-    nc = Counter(seq)
-    gc_percent = int(round((nc['g'] + nc['c']) * 100. / (end-start)))
-    return gc_percent
-
-
-def _iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
-                          window_size, window_offset):
-    assert chrom is not None
-    start, end = normalise_coords(one_based, start, end)
-    chrlen = samfile.lengths[samfile.references.index(chrom)]
-    if start is None:
-        start = 0
-    if end is None:
-        end = chrlen
-    if end > chrlen:
-        end = chrlen
-    # setup first bin
-    bin_start = start
-    bin_end = bin_start + window_size
-    reads_all = reads_pp = 0
-
-    # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
-        while aln.pos > bin_end:  # end of bin
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all,
-                   'reads_pp': reads_pp}
-            yield rec
-            reads_all = reads_pp = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-        if not aln.is_unmapped:
-            reads_all += 1
-            if aln.is_proper_pair:
-                reads_pp += 1
-
-    # deal with last non-empty bin
-    gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent, 'reads_all': reads_all, 'reads_pp': reads_pp}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            reads_all = reads_pp = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent, 'reads_all': reads_all,
-                   'reads_pp': reads_pp}
-            yield rec
-
-
-def test_stat_coverage_binned():
-    _test_withrefseq(pysamstats.stat_coverage_binned,
-                     stat_coverage_binned_refimpl)
-
-
-def test_stat_coverage_binned_uppercase_fasta():
-    _test_withrefseq(pysamstats.stat_coverage_binned,
-                     stat_coverage_binned_refimpl,
-                     fasta_fn='fixture/ref.upper.fa')
-
-
-def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None,
-                                     start=None, end=None, one_based=False,
-                                     window_size=300, window_offset=150):
-    if chrom is None:
-        it = chain(*[
-            _iter_coverage_ext_binned(samfile, fastafile, chrom, None, None,
-                                      one_based, window_size, window_offset)
-            for chrom in samfile.references
-        ])
-    else:
-        it = _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end,
-                                       one_based, window_size, window_offset)
-    return it
-
-
-def _iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
-                              window_size, window_offset):
-    assert chrom is not None
-    start, end = normalise_coords(one_based, start, end)
-    chrlen = samfile.lengths[samfile.references.index(chrom)]
-    if start is None:
-        start = 0
-    if end is None:
-        end = chrlen
-    if end > chrlen:
-        end = chrlen
-    # setup first bin
-    bin_start = start
-    bin_end = bin_start + window_size
-    reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr = \
-        reads_mate_same_strand = reads_faceaway = reads_softclipped = \
-        reads_duplicate = 0
-
-    # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
-        while aln.pos > bin_end:  # end of bin
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp,
-                   'reads_mate_unmapped': reads_mate_unmapped,
-                   'reads_mate_other_chr': reads_mate_other_chr,
-                   'reads_mate_same_strand': reads_mate_same_strand,
-                   'reads_faceaway': reads_faceaway,
-                   'reads_softclipped': reads_softclipped,
-                   'reads_duplicate': reads_duplicate}
-            yield rec
-            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr\
-                = reads_mate_same_strand = reads_faceaway = reads_softclipped\
-                = reads_duplicate = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-#        debug(aln, aln.cigar, repr(aln.cigarstring))
-        if not aln.is_unmapped:
-            reads_all += 1
-            if aln.is_proper_pair:
-                reads_pp += 1
-            if aln.is_duplicate:
-                reads_duplicate += 1
-            if aln.cigar is not None and any((op[0] == 4) for op in aln.cigar):
-                reads_softclipped += 1
-            # should be mutually exclusive
-            if aln.mate_is_unmapped:
-                reads_mate_unmapped += 1
-            elif aln.tid != aln.rnext:
-                reads_mate_other_chr += 1
-            elif aln.is_reverse == aln.mate_is_reverse:
-                reads_mate_same_strand += 1
-            elif (
-                # mapped to reverse strand but leftmost
-                (aln.is_reverse and aln.tlen > 0)
-                # mapped to fwd strand but rightmost
-                or (not aln.is_reverse and aln.tlen < 0)
-            ):
-                reads_faceaway += 1
-
-    # deal with last non-empty bin
-    gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'gc': gc_percent,
-           'reads_all': reads_all,
-           'reads_pp': reads_pp,
-           'reads_mate_unmapped': reads_mate_unmapped,
-           'reads_mate_other_chr': reads_mate_other_chr,
-           'reads_mate_same_strand': reads_mate_same_strand,
-           'reads_faceaway': reads_faceaway,
-           'reads_softclipped': reads_softclipped,
-           'reads_duplicate': reads_duplicate}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            reads_all = reads_pp = reads_mate_unmapped = reads_mate_other_chr\
-                = reads_mate_same_strand = reads_faceaway = reads_softclipped\
-                = reads_duplicate = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            gc_percent = _gc_percent(fastafile, chrom, bin_start, bin_end)
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'gc': gc_percent,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp,
-                   'reads_mate_unmapped': reads_mate_unmapped,
-                   'reads_mate_other_chr': reads_mate_other_chr,
-                   'reads_mate_same_strand': reads_mate_same_strand,
-                   'reads_faceaway': reads_faceaway,
-                   'reads_softclipped': reads_softclipped,
-                   'reads_duplicate': reads_duplicate}
-            yield rec
-
-
-def test_stat_coverage_ext_binned():
-    _test_withrefseq(pysamstats.stat_coverage_ext_binned,
-                     stat_coverage_ext_binned_refimpl)
-
-
-def test_stat_coverage_ext_binned_uppercase_fasta():
-    _test_withrefseq(pysamstats.stat_coverage_ext_binned,
-                     stat_coverage_ext_binned_refimpl,
-                     fasta_fn='fixture/ref.upper.fa')
-
-
-def stat_mapq_binned_refimpl(samfile,
-                             chrom=None, start=None, end=None, one_based=False,
-                             window_size=300, window_offset=150):
-    if chrom is None:
-        it = chain(*[_iter_mapq_binned(samfile, chrom, None, None, one_based,
-                                       window_size, window_offset)
-                     for chrom in samfile.references])
-    else:
-        it = _iter_mapq_binned(samfile, chrom, start, end, one_based,
-                               window_size, window_offset)
-    return it
-
-
-def _iter_mapq_binned(samfile, chrom, start, end, one_based, window_size,
-                      window_offset):
-    assert chrom is not None
-    start, end = normalise_coords(one_based, start, end)
-    chrlen = samfile.lengths[samfile.references.index(chrom)]
-    if start is None:
-        start = 0
-    if end is None:
-        end = chrlen
-    if end > chrlen:
-        end = chrlen
-    # setup first bin
-    bin_start = start
-    bin_end = bin_start + window_size
-    reads_all = reads_mapq0 = mapq_square_sum = 0
-
-    # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
-        while aln.pos > bin_end:  # end of bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all,
-                   'reads_mapq0': reads_mapq0,
-                   'rms_mapq': rootmean(mapq_square_sum, reads_all)}
-            yield rec
-            reads_all = reads_mapq0 = mapq_square_sum = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-        if not aln.is_unmapped:
-            reads_all += 1
-            mapq_square_sum += aln.mapq**2
-            if aln.mapq == 0:
-                reads_mapq0 += 1
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'reads_all': reads_all,
-           'reads_mapq0': reads_mapq0,
-           'rms_mapq': rootmean(mapq_square_sum, reads_all)}
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            reads_all = reads_mapq0 = mapq_square_sum = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all,
-                   'reads_mapq0': reads_mapq0,
-                   'rms_mapq': rootmean(mapq_square_sum, reads_all)}
-            yield rec
-
-
-def test_stat_mapq_binned():
-    _test(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
-
-
-def stat_alignment_binned_refimpl(samfile, chrom=None, start=None, end=None,
-                                  one_based=False, window_size=300,
-                                  window_offset=150):
-    if chrom is None:
-        it = chain(*[
-            _iter_alignment_binned(samfile, chrom, None, None, one_based,
-                                   window_size, window_offset)
-            for chrom in samfile.references]
-        )
-    else:
-        it = _iter_alignment_binned(samfile, chrom, start, end, one_based,
-                                    window_size, window_offset)
-    return it
-
-
-CIGAR = 'MIDNSHP=X'
-
-
-def _iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
-                           window_offset):
-    assert chrom is not None
-    start, end = normalise_coords(one_based, start, end)
-    chrlen = samfile.lengths[samfile.references.index(chrom)]
-    if start is None:
-        start = 0
-    if end is None:
-        end = chrlen
-    if end > chrlen:
-        end = chrlen
-    # setup first bin
-    bin_start = start
-    bin_end = bin_start + window_size
-    c = Counter()
-    reads_all = 0
-
-    # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
-        while aln.pos > bin_end:  # end of bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
-            for i in range(len(CIGAR)):
-                rec[CIGAR[i]] = c[i]
-#            rec['NM'] = c['NM']
-            rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
-            yield rec
-            c = Counter()
-            reads_all = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-#        debug(aln.cigar)
-        if not aln.is_unmapped:
-            reads_all += 1
-            if aln.cigar is not None:
-                for op, l in aln.cigar:
-                    c[op] += l
-            # add edit distance
-    #        tags = dict(aln.tags)
-    #        if 'NM' in tags:
-    #            c['NM'] += tags['NM']
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
-    for i in range(len(CIGAR)):
-        rec[CIGAR[i]] = c[i]
-#            rec['NM'] = c['NM']
-    rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            c = Counter()
-            reads_all = 0
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos, 'reads_all': reads_all}
-            for i in range(len(CIGAR)):
-                rec[CIGAR[i]] = c[i]
-        #            rec['NM'] = c['NM']
-            rec['bases_all'] = c[0] + c[1] + c[4] + c[7] + c[8]
-            yield rec
-
-
-def test_stat_alignment_binned():
-    _test(pysamstats.stat_alignment_binned, stat_alignment_binned_refimpl)
-
-
-def stat_tlen_binned_refimpl(samfile,
-                             chrom=None, start=None, end=None, one_based=False,
-                             window_size=300, window_offset=150):
-    if chrom is None:
-        it = chain(*[_iter_tlen_binned(samfile, chrom, None, None, one_based,
-                                       window_size, window_offset)
-                     for chrom in samfile.references])
-    else:
-        it = _iter_tlen_binned(samfile, chrom, start, end, one_based,
-                               window_size, window_offset)
-    return it
-
-
-def _iter_tlen_binned(samfile, chrom, start, end, one_based, window_size,
-                      window_offset):
-    assert chrom is not None
-    start, end = normalise_coords(one_based, start, end)
-    chrlen = samfile.lengths[samfile.references.index(chrom)]
-    if start is None:
-        start = 0
-    if end is None:
-        end = chrlen
-    if end > chrlen:
-        end = chrlen
-    # setup first bin
-    bin_start = start
-    bin_end = bin_start + window_size
-    reads_all = reads_pp = 0
-    tlens = []
-    tlens_pp = []
-
-    # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
-        while aln.pos > bin_end:  # end of bin
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp,
-                   'mean_tlen': mean(tlens),
-                   'rms_tlen': rms(tlens),
-                   'mean_tlen_pp': mean(tlens_pp),
-                   'rms_tlen_pp': rms(tlens_pp),
-                   }
-            yield rec
-            reads_all = reads_pp = 0
-            tlens = []
-            tlens_pp = []
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-        if not aln.is_unmapped:
-            reads_all += 1
-            tlens.append(aln.tlen)
-            if aln.is_proper_pair:
-                reads_pp += 1
-                tlens_pp.append(aln.tlen)
-
-    # deal with last non-empty bin
-    pos = bin_start + window_offset
-    if one_based:
-        pos += 1
-    rec = {'chrom': chrom, 'pos': pos,
-           'reads_all': reads_all,
-           'reads_pp': reads_pp,
-           'mean_tlen': mean(tlens),
-           'rms_tlen': rms(tlens),
-           'mean_tlen_pp': mean(tlens_pp),
-           'rms_tlen_pp': rms(tlens_pp),
-           }
-    yield rec
-
-    # deal with empty bins up to explicit end
-    if end is not None:
-        while bin_end < end:
-            reads_all = reads_pp = 0
-            tlens = []
-            tlens_pp = []
-            bin_start = bin_end
-            bin_end = bin_start + window_size
-            pos = bin_start + window_offset
-            if one_based:
-                pos += 1
-            rec = {'chrom': chrom, 'pos': pos,
-                   'reads_all': reads_all,
-                   'reads_pp': reads_pp,
-                   'mean_tlen': mean(tlens),
-                   'rms_tlen': rms(tlens),
-                   'mean_tlen_pp': mean(tlens_pp),
-                   'rms_tlen_pp': rms(tlens_pp),
-                   }
-            yield rec
-
-
-def test_stat_tlen_binned():
-    _test(pysamstats.stat_tlen_binned, stat_tlen_binned_refimpl)
-
-
-def rootmean(sqsum, count):
-    if count > 0:
-        return int(round(sqrt(sqsum / count)))
-    else:
-        return 0
-
-
-def _mean(total, count):
-    if count > 0:
-        return int(round(total / count))
-    else:
-        return 0
+    compare_stats_withref(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
+                          fasta_fn='fixture/ref.upper.fa')
 
 
 pileup_functions = [
@@ -1524,7 +896,7 @@ def test_pileup_pad_wg():
     # whole genome
     expected = stat_coverage_refimpl(Samfile('fixture/test.bam'))
     actual = pysamstats.stat_coverage(Samfile('fixture/test.bam'))
-    _compare_iterators(expected, actual)
+    compare_iterators(expected, actual)
     kwargs_nopad = {'pad': False}
     kwargs_pad = {'pad': True}
     for f, needs_ref in pileup_functions:
@@ -1556,61 +928,6 @@ def test_pileup_pad_wg():
         eq_(70000, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1])
 
 
-binned_functions = [
-    (pysamstats.load_coverage_binned, 1),
-    (pysamstats.load_coverage_ext_binned, 1),
-    (pysamstats.load_mapq_binned, 0),
-    (pysamstats.load_alignment_binned, 0),
-    (pysamstats.load_tlen_binned, 0),
-]
-
-
-def test_binned_pad_region():
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 1000,
-              'end': 20000,
-              'one_based': False,
-              'window_size': 200,
-              'window_offset': 100}
-    for f, needs_ref in binned_functions:
-        debug(f.__name__)
-        if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
-                  **kwargs)
-        else:
-            a = f(Samfile('fixture/test.bam'), **kwargs)
-        assert set(a['chrom']) == {b'Pf3D7_01_v3'}
-        eq_(1100, a['pos'][0])
-        eq_(19900, a['pos'][-1])
-
-
-def test_binned_pad_wg():
-    expected = stat_coverage_binned_refimpl(
-        Samfile('fixture/test.bam'),
-        Fastafile('fixture/ref.fa'))
-
-    actual = pysamstats.stat_coverage_binned(Samfile('fixture/test.bam'),
-                                             Fastafile('fixture/ref.fa'))
-    _compare_iterators(expected, actual)
-    kwargs = {'window_size': 200,
-              'window_offset': 100}
-    for f, needs_ref in binned_functions:
-        debug(f.__name__)
-        if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
-                  **kwargs)
-        else:
-            a = f(Samfile('fixture/test.bam'), **kwargs)
-        assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3',
-                                           b'Pf3D7_03_v3']
-        eq_(100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0])
-        eq_(50100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1])
-        eq_(100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][0])
-        eq_(60100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1])
-        eq_(100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][0])
-        eq_(70100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1])
-
-
 def test_pileup_limit():
 
     for f, needs_ref in pileup_functions:
@@ -1632,7 +949,7 @@ def test_pileup_limit():
                   **kwargs)
         else:
             a = f(Samfile('fixture/deep.bam'), **kwargs)
-        eq_(12045, a[70])  # no idea why limit is not exact
+        eq_(12046, a[70])  # no idea why limit is not exact
 
         # test with default limit
         kwargs = dict(fields=['reads_all'])
@@ -1641,4 +958,4 @@ def test_pileup_limit():
                   **kwargs)
         else:
             a = f(Samfile('fixture/deep.bam'), **kwargs)
-        eq_(8051, a[70])  # no idea why limit is not exact
+        eq_(8052, a[70])  # no idea why limit is not exact

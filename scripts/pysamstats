@@ -8,33 +8,11 @@ import errno
 
 import pysam
 import pysamstats
+from pysamstats import stats_types, stats_types_withref
+from pysamstats.io import write_csv, write_hdf5
 
 
 if __name__ == '__main__':
-    
-    stats_types_noref = ('coverage',
-                         'coverage_strand',
-                         'coverage_ext',
-                         'coverage_ext_strand',
-                         'tlen',
-                         'tlen_strand',
-                         'mapq',
-                         'mapq_strand',
-                         'baseq',
-                         'baseq_strand',
-                         'mapq_binned',
-                         'alignment_binned',
-                         'tlen_binned')
-
-    stats_types_withref = ('variation',
-                           'variation_strand',
-                           'baseq_ext',
-                           'baseq_ext_strand',
-                           'coverage_gc',
-                           'coverage_binned',
-                           'coverage_ext_binned')
-
-    stats_types = sorted(stats_types_noref + stats_types_withref)
 
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics against genome positions based on " \
@@ -47,7 +25,7 @@ Pileup-based statistics types (each row has statistics over reads in a pileup co
                             (total and properly paired).
     * coverage_strand     - As coverage but with forward/reverse strand counts.
     * coverage_ext        - Various additional coverage metrics, including
-                            coverage for reads not properly paired (mate 
+                            coverage for reads not properly paired (mate
                             unmapped, mate on other chromosome, ...).
     * coverage_ext_strand - As coverage_ext but with forward/reverse strand counts.
     * coverage_gc         - As coverage but also includes a column for %GC.
@@ -172,11 +150,11 @@ Version: {version} (pysam {pysamversion})
                            '2**20).')
 
     options, args = parser.parse_args()
-    
+
     if len(args) != 1:
         parser.error('missing SAM or BAM file operand\n\nTry "pysamstats '
                      '--help" for more information.')
-    
+
     samfile = args[0]
     one_based = not options.zero_based
     write_header = not options.omit_header
@@ -184,7 +162,7 @@ Version: {version} (pysam {pysamversion})
         fields = options.fields.split(',')
     else:
         fields = None
-    
+
     try:
 
         if options.type not in stats_types:
@@ -199,6 +177,20 @@ Version: {version} (pysam {pysamversion})
 
         else:
 
+            # setup common parameters
+            kwargs = dict(
+                chrom=options.chromosome,
+                start=options.start,
+                end=options.end,
+                one_based=one_based,
+                window_size=options.window_size,
+                window_offset=options.window_offset,
+            )
+            if not options.type.endswith('_binned'):
+                kwargs['truncate'] = options.truncate
+                kwargs['pad'] = options.pad
+                kwargs['max_depth'] = options.max_depth
+
             if options.format.lower() in ['tsv', 'csv']:
 
                 # setup
@@ -207,28 +199,20 @@ Version: {version} (pysam {pysamversion})
                     output = sys.stdout
                     needs_closing = False
                 else:
-                    output = open(options.output, 'wb')
+                    output = open(options.output, 'w')
                     needs_closing = True
 
                 try:
-                    pysamstats.write_csv(
+                    write_csv(
                         options.type,
                         output,
                         samfile,
                         fafile=options.fasta,
                         write_header=write_header,
                         dialect=dialect,
-                        chrom=options.chromosome,
-                        start=options.start,
-                        end=options.end,
-                        one_based=one_based,
-                        truncate=options.truncate,
-                        pad=options.pad,
-                        max_depth=options.max_depth,
-                        window_size=options.window_size,
-                        window_offset=options.window_offset,
                         progress=options.progress,
                         fields=fields,
+                        **kwargs
                     )
                 finally:
                     if needs_closing:
@@ -238,20 +222,11 @@ Version: {version} (pysam {pysamversion})
 
                 assert options.output is not None, '--output must be specified'
 
-                pysamstats.write_hdf5(
+                write_hdf5(
                     options.type,
                     options.output,
                     samfile,
                     fafile=options.fasta,
-                    chrom=options.chromosome,
-                    start=options.start,
-                    end=options.end,
-                    one_based=one_based,
-                    truncate=options.truncate,
-                    pad=options.pad,
-                    max_depth=options.max_depth,
-                    window_size=options.window_size,
-                    window_offset=options.window_offset,
                     progress=options.progress,
                     hdf5_group=options.hdf5_group,
                     hdf5_dataset=options.hdf5_dataset,
@@ -259,6 +234,7 @@ Version: {version} (pysam {pysamversion})
                     hdf5_complevel=options.hdf5_complevel,
                     hdf5_chunksize=options.hdf5_chunksize,
                     fields=fields,
+                    **kwargs
                 )
 
     except IOError as e:

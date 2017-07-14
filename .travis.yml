@@ -1,0 +1,29 @@
+language: python
+
+branches:
+  only:
+    - master
+
+sudo: false
+
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
+
+install:
+  - pip install -U pip setuptools wheel
+  - pip install -r requirements_dev.txt
+  - python setup.py build_ext --inplace
+  - pip install -v .
+
+script:
+  - nosetests -v
+  - pysamstats --help
+  - pysamstats --type coverage fixture/test.bam > coverage.txt
+  - pysamstats --type coverage --output=coverage.txt fixture/test.bam
+  - pysamstats --type coverage --output=coverage.h5 --format=hdf5 fixture/test.bam
+  - pysamstats --type coverage --fields=pos,reads_all fixture/test.bam > coverage_fields.txt
+  - pysamstats --type coverage_binned --fasta=fixture/ref.fa fixture/test.bam > coverage_binned.txt
+  - pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.txt fixture/test.bam
+  - pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.h5 --format=hdf5 fixture/test.bam
