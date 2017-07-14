@@ -1455,55 +1455,62 @@ cdef class BaseqExtStrand(PileupStat):
         return rec
 
 
-# #################################################
-# # BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
-# #################################################
-#
-#
-# def frecs_coverage_gc(window_size=300, window_offset=None):
-#
-#     if window_offset is None:
-#         window_offset = window_size / 2
-#
-#     def rec_coverage_gc(AlignmentFile alignmentfile, FastaFile fafile,
-#                          PileupColumn col, bint one_based):
-#         chrom = alignmentfile.getrname(col.tid)
-#
-#         ref_window_start = col.pos - window_offset
-#         ref_window_end = ref_window_start + window_size
-#         if ref_window_start < 0:
-#             ref_window_start = 0
-#         ref_window = fafile\
-#             .fetch(chrom, ref_window_start, ref_window_end)\
-#             .lower()
-#         if len(ref_window) == 0:
-#             gc = -1
-#         else:
-#             gc = gc_content(ref_window)
-#
-#         rec = rec_coverage(alignmentfile, fafile, col, one_based)
-#         rec['gc'] = gc
-#         return rec
-#
-#     def rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
-#                              bint one_based):
-#         ref_window_start = pos - window_offset
-#         ref_window_end = ref_window_start + window_size
-#         if ref_window_start < 0:
-#             ref_window_start = 0
-#         ref_window = fafile\
-#             .fetch(chrom, ref_window_start, ref_window_end)\
-#             .lower()
-#         if len(ref_window) == 0:
-#             gc = -1
-#         else:
-#             gc = gc_content(ref_window)
-#         rec = rec_coverage_pad(fafile, chrom, pos, one_based)
-#         rec['gc'] = gc
-#         return rec
-#
-#     return rec_coverage_gc, rec_coverage_gc_pad
-#
+#################################################
+# BASIC COVERAGE STATISTICS WITH GC COMPOSITION #
+#################################################
+
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageGC(PileupStat):
+
+    cdef:
+        CountPp reads
+        int window_size, window_offset
+
+    def __init__(self, window_size, window_offset):
+        self.window_size = window_size
+        if window_offset is None:
+            window_offset = window_size // 2
+        self.window_offset = window_offset
+        self.reads = CountPp()
+        self.reset()
+
+    def reset(self):
+        self.reads.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            bint is_proper_pair
+
+        # convenience variables
+        is_proper_pair = <bint>(read.b.core.flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads.incr(is_proper_pair)
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # compute GC
+        ref_window_start = pos - self.window_offset
+        ref_window_end = ref_window_start + self.window_size
+        if ref_window_start < 0:
+            ref_window_start = 0
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
+        if len(ref_window) == 0:
+            gc = -1
+        else:
+            gc = gc_content(ref_window)
+
+        # make record
+        rec = {'reads_all': self.reads.all,
+               'reads_pp': self.reads.pp,
+               'gc': gc}
+
+        # reset counters
+        self.reset()
+
+        return rec
+
 
 ###################
 # BINNED COVERAGE #
@@ -1842,15 +1849,22 @@ def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_base
     # iterate over pileup columns
     for col in it:
 
-        rec = stat_pileup(stat, col, fafile=fafile, chrom=chrom, one_based=one_based,
-                          min_mapq=min_mapq, min_baseq=min_baseq, no_del=no_del,
-                          no_dup=no_dup)
+        rec = stat_pileup(stat, col, alignmentfile=alignmentfile, fafile=fafile,
+                          one_based=one_based, min_mapq=min_mapq, min_baseq=min_baseq,
+                          no_del=no_del, no_dup=no_dup)
 
         yield rec
 
 
-def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based, int min_mapq,
-                int min_baseq, bint no_del, bint no_dup):
+def stat_pileup(PileupStat stat,
+                PileupColumn col,
+                AlignmentFile alignmentfile,
+                FastaFile fafile,
+                bint one_based,
+                int min_mapq,
+                int min_baseq,
+                bint no_del,
+                bint no_dup):
     cdef:
         bam_pileup1_t** plp
         bam_pileup1_t* read
@@ -1861,13 +1875,11 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
     n = col.n
     plp = col.plp
 
+    # get current chromosome
+    chrom = alignmentfile.getrname(col.tid)
+
     # setup reference base
-    if fafile is not None:
-        refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-        if not PY2:
-            refbase = refbase.encode('ascii')
-    else:
-        refbase = None
+    refbase = get_refbase(fafile, chrom, col.pos)
 
     # iterate over reads in the column
     for i in range(n):
@@ -1893,9 +1905,8 @@ def stat_pileup(PileupStat stat, PileupColumn col, fafile, chrom, bint one_based
         stat.recv(read, col, refbase)
 
     # construct record
-    # TODO check this doesn't foul-up GC window centre
+    rec = stat.rec(chrom, col.pos, fafile, refbase)
     pos = col.pos + 1 if one_based else col.pos
-    rec = stat.rec(chrom, pos, fafile, refbase)
     rec['chrom'] = chrom
     rec['pos'] = pos
     return rec
@@ -1915,7 +1926,7 @@ def iter_pileup_padded(stat, alignmentfile, fafile, chrom, **kwargs):
     return it
 
 
-def iter_pileup_padded_chrom(stat, alignmentfile, fafile, chrom, start, end,
+def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,
                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
     cdef:
         PileupColumn col
@@ -1935,17 +1946,20 @@ def iter_pileup_padded_chrom(stat, alignmentfile, fafile, chrom, start, end,
 
         # pad up to next pileup column
         while curpos < col.pos:
+            # setup reference base
+            refbase = get_refbase(fafile, chrom, curpos)
             # construct record
-            rec = stat.rec(chrom, curpos, fafile)
+            rec = stat.rec(chrom, curpos, fafile, refbase)
             rec['chrom'] = chrom
-            rec['pos'] = curpos
+            pos = curpos + 1 if one_based else curpos
+            rec['pos'] = pos
             yield rec
             curpos += 1
 
         # construct and yield statistics record for current pileup column
-        rec = stat_pileup(stat, col, fafile=fafile, chrom=chrom, one_based=one_based,
-                          min_mapq=min_mapq, min_baseq=min_baseq, no_del=no_del,
-                          no_dup=no_dup)
+        rec = stat_pileup(stat, col, alignmentfile=alignmentfile, fafile=fafile,
+                          one_based=one_based, min_mapq=min_mapq, min_baseq=min_baseq,
+                          no_del=no_del, no_dup=no_dup)
         yield rec
 
         # advance current position
@@ -1954,11 +1968,23 @@ def iter_pileup_padded_chrom(stat, alignmentfile, fafile, chrom, start, end,
     while curpos < end:
 
         # pad out to end position
-        rec = stat.rec(chrom, curpos, fafile)
+        refbase = get_refbase(fafile, chrom, curpos)
+        rec = stat.rec(chrom, curpos, fafile, refbase)
         rec['chrom'] = chrom
-        rec['pos'] = curpos
+        pos = curpos + 1 if one_based else curpos
+        rec['pos'] = pos
         yield rec
         curpos += 1
+
+
+def get_refbase(fafile, chrom, pos):
+    if fafile is not None:
+        refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+        if not PY2:
+            refbase = refbase.encode('ascii')
+    else:
+        refbase = None
+    return refbase
 
 
 def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offset=None,

@@ -6,6 +6,7 @@ import sys
 
 from nose.tools import eq_
 from pysam import Samfile, Fastafile
+import numpy as np
 
 
 from .util import normalise_coords, compare_stats, compare_stats_withref, fwd, rev, pp, mean, \
@@ -912,6 +913,7 @@ def test_pileup_pad():
             a = f(Samfile('fixture/test.bam'), **kwargs_pad)
         eq_(0, a['pos'][0])
         eq_(19999, a['pos'][-1])
+        assert np.all(np.diff(a['pos']) == 1)
 
 
 def test_pileup_pad_wg():

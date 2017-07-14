@@ -156,7 +156,7 @@ stats_classes_pileup = {
     'baseq_strand': opt.BaseqStrand,
     'baseq_ext': opt.BaseqExt,
     'baseq_ext_strand': opt.BaseqExtStrand,
-    # 'coverage_gc': opt.CoverageGC,
+    'coverage_gc': opt.CoverageGC,
 }
 
 
