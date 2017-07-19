@@ -38,13 +38,13 @@ _doc_params = """
     window_offset : int, optional
         Distance from window start to record position (only applies to coverage_gc).
     min_mapq : int, optional
-        Only reads with mappinng quality equal to or greater than this value will be counted (0
+        Only reads with mapping quality equal to or greater than this value will be counted (0
         by default).
     min_baseq : int, optional
         Only reads with base quality equal to or greater than this value will be counted (0 by
         default).
     no_del : bool, optional
-        If True, don't count reads aligned with a spanning deletion at the current position.
+        If True, don't count reads aligned with a deletion at the current position.
     no_dup : bool, optional
         If True, don't count reads flagged as duplicate."""
 

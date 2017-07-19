@@ -30,7 +30,7 @@ _doc_params = """
     window_offset : int
         Distance from window start to record position.
     min_mapq : int, optional
-        Only reads with mappinng quality equal to or greater than this value will be counted (0
+        Only reads with mapping quality equal to or greater than this value will be counted (0
         by default).
     no_dup : bool, optional
         If True, don't count reads flagged as duplicate."""
@@ -134,8 +134,8 @@ stats_classes_binned = {
 _stat_doc_lines = stat_binned.__doc__.split('\n')
 _load_doc_lines = load_binned.__doc__.split('\n')
 # strip "type" parameter
-_stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[6:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _load_doc_lines[6:])
+_stat_doc = '\n'.join(_stat_doc_lines[:5] + _stat_doc_lines[7:])
+_load_doc = '\n'.join(_load_doc_lines[:5] + _load_doc_lines[7:])
 
 
 def _specialize(type):
