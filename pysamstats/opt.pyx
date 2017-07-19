@@ -68,7 +68,16 @@ DEF BAM_CDIFF      = 8
 
 cdef char* CODE2CIGAR= "MIDNSHP=X"
 
-cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
+cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
+
+
+cdef class PileupStat(object):
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+        return dict()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        pass
 
 
 #############################
@@ -76,49 +85,56 @@ cdef char * bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 #############################
 
 
-cpdef dict rec_coverage(AlignmentFile alignmentfile, FastaFile fafile,
-                        PileupColumn col, bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class CountPp:
+    cdef:
+        int all, pp
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n  # loop index
-    cdef int reads_all  # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef int reads_pp = 0
+    def __init__(self):
+        self.reset()
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def reset(self):
+        self.all = self.pp = 0
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+    cdef void incr(self, bint is_proper_pair):
+        self.all += 1
         if is_proper_pair:
-            reads_pp += 1
-
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_pp': reads_pp}
+            self.pp += 1
 
 
-cpdef dict rec_coverage_pad(FastaFile fafile, chrom, pos,
-                            bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_pp': 0}
+# noinspection PyAttributeOutsideInit
+cdef class Coverage(PileupStat):
+
+    cdef:
+        CountPp reads
+
+    def __init__(self):
+        self.reads = CountPp()
+        self.reset()
+
+    def reset(self):
+        self.reads.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            bint is_proper_pair
+
+        # convenience variables
+        is_proper_pair = <bint>(read.b.core.flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads.incr(is_proper_pair)
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        rec = {'reads_all': self.reads.all,
+               'reads_pp': self.reads.pp}
+
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ################################
@@ -126,71 +142,72 @@ cpdef dict rec_coverage_pad(FastaFile fafile, chrom, pos,
 ################################
 
 
-cpdef dict rec_coverage_strand(AlignmentFile alignmentfile, FastaFile fafile,
-                               PileupColumn col, bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class CountPpStrand:
+    cdef:
+        int all, pp, fwd, rev, pp_fwd, pp_rev
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_reverse
-    cdef bint is_proper_pair
-    cdef int reads_fwd = 0
-    cdef int reads_rev = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_pp_rev = 0
+    def __init__(self):
+        self.reset()
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def reset(self):
+        self.all = self.fwd = self.rev = self.pp = self.pp_fwd = self.pp_rev = 0
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_reverse = <bint>(flag & BAM_FREVERSE)
+    cdef void incr(self, bint is_reverse, bint is_proper_pair):
+        self.all += 1
         if is_reverse:
-            reads_rev += 1
+            self.rev += 1
+            if is_proper_pair:
+                self.pp += 1
+                self.pp_rev += 1
         else:
-            reads_fwd += 1
+            self.fwd += 1
+            if is_proper_pair:
+                self.pp += 1
+                self.pp_fwd += 1
+
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageStrand(PileupStat):
+
+    cdef:
+        CountPpStrand reads
+
+    def __init__(self):
+        self.reads = CountPpStrand()
+        self.reset()
+
+    def reset(self):
+        self.reads.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_fwd': reads_fwd,
-            'reads_rev': reads_rev,
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev}
+        # do the counting
+        self.reads.incr(is_reverse, is_proper_pair)
 
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-cpdef dict rec_coverage_strand_pad(FastaFile fafile, chrom, pos,
-                                   bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_fwd': 0,
-            'reads_rev': 0,
-            'reads_pp': 0,
-            'reads_pp_fwd': 0,
-            'reads_pp_rev': 0}
+        # make record
+        rec = {'reads_all': self.reads.all,
+               'reads_fwd': self.reads.fwd,
+               'reads_rev': self.reads.rev,
+               'reads_pp': self.reads.pp,
+               'reads_pp_fwd': self.reads.pp_fwd,
+               'reads_pp_rev': self.reads.pp_rev}
+
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ################################
@@ -198,89 +215,84 @@ cpdef dict rec_coverage_strand_pad(FastaFile fafile, chrom, pos,
 ################################
 
 
-cpdef dict rec_coverage_ext(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                            bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class CoverageExt(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n  # loop index
-    cdef int reads_all  # total number of reads in column
-    cdef bint is_reverse
-    cdef bint is_proper_pair
-    cdef bint is_duplicate
-    cdef bint mate_is_unmappped
-    cdef bint mate_is_reverse
-    cdef int tlen
-    # counting variables
-    cdef int reads_pp = 0
-    cdef int reads_mate_unmapped = 0
-    cdef int reads_mate_other_chr = 0
-    cdef int reads_mate_same_strand = 0
-    cdef int reads_faceaway = 0
-    cdef int reads_softclipped = 0
-    cdef int reads_duplicate = 0
+    cdef:
+        int reads_all
+        int reads_pp
+        int reads_mate_unmapped
+        int reads_mate_other_chr
+        int reads_mate_same_strand
+        int reads_faceaway
+        int reads_softclipped
+        int reads_duplicate
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def __init__(self):
+        self.reset()
 
-    # get chromosome name and position
-    tid = col.tid
-    chrom = alignmentfile.getrname(tid)
-    pos = col.pos + 1 if one_based else col.pos
+    def reset(self):
+        self.reads_all = 0
+        self.reads_pp = 0
+        self.reads_mate_unmapped = 0
+        self.reads_mate_other_chr = 0
+        self.reads_mate_same_strand = 0
+        self.reads_faceaway = 0
+        self.reads_softclipped = 0
+        self.reads_duplicate = 0
 
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            bint is_duplicate
+            bint mate_is_unmappped
+            bint mate_is_reverse
+            int tlen
+
+        # convenience variables
+        flag = read.b.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_duplicate = <bint>(flag & BAM_FDUP)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-        tlen = aln.core.isize
+        tlen = read.b.core.isize
+
+        # do the counting
+        self.reads_all += 1
         if is_duplicate:
-            reads_duplicate += 1
+            self.reads_duplicate += 1
         if is_proper_pair:
-            reads_pp += 1
+            self.reads_pp += 1
         if mate_is_unmapped:
-            reads_mate_unmapped += 1
-        elif tid != aln.core.mtid:
-            reads_mate_other_chr += 1
-        elif (is_reverse and mate_is_reverse) \
-                or (not is_reverse and not mate_is_reverse):
-            reads_mate_same_strand += 1
+            self.reads_mate_unmapped += 1
+        elif col.tid != read.b.core.mtid:
+            self.reads_mate_other_chr += 1
+        elif (is_reverse and mate_is_reverse) or (not is_reverse and not mate_is_reverse):
+            self.reads_mate_same_strand += 1
         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-            reads_faceaway += 1
-        if is_softclipped(aln):
-            reads_softclipped += 1
+            self.reads_faceaway += 1
+        if is_softclipped(read.b):
+            self.reads_softclipped += 1
 
-    return {'chrom': chrom, 'pos': pos,
-            'reads_all': n,
-            'reads_pp': reads_pp,
-            'reads_mate_unmapped': reads_mate_unmapped,
-            'reads_mate_other_chr': reads_mate_other_chr,
-            'reads_mate_same_strand': reads_mate_same_strand,
-            'reads_faceaway': reads_faceaway,
-            'reads_softclipped': reads_softclipped,
-            'reads_duplicate': reads_duplicate}
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        rec = {'reads_all': self.reads_all,
+               'reads_pp': self.reads_pp,
+               'reads_mate_unmapped': self.reads_mate_unmapped,
+               'reads_mate_other_chr': self.reads_mate_other_chr,
+               'reads_mate_same_strand': self.reads_mate_same_strand,
+               'reads_faceaway': self.reads_faceaway,
+               'reads_softclipped': self.reads_softclipped,
+               'reads_duplicate': self.reads_duplicate}
 
-cpdef dict rec_coverage_ext_pad(FastaFile fafile, chrom, pos,
-                                bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos,
-            'reads_all': 0,
-            'reads_pp': 0,
-            'reads_mate_unmapped': 0,
-            'reads_mate_other_chr': 0,
-            'reads_mate_same_strand': 0,
-            'reads_faceaway': 0,
-            'reads_softclipped': 0,
-            'reads_duplicate': 0}
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ##########################################
@@ -288,170 +300,129 @@ cpdef dict rec_coverage_ext_pad(FastaFile fafile, chrom, pos,
 ##########################################
 
 
-cpdef dict rec_coverage_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
-                                   PileupColumn col, bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class CountStrand:
+    cdef:
+        int all, fwd, rev
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef bint is_reverse
-    cdef bint is_proper_pair
-    cdef bint is_duplicate
-    cdef bint mate_is_unmappped
-    cdef bint mate_is_reverse
-    cdef int tlen
-    # counting variables
-    cdef int reads_rev = 0
-    cdef int reads_fwd = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_rev = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_mate_unmapped = 0
-    cdef int reads_mate_unmapped_rev = 0
-    cdef int reads_mate_unmapped_fwd = 0
-    cdef int reads_mate_other_chr = 0
-    cdef int reads_mate_other_chr_rev = 0
-    cdef int reads_mate_other_chr_fwd = 0
-    cdef int reads_mate_same_strand = 0
-    cdef int reads_mate_same_strand_rev = 0
-    cdef int reads_mate_same_strand_fwd = 0
-    cdef int reads_faceaway = 0
-    cdef int reads_faceaway_rev = 0
-    cdef int reads_faceaway_fwd = 0
-    cdef int reads_softclipped = 0
-    cdef int reads_softclipped_rev = 0
-    cdef int reads_softclipped_fwd = 0
-    cdef int reads_duplicate = 0
-    cdef int reads_duplicate_rev = 0
-    cdef int reads_duplicate_fwd = 0
+    def __init__(self):
+        self.reset()
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def reset(self):
+        self.all = self.fwd = self.rev = 0
 
-    # get chromosome name and position
-    tid = col.tid
-    chrom = alignmentfile.getrname(tid)
-    pos = col.pos + 1 if one_based else col.pos
+    cdef void incr(self, bint is_reverse):
+        self.all += 1
+        if is_reverse:
+            self.rev += 1
+        else:
+            self.fwd += 1
 
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+
+# noinspection PyAttributeOutsideInit
+cdef class CoverageExtStrand(PileupStat):
+
+    cdef:
+        CountStrand all
+        CountStrand pp
+        CountStrand mate_unmapped
+        CountStrand mate_other_chr
+        CountStrand same_strand
+        CountStrand faceaway
+        CountStrand softclipped
+        CountStrand duplicate
+
+    def __init__(self):
+        self.all = CountStrand()
+        self.pp = CountStrand()
+        self.mate_unmapped = CountStrand()
+        self.mate_other_chr = CountStrand()
+        self.same_strand = CountStrand()
+        self.faceaway = CountStrand()
+        self.softclipped = CountStrand()
+        self.duplicate = CountStrand()
+        self.reset()
+
+    def reset(self):
+        self.all.reset()
+        self.pp.reset()
+        self.mate_unmapped.reset()
+        self.mate_other_chr.reset()
+        self.same_strand.reset()
+        self.faceaway.reset()
+        self.softclipped.reset()
+        self.duplicate.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            bint is_duplicate
+            bint mate_is_unmappped
+            bint mate_is_reverse
+            int tlen
+
+        # convenience variables
+        flag = read.b.core.flag
         is_reverse = <bint>(flag & BAM_FREVERSE)
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_duplicate = <bint>(flag & BAM_FDUP)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
         mate_is_reverse = <bint>(flag & BAM_FMREVERSE)
-        tlen = aln.core.isize
-        if is_reverse:
-            reads_rev += 1
-        else:
-            reads_fwd += 1
+        tlen = read.b.core.isize
+
+        # do the counting
+        self.all.incr(is_reverse)
         if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
+            self.pp.incr(is_reverse)
         if mate_is_unmapped:
-            reads_mate_unmapped += 1
-            if is_reverse:
-                reads_mate_unmapped_rev += 1
-            else:
-                reads_mate_unmapped_fwd += 1
-        elif tid != aln.core.mtid:
-            reads_mate_other_chr += 1
-            if is_reverse:
-                reads_mate_other_chr_rev += 1
-            else:
-                reads_mate_other_chr_fwd += 1
+            self.mate_unmapped.incr(is_reverse)
+        elif col.tid != read.b.core.mtid:
+            self.mate_other_chr.incr(is_reverse)
         elif is_reverse and mate_is_reverse:
-            reads_mate_same_strand += 1
-            reads_mate_same_strand_rev += 1
+            self.same_strand.incr(is_reverse)
         elif not is_reverse and not mate_is_reverse:
-            reads_mate_same_strand += 1
-            reads_mate_same_strand_fwd += 1
+            self.same_strand.incr(is_reverse)
         elif (is_reverse and tlen > 0) or (not is_reverse and tlen < 0):
-            reads_faceaway += 1
-            if is_reverse:
-                reads_faceaway_rev += 1
-            else:
-                reads_faceaway_fwd += 1
-        if is_softclipped(aln):
-            reads_softclipped += 1
-            if is_reverse:
-                reads_softclipped_rev += 1
-            else:
-                reads_softclipped_fwd += 1
+            self.faceaway.incr(is_reverse)
+        if is_softclipped(read.b):
+            self.softclipped.incr(is_reverse)
         if is_duplicate:
-            reads_duplicate += 1
-            if is_reverse:
-                reads_duplicate_rev += 1
-            else:
-                reads_duplicate_fwd += 1
+            self.duplicate.incr(is_reverse)
 
-    return {'chrom': chrom, 'pos': pos,
-           'reads_all': n,
-           'reads_fwd': reads_fwd,
-           'reads_rev': reads_rev,
-           'reads_pp': reads_pp,
-           'reads_pp_fwd': reads_pp_fwd,
-           'reads_pp_rev': reads_pp_rev,
-           'reads_mate_unmapped': reads_mate_unmapped,
-           'reads_mate_unmapped_fwd': reads_mate_unmapped_fwd,
-           'reads_mate_unmapped_rev': reads_mate_unmapped_rev,
-           'reads_mate_other_chr': reads_mate_other_chr,
-           'reads_mate_other_chr_fwd': reads_mate_other_chr_fwd,
-           'reads_mate_other_chr_rev': reads_mate_other_chr_rev,
-           'reads_mate_same_strand': reads_mate_same_strand,
-           'reads_mate_same_strand_fwd': reads_mate_same_strand_fwd,
-           'reads_mate_same_strand_rev': reads_mate_same_strand_rev,
-           'reads_faceaway': reads_faceaway,
-           'reads_faceaway_fwd': reads_faceaway_fwd,
-           'reads_faceaway_rev': reads_faceaway_rev,
-           'reads_softclipped': reads_softclipped,
-           'reads_softclipped_fwd': reads_softclipped_fwd,
-           'reads_softclipped_rev': reads_softclipped_rev,
-           'reads_duplicate': reads_duplicate,
-           'reads_duplicate_fwd': reads_duplicate_fwd,
-           'reads_duplicate_rev': reads_duplicate_rev,
-           }
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        rec = {'reads_all': self.all.all,
+               'reads_fwd': self.all.fwd,
+               'reads_rev': self.all.rev,
+               'reads_pp': self.pp.all,
+               'reads_pp_fwd': self.pp.fwd,
+               'reads_pp_rev': self.pp.rev,
+               'reads_mate_unmapped': self.mate_unmapped.all,
+               'reads_mate_unmapped_fwd': self.mate_unmapped.fwd,
+               'reads_mate_unmapped_rev': self.mate_unmapped.rev,
+               'reads_mate_other_chr': self.mate_other_chr.all,
+               'reads_mate_other_chr_fwd': self.mate_other_chr.fwd,
+               'reads_mate_other_chr_rev': self.mate_other_chr.rev,
+               'reads_mate_same_strand': self.same_strand.all,
+               'reads_mate_same_strand_fwd': self.same_strand.fwd,
+               'reads_mate_same_strand_rev': self.same_strand.rev,
+               'reads_faceaway': self.faceaway.all,
+               'reads_faceaway_fwd': self.faceaway.fwd,
+               'reads_faceaway_rev': self.faceaway.rev,
+               'reads_softclipped': self.softclipped.all,
+               'reads_softclipped_fwd': self.softclipped.fwd,
+               'reads_softclipped_rev': self.softclipped.rev,
+               'reads_duplicate': self.duplicate.all,
+               'reads_duplicate_fwd': self.duplicate.fwd,
+               'reads_duplicate_rev': self.duplicate.rev}
 
-cpdef dict rec_coverage_ext_strand_pad(FastaFile fafile, chrom, pos,
-                                       bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos,
-           'reads_all': 0,
-           'reads_fwd': 0,
-           'reads_rev': 0,
-           'reads_pp': 0,
-           'reads_pp_fwd': 0,
-           'reads_pp_rev': 0,
-           'reads_mate_unmapped': 0,
-           'reads_mate_unmapped_fwd': 0,
-           'reads_mate_unmapped_rev': 0,
-           'reads_mate_other_chr': 0,
-           'reads_mate_other_chr_fwd': 0,
-           'reads_mate_other_chr_rev': 0,
-           'reads_mate_same_strand': 0,
-           'reads_mate_same_strand_fwd': 0,
-           'reads_mate_same_strand_rev': 0,
-           'reads_faceaway': 0,
-           'reads_faceaway_fwd': 0,
-           'reads_faceaway_rev': 0,
-           'reads_softclipped': 0,
-           'reads_softclipped_fwd': 0,
-           'reads_softclipped_rev': 0,
-           'reads_duplicate': 0,
-           'reads_duplicate_fwd': 0,
-           'reads_duplicate_rev': 0,
-           }
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ########################
@@ -459,143 +430,107 @@ cpdef dict rec_coverage_ext_strand_pad(FastaFile fafile, chrom, pos,
 ########################
 
 
-cpdef dict rec_variation(AlignmentFile alignmentfile, FastaFile fafile,
-                         PileupColumn col, bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class Variation(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i  # loop index
-    cdef int reads_all  # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bytes alnbase, refbase_b
-    # counting variables
-    cdef int reads_pp = 0
-    cdef int matches = 0
-    cdef int matches_pp = 0
-    cdef int mismatches = 0
-    cdef int mismatches_pp = 0
-    cdef int deletions = 0
-    cdef int deletions_pp = 0
-    cdef int insertions = 0
-    cdef int insertions_pp = 0
-    cdef int a = 0
-    cdef int a_pp = 0
-    cdef int c = 0
-    cdef int c_pp = 0
-    cdef int t = 0
-    cdef int t_pp = 0
-    cdef int g = 0
-    cdef int g_pp = 0
-    cdef int n = 0
-    cdef int n_pp = 0
+    cdef:
+        CountPp reads
+        CountPp matches
+        CountPp mismatches
+        CountPp deletions
+        CountPp insertions
+        CountPp A
+        CountPp C
+        CountPp T
+        CountPp G
+        CountPp N
 
-    # initialise variables
-    reads_all = col.n
-    plp = col.plp
+    def __init__(self):
+        self.reads = CountPp()
+        self.matches = CountPp()
+        self.mismatches = CountPp()
+        self.deletions = CountPp()
+        self.insertions = CountPp()
+        self.A = CountPp()
+        self.C = CountPp()
+        self.T = CountPp()
+        self.G = CountPp()
+        self.N = CountPp()
+        self.reset()
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
+    def reset(self):
+        self.reads.reset()
+        self.matches.reset()
+        self.mismatches.reset()
+        self.deletions.reset()
+        self.insertions.reset()
+        self.A.reset()
+        self.C.reset()
+        self.T.reset()
+        self.G.reset()
+        self.N.reset()
 
-    # reference base
-    refbase = fafile\
-        .fetch(reference=chrom, start=col.pos, end=col.pos+1)\
-        .upper()
-    if not PY2:
-        refbase_b = refbase.encode('ascii')
-    else:
-        refbase_b = refbase
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bytes alnbase
 
-    # loop over reads, extract what we need
-    for i in range(reads_all):
-        read = &(plp[0][i])
-        # read.qpos
-        # read.is_del
-        # read.indel
-        aln = read.b
-        flag = aln.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
+
+        # do the counting
+        self.reads.incr(is_proper_pair)
         if read.is_del:
-            deletions += 1
-            if is_proper_pair:
-                deletions_pp += 1
+            self.deletions.incr(is_proper_pair)
         else:
-#            alnbase = get_seq_range(aln, 0, aln.core.l_qseq)[read.qpos]
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(read.b, read.qpos)
             if alnbase == b'A':
-                a += 1
-                if is_proper_pair:
-                    a_pp += 1
+                self.A.incr(is_proper_pair)
             elif alnbase == b'T':
-                t += 1
-                if is_proper_pair:
-                    t_pp += 1
+                self.T.incr(is_proper_pair)
             elif alnbase == b'C':
-                c += 1
-                if is_proper_pair:
-                    c_pp += 1
+                self.C.incr(is_proper_pair)
             elif alnbase == b'G':
-                g += 1
-                if is_proper_pair:
-                    g_pp += 1
+                self.G.incr(is_proper_pair)
             elif alnbase == b'N':
-                n += 1
-                if is_proper_pair:
-                    n_pp += 1
+                self.N.incr(is_proper_pair)
             if read.indel > 0:
-                insertions += 1
-                if is_proper_pair:
-                    insertions_pp += 1
-            if alnbase == refbase_b:
-                matches += 1
-                if is_proper_pair:
-                    matches_pp += 1
+                self.insertions.incr(is_proper_pair)
+            if alnbase == refbase:
+                self.matches.incr(is_proper_pair)
             else:
-                mismatches += 1
-                if is_proper_pair:
-                    mismatches_pp += 1
+                self.mismatches.incr(is_proper_pair)
 
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': reads_all, 'reads_pp': reads_pp,
-            'matches': matches,
-            'matches_pp': matches_pp,
-            'mismatches': mismatches,
-            'mismatches_pp': mismatches_pp,
-            'deletions': deletions,
-            'deletions_pp': deletions_pp,
-            'insertions': insertions,
-            'insertions_pp': insertions_pp,
-            'A': a, 'A_pp': a_pp,
-            'C': c, 'C_pp': c_pp,
-            'T': t, 'T_pp': t_pp,
-            'G': g, 'G_pp': g_pp,
-            'N': n, 'N_pp': n_pp}
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        if PY2:
+            ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
+        rec = {'ref': ref,
+               'reads_all': self.reads.all,
+               'reads_pp': self.reads.pp,
+               'matches': self.matches.all,
+               'matches_pp': self.matches.pp,
+               'mismatches': self.mismatches.all,
+               'mismatches_pp': self.mismatches.pp,
+               'deletions': self.deletions.all,
+               'deletions_pp': self.deletions.pp,
+               'insertions': self.insertions.all,
+               'insertions_pp': self.insertions.pp,
+               'A': self.A.all, 'A_pp': self.A.pp,
+               'C': self.C.all, 'C_pp': self.C.pp,
+               'T': self.T.all, 'T_pp': self.T.pp,
+               'G': self.G.all, 'G_pp': self.G.pp,
+               'N': self.N.all, 'N_pp': self.N.pp}
 
-cpdef dict rec_variation_pad(FastaFile fafile, chrom, pos,
-                             bint one_based=False):
-    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': 0, 'reads_pp': 0,
-            'matches': 0,
-            'matches_pp': 0,
-            'mismatches': 0,
-            'mismatches_pp': 0,
-            'deletions': 0,
-            'deletions_pp': 0,
-            'insertions': 0,
-            'insertions_pp': 0,
-            'A': 0, 'A_pp': 0,
-            'C': 0, 'C_pp': 0,
-            'T': 0, 'T_pp': 0,
-            'G': 0, 'G_pp': 0,
-            'N': 0, 'N_pp': 0}
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 #################################
@@ -603,147 +538,133 @@ cpdef dict rec_variation_pad(FastaFile fafile, chrom, pos,
 #################################
 
 
-cdef struct CountPpStrand:
-    int all, pp, fwd, rev, pp_fwd, pp_rev
+# noinspection PyAttributeOutsideInit
+cdef class VariationStrand(PileupStat):
 
+    cdef:
+        CountPpStrand reads
+        CountPpStrand matches
+        CountPpStrand mismatches
+        CountPpStrand deletions
+        CountPpStrand insertions
+        CountPpStrand A
+        CountPpStrand C
+        CountPpStrand T
+        CountPpStrand G
+        CountPpStrand N
 
-cdef inline init_pp_strand(CountPpStrand* c):
-    c.all = c.fwd = c.rev = c.pp = c.pp_fwd = c.pp_rev = 0
+    def __init__(self):
+        self.reads = CountPpStrand()
+        self.matches = CountPpStrand()
+        self.mismatches = CountPpStrand()
+        self.deletions = CountPpStrand()
+        self.insertions = CountPpStrand()
+        self.A = CountPpStrand()
+        self.C = CountPpStrand()
+        self.T = CountPpStrand()
+        self.G = CountPpStrand()
+        self.N = CountPpStrand()
+        self.reset()
 
+    def reset(self):
+        self.reads.reset()
+        self.matches.reset()
+        self.mismatches.reset()
+        self.deletions.reset()
+        self.insertions.reset()
+        self.A.reset()
+        self.T.reset()
+        self.C.reset()
+        self.G.reset()
+        self.N.reset()
 
-cdef inline incr_pp_strand(CountPpStrand* c, bint is_reverse,
-                           bint is_proper_pair):
-    c.all += 1
-    if is_reverse:
-        c.rev += 1
-        if is_proper_pair:
-            c.pp += 1
-            c.pp_rev += 1
-    else:
-        c.fwd += 1
-        if is_proper_pair:
-            c.pp += 1
-            c.pp_fwd += 1
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bytes alnbase
 
-
-cpdef dict rec_variation_strand(AlignmentFile alignmentfile, FastaFile fafile,
-                                PileupColumn col, bint one_based=False):
-
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair, is_reverse
-    cdef bytes alnbase, refbase_b
-    # counting variables
-    cdef CountPpStrand reads, matches, mismatches, deletions, insertions, \
-        A, C, T, G, N
-
-    # initialise variables
-    n = col.n
-    plp = col.plp
-    init_pp_strand(&reads)
-    init_pp_strand(&matches)
-    init_pp_strand(&mismatches)
-    init_pp_strand(&deletions)
-    init_pp_strand(&insertions)
-    init_pp_strand(&A)
-    init_pp_strand(&T)
-    init_pp_strand(&C)
-    init_pp_strand(&G)
-    init_pp_strand(&N)
-
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # reference base
-    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-    if not PY2:
-        refbase_b = refbase.encode('ascii')
-    else:
-        refbase_b = refbase
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        # read.qpos
-        # read.is_del
-        # read.indel
-        aln = read.b
-        flag = aln.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        incr_pp_strand(&reads, is_reverse, is_proper_pair)
+
+        # do the counting
+        self.reads.incr(is_reverse, is_proper_pair)
         if read.is_del:
-            incr_pp_strand(&deletions, is_reverse, is_proper_pair)
+            self.deletions.incr(is_reverse, is_proper_pair)
         else:
-            alnbase = get_seq_base(aln, read.qpos)
+            alnbase = get_seq_base(read.b, read.qpos)
             if alnbase == b'A':
-                incr_pp_strand(&A, is_reverse, is_proper_pair)
+                self.A.incr(is_reverse, is_proper_pair)
             elif alnbase == b'T':
-                incr_pp_strand(&T, is_reverse, is_proper_pair)
+                self.T.incr(is_reverse, is_proper_pair)
             elif alnbase == b'C':
-                incr_pp_strand(&C, is_reverse, is_proper_pair)
+                self.C.incr(is_reverse, is_proper_pair)
             elif alnbase == b'G':
-                incr_pp_strand(&G, is_reverse, is_proper_pair)
+                self.G.incr(is_reverse, is_proper_pair)
             elif alnbase == b'N':
-                incr_pp_strand(&N, is_reverse, is_proper_pair)
+                self.N.incr(is_reverse, is_proper_pair)
             if read.indel > 0:
-                incr_pp_strand(&insertions, is_reverse, is_proper_pair)
-            if alnbase == refbase_b:
-                incr_pp_strand(&matches, is_reverse, is_proper_pair)
+                self.insertions.incr(is_reverse, is_proper_pair)
+            if alnbase == refbase:
+                self.matches.incr(is_reverse, is_proper_pair)
             else:
-                incr_pp_strand(&mismatches, is_reverse, is_proper_pair)
+                self.mismatches.incr(is_reverse, is_proper_pair)
 
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_fwd': reads.fwd, 'reads_rev': reads.rev,
-            'reads_pp': reads.pp, 'reads_pp_fwd': reads.pp_fwd, 'reads_pp_rev': reads.pp_rev,
-            'matches': matches.all, 'matches_fwd': matches.fwd, 'matches_rev': matches.rev,
-            'matches_pp': matches.pp, 'matches_pp_fwd': matches.pp_fwd, 'matches_pp_rev': matches.pp_rev,
-            'mismatches': mismatches.all, 'mismatches_fwd': mismatches.fwd, 'mismatches_rev': mismatches.rev,
-            'mismatches_pp': mismatches.pp, 'mismatches_pp_fwd': mismatches.pp_fwd, 'mismatches_pp_rev': mismatches.pp_rev,
-            'deletions': deletions.all, 'deletions_fwd': deletions.fwd, 'deletions_rev': deletions.rev,
-            'deletions_pp': deletions.pp, 'deletions_pp_fwd': deletions.pp_fwd, 'deletions_pp_rev': deletions.pp_rev,
-            'insertions': insertions.all, 'insertions_fwd': insertions.fwd, 'insertions_rev': insertions.rev,
-            'insertions_pp': insertions.pp, 'insertions_pp_fwd': insertions.pp_fwd, 'insertions_pp_rev': insertions.pp_rev,
-            'A': A.all, 'A_fwd': A.fwd, 'A_rev': A.rev, 'A_pp': A.pp, 'A_pp_fwd': A.pp_fwd, 'A_pp_rev': A.pp_rev,
-            'C': C.all, 'C_fwd': C.fwd, 'C_rev': C.rev, 'C_pp': C.pp, 'C_pp_fwd': C.pp_fwd, 'C_pp_rev': C.pp_rev,
-            'T': T.all, 'T_fwd': T.fwd, 'T_rev': T.rev, 'T_pp': T.pp, 'T_pp_fwd': T.pp_fwd, 'T_pp_rev': T.pp_rev,
-            'G': G.all, 'G_fwd': G.fwd, 'G_rev': G.rev, 'G_pp': G.pp, 'G_pp_fwd': G.pp_fwd, 'G_pp_rev': G.pp_rev,
-            'N': N.all, 'N_fwd': N.fwd, 'N_rev': N.rev, 'N_pp': N.pp, 'N_pp_fwd': N.pp_fwd, 'N_pp_rev': N.pp_rev,
-            }
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        if PY2:
+            ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
+        rec = {'ref': ref,
+               'reads_all': self.reads.all,
+               'reads_fwd': self.reads.fwd,
+               'reads_rev': self.reads.rev,
+               'reads_pp': self.reads.pp,
+               'reads_pp_fwd': self.reads.pp_fwd,
+               'reads_pp_rev': self.reads.pp_rev,
+               'matches': self.matches.all,
+               'matches_fwd': self.matches.fwd,
+               'matches_rev': self.matches.rev,
+               'matches_pp': self.matches.pp,
+               'matches_pp_fwd': self.matches.pp_fwd,
+               'matches_pp_rev': self.matches.pp_rev,
+               'mismatches': self.mismatches.all,
+               'mismatches_fwd': self.mismatches.fwd,
+               'mismatches_rev': self.mismatches.rev,
+               'mismatches_pp': self.mismatches.pp,
+               'mismatches_pp_fwd': self.mismatches.pp_fwd,
+               'mismatches_pp_rev': self.mismatches.pp_rev,
+               'deletions': self.deletions.all,
+               'deletions_fwd': self.deletions.fwd,
+               'deletions_rev': self.deletions.rev,
+               'deletions_pp': self.deletions.pp,
+               'deletions_pp_fwd': self.deletions.pp_fwd,
+               'deletions_pp_rev': self.deletions.pp_rev,
+               'insertions': self.insertions.all,
+               'insertions_fwd': self.insertions.fwd,
+               'insertions_rev': self.insertions.rev,
+               'insertions_pp': self.insertions.pp,
+               'insertions_pp_fwd': self.insertions.pp_fwd,
+               'insertions_pp_rev': self.insertions.pp_rev,
+               'A': self.A.all, 'A_fwd': self.A.fwd, 'A_rev': self.A.rev,
+               'A_pp': self.A.pp, 'A_pp_fwd': self.A.pp_fwd, 'A_pp_rev': self.A.pp_rev,
+               'C': self.C.all, 'C_fwd': self.C.fwd, 'C_rev': self.C.rev,
+               'C_pp': self.C.pp, 'C_pp_fwd': self.C.pp_fwd, 'C_pp_rev': self.C.pp_rev,
+               'T': self.T.all, 'T_fwd': self.T.fwd, 'T_rev': self.T.rev,
+               'T_pp': self.T.pp, 'T_pp_fwd': self.T.pp_fwd, 'T_pp_rev': self.T.pp_rev,
+               'G': self.G.all, 'G_fwd': self.G.fwd, 'G_rev': self.G.rev,
+               'G_pp': self.G.pp, 'G_pp_fwd': self.G.pp_fwd, 'G_pp_rev': self.G.pp_rev,
+               'N': self.N.all, 'N_fwd': self.N.fwd, 'N_rev': self.N.rev,
+               'N_pp': self.N.pp, 'N_pp_fwd': self.N.pp_fwd, 'N_pp_rev': self.N.pp_rev}
 
-cpdef dict rec_variation_strand_pad(FastaFile fafile, chrom, pos,
-                                    bint one_based=False):
-    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0,
-            'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
-            'matches': 0, 'matches_fwd': 0, 'matches_rev': 0,
-            'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
-            'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0,
-            'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
-            'deletions': 0, 'deletions_fwd': 0, 'deletions_rev': 0,
-            'deletions_pp': 0, 'deletions_pp_fwd': 0, 'deletions_pp_rev': 0,
-            'insertions': 0, 'insertions_fwd': 0, 'insertions_rev': 0,
-            'insertions_pp': 0, 'insertions_pp_fwd': 0, 'insertions_pp_rev': 0,
-            'A': 0, 'A_fwd': 0, 'A_rev': 0,
-            'A_pp': 0, 'A_pp_fwd': 0, 'A_pp_rev': 0,
-            'C': 0, 'C_fwd': 0, 'C_rev': 0,
-            'C_pp': 0, 'C_pp_fwd': 0, 'C_pp_rev': 0,
-            'T': 0, 'T_fwd': 0, 'T_rev': 0,
-            'T_pp': 0, 'T_pp_fwd': 0, 'T_pp_rev': 0,
-            'G': 0, 'G_fwd': 0, 'G_rev': 0,
-            'G_pp': 0, 'G_pp_fwd': 0, 'G_pp_rev': 0,
-            'N': 0, 'N_fwd': 0, 'N_rev': 0,
-            'N_pp': 0, 'N_pp_fwd': 0, 'N_pp_rev': 0,
-            }
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ##########################
@@ -751,137 +672,116 @@ cpdef dict rec_variation_strand_pad(FastaFile fafile, chrom, pos,
 ##########################
 
 
-cpdef dict rec_tlen(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                    bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class TlenHelper:
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n  # loop index
-    cdef int reads_all  # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bint mate_is_unmappped
-    cdef bint mate_other_chr
-    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is meaningful
-    cdef int reads_p = 0
-    # reads "properly paired", as defined by aligner
-    cdef int reads_pp = 0
-    cdef int64_t tlen
-    cdef int64_t tlen_squared
-    cdef int64_t tlen_p_sum = 0
-    cdef double tlen_p_mean = 0
-    cdef double tlen_p_dev_squared
-    cdef double tlen_p_dev_squared_sum = 0
-    cdef int64_t tlen_p_squared_sum = 0
-    cdef int64_t tlen_pp_sum = 0
-    cdef double tlen_pp_mean = 0
-    cdef double tlen_pp_dev_squared
-    cdef double tlen_pp_dev_squared_sum = 0
-    cdef int64_t tlen_pp_squared_sum = 0
+    cdef:
+        long n
+        double m
+        double m2
+        double d
+        double d2
+        int64_t s  # sum
+        int64_t sq  # sum of squares
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def __init__(self):
+        self.reset()
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
+    def reset(self):
+        self.n = 0
+        self.m = 0
+        self.m2 = 0
+        self.d = 0
+        self.d2 = 0
+        self.s = 0
+        self.sq = 0
 
-    # loop over reads
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+    cdef void update(self, int64_t x):
+        self.n += 1
+        self.s += x
+        self.sq += x ** 2
+        self.d = x - self.m
+        self.m += self.d / self.n
+        self.d2 = x - self.m
+        self.m2 += self.d * self.d2
 
+    def variance(self):
+        if self.n < 2:
+            return 0
+        else:
+            return int(round(self.m2 / (self.n - 1)))
+
+    def std(self):
+        if self.n < 2:
+            return 0
+        else:
+            return int(round(sqrt(self.m2 / (self.n - 1))))
+
+    def mean(self):
+        return mean(self.s, self.n)
+
+    def rms(self):
+        return rootmean(self.sq, self.n)
+
+
+# noinspection PyAttributeOutsideInit
+cdef class Tlen(PileupStat):
+
+    cdef:
+        int reads_all
+        TlenHelper tlen
+        TlenHelper tlen_pp
+
+    def __init__(self):
+        self.tlen = TlenHelper()
+        self.tlen_pp = TlenHelper()
+        self.reset()
+
+    def reset(self):
+        self.reads_all = 0
+        self.tlen.reset()
+        self.tlen_pp.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint mate_is_unmappped
+            bint mate_other_chr
+            int64_t tlen
+
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        mate_other_chr = <bint>(read.b.core.tid != read.b.core.mtid)
+        tlen = read.b.core.isize
 
-        # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
-        # follow their naming convention
-        tlen = aln.core.isize
-        tlen_squared = tlen**2
-
+        # do the counting
+        self.reads_all += 1
         # N.B. insert size is only meaningful if mate is mapped to same chromosome
         if not mate_is_unmapped and not mate_other_chr:
-            reads_p += 1
-            tlen_p_sum += tlen
-            tlen_p_squared_sum += tlen_squared
-            if is_proper_pair:
-                reads_pp += 1
-                tlen_pp_sum += tlen
-                tlen_pp_squared_sum += tlen_squared
+            self.tlen.update(tlen)
+        if is_proper_pair:
+            self.tlen_pp.update(tlen)
 
-    # calculate intermediate variables
-    if reads_p > 0:
-        tlen_p_mean = tlen_p_sum / reads_p
-    if reads_pp > 0:
-        tlen_pp_mean = tlen_pp_sum / reads_pp
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-    # loop over reads again to calculate variance (and hence std)
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-        tlen = aln.core.isize
-        # N.B. insert size is only meaningful if mate is mapped to same chromosome
-        if not mate_is_unmapped and not mate_other_chr:
-            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
-            tlen_p_dev_squared_sum += tlen_p_dev_squared
-            if is_proper_pair:
-                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
-                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
+        # make record
+        rec = {'reads_all': self.reads_all,
+               'reads_paired': self.tlen.n,
+               'reads_pp': self.tlen_pp.n,
+               'mean_tlen': self.tlen.mean(),
+               'mean_tlen_pp': self.tlen_pp.mean(),
+               'rms_tlen': self.tlen.rms(),
+               'rms_tlen_pp': self.tlen_pp.rms(),
+               'std_tlen': self.tlen.std(),
+               'std_tlen_pp': self.tlen_pp.std()}
 
-    # calculate output variables
-    # N.B. round values to nearest integer, any finer precision is probably not
-    # interesting
-    if reads_p > 0:
-        mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
-        variance_tlen = tlen_p_dev_squared_sum / reads_p
-        std_tlen = int(round(sqrt(variance_tlen)))
-    else:
-        rms_tlen = std_tlen = mean_tlen = median_tlen = 0
-    if reads_pp > 0:
-        mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
-        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
-        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
-    else:
-        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
+        # reset counters
+        self.reset()
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_paired': reads_p,
-            'reads_pp': reads_pp,
-            'mean_tlen': mean_tlen,
-            'mean_tlen_pp': mean_tlen_pp,
-            'rms_tlen': rms_tlen,
-            'rms_tlen_pp': rms_tlen_pp,
-            'std_tlen': std_tlen,
-            'std_tlen_pp': std_tlen_pp}
-
-
-cpdef dict rec_tlen_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_paired': 0,
-            'reads_pp': 0,
-            'mean_tlen': 0,
-            'mean_tlen_pp': 0,
-            'rms_tlen': 0,
-            'rms_tlen_pp': 0,
-            'std_tlen': 0,
-            'std_tlen_pp': 0,
-            }
+        return rec
 
 
 ####################################
@@ -889,280 +789,115 @@ cpdef dict rec_tlen_pad(FastaFile fafile, chrom, pos, bint one_based=False):
 ####################################
 
 
-cpdef dict rec_tlen_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                           bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class TlenStrand(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bint mate_is_unmappped
-    cdef bint mate_other_chr
+    cdef:
+        int reads_all
+        int reads_fwd
+        int reads_rev
+        TlenHelper tlen
+        TlenHelper tlen_fwd
+        TlenHelper tlen_rev
+        TlenHelper tlen_pp
+        TlenHelper tlen_pp_fwd
+        TlenHelper tlen_pp_rev
 
-    # counting variables
-    cdef int reads_fwd = 0
-    cdef int reads_rev = 0
-    # reads "paired", i.e., mate is mapped to same chromosome, so tlen is
-    # meaningful
-    cdef int reads_p = 0
-    cdef int reads_p_fwd = 0
-    cdef int reads_p_rev = 0
-    # reads "properly paired", as defined by aligner
-    cdef int reads_pp = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_pp_rev = 0
+    def __init__(self):
+        self.tlen = TlenHelper()
+        self.tlen_fwd = TlenHelper()
+        self.tlen_rev = TlenHelper()
+        self.tlen_pp = TlenHelper()
+        self.tlen_pp_fwd = TlenHelper()
+        self.tlen_pp_rev = TlenHelper()
+        self.reset()
 
-    cdef int64_t tlen
-    cdef int64_t tlen_squared
+    def reset(self):
+        self.reads_all = 0
+        self.reads_fwd = 0
+        self.reads_rev = 0
+        self.tlen.reset()
+        self.tlen_fwd.reset()
+        self.tlen_rev.reset()
+        self.tlen_pp.reset()
+        self.tlen_pp_fwd.reset()
+        self.tlen_pp_rev.reset()
 
-    cdef int64_t tlen_p_sum = 0
-    cdef double tlen_p_mean = 0
-    cdef double tlen_p_dev_squared
-    cdef double tlen_p_dev_squared_sum = 0
-    cdef int64_t tlen_p_squared_sum = 0
-    cdef int64_t tlen_p_fwd_sum = 0
-    cdef double tlen_p_fwd_mean = 0
-    cdef double tlen_p_fwd_dev_squared
-    cdef double tlen_p_fwd_dev_squared_sum = 0
-    cdef int64_t tlen_p_fwd_squared_sum = 0
-    cdef int64_t tlen_p_rev_sum = 0
-    cdef double tlen_p_rev_mean = 0
-    cdef double tlen_p_rev_dev_squared
-    cdef double tlen_p_rev_dev_squared_sum = 0
-    cdef int64_t tlen_p_rev_squared_sum = 0
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            bint mate_is_unmappped
+            bint mate_other_chr
+            int64_t tlen
 
-    cdef int64_t tlen_pp_sum = 0
-    cdef double tlen_pp_mean = 0
-    cdef double tlen_pp_dev_squared
-    cdef double tlen_pp_dev_squared_sum = 0
-    cdef int64_t tlen_pp_squared_sum = 0
-    cdef int64_t tlen_pp_fwd_sum = 0
-    cdef double tlen_pp_fwd_mean = 0
-    cdef double tlen_pp_fwd_dev_squared
-    cdef double tlen_pp_fwd_dev_squared_sum = 0
-    cdef int64_t tlen_pp_fwd_squared_sum = 0
-    cdef int64_t tlen_pp_rev_sum = 0
-    cdef double tlen_pp_rev_mean = 0
-    cdef double tlen_pp_rev_dev_squared
-    cdef double tlen_pp_rev_dev_squared_sum = 0
-    cdef int64_t tlen_pp_rev_squared_sum = 0
-
-    # initialise variables
-    n = col.n
-    plp = col.plp
-
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
         mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
+        mate_other_chr = <bint>(read.b.core.tid != read.b.core.mtid)
+        tlen = read.b.core.isize
 
-        # not sure these are really needed
+        # do the counting
+        self.reads_all += 1
         if is_reverse:
-            reads_rev += 1
+            self.reads_rev += 1
         else:
-            reads_fwd += 1
+            self.reads_fwd += 1
 
-        # N.B., pysam exposes this property as 'tlen' rather than 'isize' so we
-        # follow their naming convention
-        tlen = aln.core.isize
-        tlen_squared = tlen**2
-
-        # N.B. insert size is only meaningful if mate is mapped to same
-        # chromosome
+        # N.B. insert size is only meaningful if mate is mapped to same chromosome
         if not mate_is_unmapped and not mate_other_chr:
-            reads_p += 1
-            tlen_p_sum += tlen
-            tlen_p_squared_sum += tlen_squared
+            self.tlen.update(tlen)
             if is_reverse:
-                reads_p_rev += 1
-                tlen_p_rev_sum += tlen
-                tlen_p_rev_squared_sum += tlen_squared
+                self.tlen_rev.update(tlen)
             else:
-                reads_p_fwd += 1
-                tlen_p_fwd_sum += tlen
-                tlen_p_fwd_squared_sum += tlen_squared
-
-            if is_proper_pair:
-                reads_pp += 1
-                tlen_pp_sum += tlen
-                tlen_pp_squared_sum += tlen_squared
-                if is_reverse:
-                    reads_pp_rev += 1
-                    tlen_pp_rev_sum += tlen
-                    tlen_pp_rev_squared_sum += tlen_squared
-                else:
-                    reads_pp_fwd += 1
-                    tlen_pp_fwd_sum += tlen
-                    tlen_pp_fwd_squared_sum += tlen_squared
-
-    # calculate intermediate variables
-    if reads_p > 0:
-        tlen_p_mean = tlen_p_sum / reads_p
-        if reads_p_rev > 0:
-            tlen_p_rev_mean = tlen_p_rev_sum / reads_p_rev
-        if reads_p_fwd > 0:
-            tlen_p_fwd_mean = tlen_p_fwd_sum / reads_p_fwd
-    if reads_pp > 0:
-        tlen_pp_mean = tlen_pp_sum / reads_pp
-        if reads_pp_rev > 0:
-            tlen_pp_rev_mean = tlen_pp_rev_sum / reads_pp_rev
-        if reads_pp_fwd > 0:
-            tlen_pp_fwd_mean = tlen_pp_fwd_sum / reads_pp_fwd
-
-    # loop over reads again to calculate variance (and hence std)
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        is_reverse = <bint>(flag & BAM_FREVERSE)
-        mate_is_unmapped = <bint>(flag & BAM_FMUNMAP)
-        mate_other_chr = <bint>(aln.core.tid != aln.core.mtid)
-        tlen = aln.core.isize
-        # N.B. insert size is only meaningful if mate is mapped to same
-        # chromosome
-        if not mate_is_unmapped and not mate_other_chr:
-            tlen_p_dev_squared = (tlen - tlen_p_mean)**2
-            tlen_p_dev_squared_sum += tlen_p_dev_squared
+                self.tlen_fwd.update(tlen)
+        if is_proper_pair:
+            self.tlen_pp.update(tlen)
             if is_reverse:
-                tlen_p_rev_dev_squared = (tlen - tlen_p_rev_mean)**2
-                tlen_p_rev_dev_squared_sum += tlen_p_rev_dev_squared
+                self.tlen_pp_rev.update(tlen)
             else:
-                tlen_p_fwd_dev_squared = (tlen - tlen_p_fwd_mean)**2
-                tlen_p_fwd_dev_squared_sum += tlen_p_fwd_dev_squared
-            if is_proper_pair:
-                tlen_pp_dev_squared = (tlen - tlen_pp_mean)**2
-                tlen_pp_dev_squared_sum += tlen_pp_dev_squared
-                if is_reverse:
-                    tlen_pp_rev_dev_squared = (tlen - tlen_pp_rev_mean)**2
-                    tlen_pp_rev_dev_squared_sum += tlen_pp_rev_dev_squared
-                else:
-                    tlen_pp_fwd_dev_squared = (tlen - tlen_pp_fwd_mean)**2
-                    tlen_pp_fwd_dev_squared_sum += tlen_pp_fwd_dev_squared
+                self.tlen_pp_fwd.update(tlen)
 
-    # calculate output variables
-    # N.B. round values to nearest integer, any finer precision is probably not
-    # interesting
-    if reads_p > 0:
-        mean_tlen = int(round(tlen_p_mean))
-        rms_tlen = rootmean(tlen_p_squared_sum, reads_p)
-        variance_tlen = tlen_p_dev_squared_sum / reads_p
-        std_tlen = int(round(sqrt(variance_tlen)))
-    else:
-        rms_tlen = std_tlen = mean_tlen = 0
-    if reads_p_rev > 0:
-        mean_tlen_rev = int(round(tlen_p_rev_mean))
-        rms_tlen_rev = rootmean(tlen_p_rev_squared_sum, reads_p_rev)
-        variance_tlen_rev = tlen_p_rev_dev_squared_sum / reads_p_rev
-        std_tlen_rev = int(round(sqrt(variance_tlen_rev)))
-    else:
-        rms_tlen_rev = std_tlen_rev = mean_tlen_rev = 0
-    if reads_p_fwd > 0:
-        mean_tlen_fwd = int(round(tlen_p_fwd_mean))
-        rms_tlen_fwd = rootmean(tlen_p_fwd_squared_sum, reads_p_fwd)
-        variance_tlen_fwd = tlen_p_fwd_dev_squared_sum / reads_p_fwd
-        std_tlen_fwd = int(round(sqrt(variance_tlen_fwd)))
-    else:
-        rms_tlen_fwd = std_tlen_fwd = mean_tlen_fwd = 0
-    if reads_pp > 0:
-        mean_tlen_pp = int(round(tlen_pp_mean))
-        rms_tlen_pp = rootmean(tlen_pp_squared_sum, reads_pp)
-        variance_tlen_pp = tlen_pp_dev_squared_sum / reads_pp
-        std_tlen_pp = int(round(sqrt(variance_tlen_pp)))
-    else:
-        rms_tlen_pp = std_tlen_pp = mean_tlen_pp = 0
-    if reads_pp_rev > 0:
-        mean_tlen_pp_rev = int(round(tlen_pp_rev_mean))
-        rms_tlen_pp_rev = rootmean(tlen_pp_rev_squared_sum, reads_pp_rev)
-        variance_tlen_pp_rev = tlen_pp_rev_dev_squared_sum / reads_pp_rev
-        std_tlen_pp_rev = int(round(sqrt(variance_tlen_pp_rev)))
-    else:
-        rms_tlen_pp_rev = std_tlen_pp_rev = mean_tlen_pp_rev = 0
-    if reads_pp_fwd > 0:
-        mean_tlen_pp_fwd = int(round(tlen_pp_fwd_mean))
-        rms_tlen_pp_fwd = rootmean(tlen_pp_fwd_squared_sum, reads_pp_fwd)
-        variance_tlen_pp_fwd = tlen_pp_fwd_dev_squared_sum / reads_pp_fwd
-        std_tlen_pp_fwd = int(round(sqrt(variance_tlen_pp_fwd)))
-    else:
-        rms_tlen_pp_fwd = std_tlen_pp_fwd = mean_tlen_pp_fwd = 0
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_fwd': reads_fwd,
-            'reads_rev': reads_rev,
-            'reads_paired': reads_p,
-            'reads_paired_fwd': reads_p_fwd,
-            'reads_paired_rev': reads_p_rev,
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev,
-            'mean_tlen': mean_tlen,
-            'mean_tlen_fwd': mean_tlen_fwd,
-            'mean_tlen_rev': mean_tlen_rev,
-            'mean_tlen_pp': mean_tlen_pp,
-            'mean_tlen_pp_fwd': mean_tlen_pp_fwd,
-            'mean_tlen_pp_rev': mean_tlen_pp_rev,
-            'rms_tlen': rms_tlen,
-            'rms_tlen_fwd': rms_tlen_fwd,
-            'rms_tlen_rev': rms_tlen_rev,
-            'rms_tlen_pp': rms_tlen_pp,
-            'rms_tlen_pp_fwd': rms_tlen_pp_fwd,
-            'rms_tlen_pp_rev': rms_tlen_pp_rev,
-            'std_tlen': std_tlen,
-            'std_tlen_fwd': std_tlen_fwd,
-            'std_tlen_rev': std_tlen_rev,
-            'std_tlen_pp': std_tlen_pp,
-            'std_tlen_pp_fwd': std_tlen_pp_fwd,
-            'std_tlen_pp_rev': std_tlen_pp_rev}
+        # make record
+        rec = {
+            'reads_all': self.reads_all,
+            'reads_fwd': self.reads_fwd,
+            'reads_rev': self.reads_rev,
+            'reads_paired': self.tlen.n,
+            'reads_paired_fwd': self.tlen_fwd.n,
+            'reads_paired_rev': self.tlen_rev.n,
+            'reads_pp': self.tlen_pp.n,
+            'reads_pp_fwd': self.tlen_pp_fwd.n,
+            'reads_pp_rev': self.tlen_pp_rev.n,
+            'mean_tlen': self.tlen.mean(),
+            'mean_tlen_fwd': self.tlen_fwd.mean(),
+            'mean_tlen_rev': self.tlen_rev.mean(),
+            'mean_tlen_pp': self.tlen_pp.mean(),
+            'mean_tlen_pp_fwd': self.tlen_pp_fwd.mean(),
+            'mean_tlen_pp_rev': self.tlen_pp_rev.mean(),
+            'rms_tlen': self.tlen.rms(),
+            'rms_tlen_fwd': self.tlen_fwd.rms(),
+            'rms_tlen_rev': self.tlen_rev.rms(),
+            'rms_tlen_pp': self.tlen_pp.rms(),
+            'rms_tlen_pp_fwd': self.tlen_pp_fwd.rms(),
+            'rms_tlen_pp_rev': self.tlen_pp_rev.rms(),
+            'std_tlen': self.tlen.std(),
+            'std_tlen_fwd': self.tlen_fwd.std(),
+            'std_tlen_rev': self.tlen_rev.std(),
+            'std_tlen_pp': self.tlen_pp.std(),
+            'std_tlen_pp_fwd': self.tlen_pp_fwd.std(),
+            'std_tlen_pp_rev': self.tlen_pp_rev.std(),
+        }
 
+        # reset counters
+        self.reset()
 
-cpdef dict rec_tlen_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_fwd': 0,
-            'reads_rev': 0,
-            'reads_paired': 0,
-            'reads_paired_fwd': 0,
-            'reads_paired_rev': 0,
-            'reads_pp': 0,
-            'reads_pp_fwd': 0,
-            'reads_pp_rev': 0,
-            'mean_tlen': 0,
-            'mean_tlen_fwd': 0,
-            'mean_tlen_rev': 0,
-            'mean_tlen_pp': 0,
-            'mean_tlen_pp_fwd': 0,
-            'mean_tlen_pp_rev': 0,
-            'rms_tlen': 0,
-            'rms_tlen_fwd': 0,
-            'rms_tlen_rev': 0,
-            'rms_tlen_pp': 0,
-            'rms_tlen_pp_fwd': 0,
-            'rms_tlen_pp_rev': 0,
-            'std_tlen': 0,
-            'std_tlen_fwd': 0,
-            'std_tlen_rev': 0,
-            'std_tlen_pp': 0,
-            'std_tlen_pp_fwd': 0,
-            'std_tlen_pp_rev': 0,
-            }
+        return rec
 
 
 ##############################
@@ -1170,90 +905,84 @@ cpdef dict rec_tlen_strand_pad(FastaFile fafile, chrom, pos, bint one_based=Fals
 ##############################
 
 
-cpdef dict rec_mapq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                    bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class MapqHelper:
+    cdef:
+        int n
+        int nz
+        uint64_t max
+        uint64_t sqsum
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef uint64_t mapq
-    cdef uint64_t mapq_max = 0
-    cdef uint64_t mapq_pp_max = 0
-    cdef uint64_t mapq_squared
-    cdef uint64_t mapq_squared_sum = 0
-    cdef uint64_t mapq_pp_squared_sum = 0
-    cdef bint is_proper_pair
-    cdef int reads_pp = 0
-    cdef int reads_mapq0 = 0
-    cdef int reads_mapq0_pp = 0
+    def __init__(self):
+        self.reset()
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def reset(self):
+        self.n = 0
+        self.nz = 0
+        self.max = 0
+        self.sqsum = 0
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        mapq = aln.core.qual
-        mapq_squared = mapq**2
-        mapq_squared_sum += mapq_squared
+    cdef void update(self, uint64_t mapq):
+        self.n += 1
         if mapq == 0:
-            reads_mapq0 += 1
-        if mapq > mapq_max:
-            mapq_max = mapq
+            self.nz += 1
+        if mapq > self.max:
+            self.max = mapq
+        self.sqsum += mapq**2
+
+    def rms(self):
+        return rootmean(self.sqsum, self.n)
+
+
+# noinspection PyAttributeOutsideInit
+cdef class Mapq(PileupStat):
+
+    cdef:
+        MapqHelper all
+        MapqHelper pp
+
+    def __init__(self):
+        self.all = MapqHelper()
+        self.pp = MapqHelper()
+        self.reset()
+
+    def reset(self):
+        self.all.reset()
+        self.pp.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            uint64_t mapq
+            uint64_t mapq_squared
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        mapq = read.b.core.qual
+        self.all.update(mapq)
         if is_proper_pair:
-            reads_pp += 1
-            mapq_pp_squared_sum += mapq_squared
-            if mapq > mapq_pp_max:
-                mapq_pp_max = mapq
-            if mapq == 0:
-                reads_mapq0_pp += 1
+            self.pp.update(mapq)
 
-    # construct output variables
-    rms_mapq = rootmean(mapq_squared_sum, n)
-    max_mapq = mapq_max
-    if reads_pp > 0:
-        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
-        max_mapq_pp = mapq_pp_max
-    else:
-        rms_mapq_pp = max_mapq_pp = 0
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_pp': reads_pp,
-            'reads_mapq0': reads_mapq0,
-            'reads_mapq0_pp': reads_mapq0_pp,
-            'rms_mapq': rms_mapq,
-            'rms_mapq_pp': rms_mapq_pp,
-            'max_mapq': max_mapq,
-            'max_mapq_pp': max_mapq_pp}
+        # make record
+        rec = {'reads_all': self.all.n,
+               'reads_pp': self.pp.n,
+               'reads_mapq0': self.all.nz,
+               'reads_mapq0_pp': self.pp.nz,
+               'rms_mapq': self.all.rms(),
+               'rms_mapq_pp': self.pp.rms(),
+               'max_mapq': self.all.max,
+               'max_mapq_pp': self.pp.max}
 
+        # reset counters
+        self.reset()
 
-cpdef dict rec_mapq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_pp': 0,
-            'reads_mapq0': 0,
-            'reads_mapq0_pp': 0,
-            'rms_mapq': 0,
-            'rms_mapq_pp': 0,
-            'max_mapq': 0,
-            'max_mapq_pp': 0,
-            }
+        return rec
 
 
 ########################################
@@ -1261,195 +990,95 @@ cpdef dict rec_mapq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
 ########################################
 
 
-cpdef dict rec_mapq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                           bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class MapqStrand(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n  # loop index
-    cdef int reads_all  # total number of reads in column
+    cdef:
+        MapqHelper all
+        MapqHelper fwd
+        MapqHelper rev
+        MapqHelper pp
+        MapqHelper pp_fwd
+        MapqHelper pp_rev
 
-    cdef uint32_t flag
-    cdef uint64_t mapq
-    cdef uint64_t mapq_squared
-    cdef bint is_proper_pair
-    cdef bint is_reverse
+    def __init__(self):
+        self.all = MapqHelper()
+        self.fwd = MapqHelper()
+        self.rev = MapqHelper()
+        self.pp = MapqHelper()
+        self.pp_fwd = MapqHelper()
+        self.pp_rev = MapqHelper()
+        self.reset()
 
-    cdef uint64_t mapq_max = 0
-    cdef uint64_t mapq_rev_max = 0
-    cdef uint64_t mapq_fwd_max = 0
-    cdef uint64_t mapq_pp_max = 0
-    cdef uint64_t mapq_pp_rev_max = 0
-    cdef uint64_t mapq_pp_fwd_max = 0
-    cdef uint64_t mapq_squared_sum = 0
-    cdef uint64_t mapq_fwd_squared_sum = 0
-    cdef uint64_t mapq_rev_squared_sum = 0
-    cdef uint64_t mapq_pp_squared_sum = 0
-    cdef uint64_t mapq_pp_fwd_squared_sum = 0
-    cdef uint64_t mapq_pp_rev_squared_sum = 0
+    def reset(self):
+        self.all.reset()
+        self.fwd.reset()
+        self.rev.reset()
+        self.pp.reset()
+        self.pp_fwd.reset()
+        self.pp_rev.reset()
 
-    cdef int reads_rev = 0
-    cdef int reads_fwd = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_rev = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_mapq0 = 0
-    cdef int reads_mapq0_fwd = 0
-    cdef int reads_mapq0_rev = 0
-    cdef int reads_mapq0_pp = 0
-    cdef int reads_mapq0_pp_fwd = 0
-    cdef int reads_mapq0_pp_rev = 0
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            uint64_t mapq
+            uint64_t mapq_squared
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
-
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
-        mapq = aln.core.qual
-        mapq_squared = mapq**2
 
-        mapq_squared_sum += mapq_squared
-        if mapq > mapq_max:
-            mapq_max = mapq
+        # do the counting
+        mapq = read.b.core.qual
+        self.all.update(mapq)
         if is_reverse:
-            reads_rev += 1
-            mapq_rev_squared_sum += mapq_squared
-            if mapq > mapq_rev_max:
-                mapq_rev_max = mapq
+            self.rev.update(mapq)
         else:
-            reads_fwd += 1
-            mapq_fwd_squared_sum += mapq_squared
-            if mapq > mapq_fwd_max:
-                mapq_fwd_max = mapq
-
-        if mapq == 0:
-            reads_mapq0 += 1
-            if is_reverse:
-                reads_mapq0_rev += 1
-            else:
-                reads_mapq0_fwd += 1
-
+            self.fwd.update(mapq)
         if is_proper_pair:
-            reads_pp += 1
-            mapq_pp_squared_sum += mapq_squared
-            if mapq > mapq_pp_max:
-                mapq_pp_max = mapq
+            self.pp.update(mapq)
             if is_reverse:
-                reads_pp_rev += 1
-                mapq_pp_rev_squared_sum += mapq_squared
-                if mapq > mapq_pp_rev_max:
-                    mapq_pp_rev_max = mapq
+                self.pp_rev.update(mapq)
             else:
-                reads_pp_fwd += 1
-                mapq_pp_fwd_squared_sum += mapq_squared
-                if mapq > mapq_pp_fwd_max:
-                    mapq_pp_fwd_max = mapq
-            if mapq == 0:
-                reads_mapq0_pp += 1
-                if is_reverse:
-                    reads_mapq0_pp_rev += 1
-                else:
-                    reads_mapq0_pp_fwd += 1
+                self.pp_fwd.update(mapq)
 
-    # construct output variables
-    rms_mapq = rootmean(mapq_squared_sum, n)
-    max_mapq = mapq_max
-    if reads_rev > 0:
-        rms_mapq_rev = rootmean(mapq_rev_squared_sum, reads_rev)
-        max_mapq_rev = mapq_rev_max
-    else:
-        rms_mapq_rev = max_mapq_rev = 0
-    if reads_fwd > 0:
-        rms_mapq_fwd = rootmean(mapq_fwd_squared_sum, reads_fwd)
-        max_mapq_fwd = mapq_fwd_max
-    else:
-        rms_mapq_fwd = max_mapq_fwd = 0
-    if reads_pp > 0:
-        rms_mapq_pp = rootmean(mapq_pp_squared_sum, reads_pp)
-        max_mapq_pp = mapq_pp_max
-    else:
-        rms_mapq_pp = max_mapq_pp = 0
-    if reads_pp_fwd > 0:
-        rms_mapq_pp_fwd = rootmean(mapq_pp_fwd_squared_sum, reads_pp_fwd)
-        max_mapq_pp_fwd = mapq_pp_fwd_max
-    else:
-        rms_mapq_pp_fwd = max_mapq_pp_fwd = 0
-    if reads_pp_rev > 0:
-        rms_mapq_pp_rev = rootmean(mapq_pp_rev_squared_sum, reads_pp_rev)
-        max_mapq_pp_rev = mapq_pp_rev_max
-    else:
-        rms_mapq_pp_rev = max_mapq_pp_rev = 0
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_fwd': reads_fwd,
-            'reads_rev': reads_rev,
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev,
-            'reads_mapq0': reads_mapq0,
-            'reads_mapq0_fwd': reads_mapq0_fwd,
-            'reads_mapq0_rev': reads_mapq0_rev,
-            'reads_mapq0_pp': reads_mapq0_pp,
-            'reads_mapq0_pp_fwd': reads_mapq0_pp_fwd,
-            'reads_mapq0_pp_rev': reads_mapq0_pp_rev,
-            'rms_mapq': rms_mapq,
-            'rms_mapq_fwd': rms_mapq_fwd,
-            'rms_mapq_rev': rms_mapq_rev,
-            'rms_mapq_pp': rms_mapq_pp,
-            'rms_mapq_pp_fwd': rms_mapq_pp_fwd,
-            'rms_mapq_pp_rev': rms_mapq_pp_rev,
-            'max_mapq': max_mapq,
-            'max_mapq_fwd': max_mapq_fwd,
-            'max_mapq_rev': max_mapq_rev,
-            'max_mapq_pp': max_mapq_pp,
-            'max_mapq_pp_fwd': max_mapq_pp_fwd,
-            'max_mapq_pp_rev': max_mapq_pp_rev,
-            }
+        # make record
+        rec = {
+            'reads_all': self.all.n,
+            'reads_fwd': self.fwd.n,
+            'reads_rev': self.rev.n,
+            'reads_pp': self.pp.n,
+            'reads_pp_fwd': self.pp_fwd.n,
+            'reads_pp_rev': self.pp_rev.n,
+            'reads_mapq0': self.all.nz,
+            'reads_mapq0_fwd': self.fwd.nz,
+            'reads_mapq0_rev': self.rev.nz,
+            'reads_mapq0_pp': self.pp.nz,
+            'reads_mapq0_pp_fwd': self.pp_fwd.nz,
+            'reads_mapq0_pp_rev': self.pp_rev.nz,
+            'rms_mapq': self.all.rms(),
+            'rms_mapq_fwd': self.fwd.rms(),
+            'rms_mapq_rev': self.rev.rms(),
+            'rms_mapq_pp': self.pp.rms(),
+            'rms_mapq_pp_fwd': self.pp_fwd.rms(),
+            'rms_mapq_pp_rev': self.pp_rev.rms(),
+            'max_mapq': self.all.max,
+            'max_mapq_fwd': self.fwd.max,
+            'max_mapq_rev': self.rev.max,
+            'max_mapq_pp': self.pp.max,
+            'max_mapq_pp_fwd': self.pp_fwd.max,
+            'max_mapq_pp_rev': self.pp_rev.max,
+        }
 
+        # reset counters
+        self.reset()
 
-cpdef dict rec_mapq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_fwd': 0,
-            'reads_rev': 0,
-            'reads_pp': 0,
-            'reads_pp_fwd': 0,
-            'reads_pp_rev': 0,
-            'reads_mapq0': 0,
-            'reads_mapq0_fwd': 0,
-            'reads_mapq0_rev': 0,
-            'reads_mapq0_pp': 0,
-            'reads_mapq0_pp_fwd': 0,
-            'reads_mapq0_pp_rev': 0,
-            'rms_mapq': 0,
-            'rms_mapq_fwd': 0,
-            'rms_mapq_rev': 0,
-            'rms_mapq_pp': 0,
-            'rms_mapq_pp_fwd': 0,
-            'rms_mapq_pp_rev': 0,
-            'max_mapq': 0,
-            'max_mapq_fwd': 0,
-            'max_mapq_rev': 0,
-            'max_mapq_pp': 0,
-            'max_mapq_pp_fwd': 0,
-            'max_mapq_pp_rev': 0,
-            }
+        return rec
 
 
 ###########################
@@ -1457,205 +1086,198 @@ cpdef dict rec_mapq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=Fals
 ###########################
 
 
-cpdef dict rec_baseq(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                     bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class BaseqHelper:
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef int reads_nodel = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_nodel = 0
-    cdef uint64_t baseq, baseq_squared
-    cdef uint64_t baseq_squared_sum = 0
-    cdef uint64_t baseq_pp_squared_sum = 0
+    cdef:
+        int n
+        int n_nodel
+        uint64_t sqsum
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    def __init__(self):
+        self.reset()
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
+    def reset(self):
+        self.n = 0
+        self.n_nodel = 0
+        self.sqsum = 0
 
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+    cdef void update(self, int64_t baseq_squared):
+        self.n += 1
+        if baseq_squared >= 0:
+            self.n_nodel += 1
+            self.sqsum += baseq_squared
+
+    def rms(self):
+        return rootmean(self.sqsum, self.n_nodel)
+
+
+# noinspection PyAttributeOutsideInit
+cdef class BaseqPpHelper:
+
+    cdef:
+        BaseqHelper all
+        BaseqHelper pp
+
+    def __init__(self):
+        self.all = BaseqHelper()
+        self.pp = BaseqHelper()
+        self.reset()
+
+    def reset(self):
+        self.all.reset()
+        self.pp.reset()
+
+    cdef void update(self, int64_t baseq_squared, bint is_proper_pair):
+        self.all.update(baseq_squared)
         if is_proper_pair:
-            reads_pp += 1
-        # N.B., base quality only makes sense if the aligned read is not a
-        # deletion
+            self.pp.update(baseq_squared)
+
+
+# noinspection PyAttributeOutsideInit
+cdef class Baseq(PileupStat):
+
+    cdef:
+        BaseqPpHelper helper
+
+    def __init__(self):
+        self.helper = BaseqPpHelper()
+        self.reset()
+
+    def reset(self):
+        self.helper.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            int64_t baseq = -1
+            int64_t baseq_squared = -1
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+
+        # do the counting
         if not read.is_del:
-            reads_nodel += 1
-            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(read.b)[read.qpos]
             baseq_squared = baseq**2
-            baseq_squared_sum += baseq_squared
-            if is_proper_pair:
-                reads_pp_nodel += 1
-                baseq_pp_squared_sum += baseq_squared
 
-    # output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
+        self.helper.update(baseq_squared, is_proper_pair)
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_pp': reads_pp,
-            'rms_baseq': rms_baseq,
-            'rms_baseq_pp': rms_baseq_pp}
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        rec = {
+            'reads_all': self.helper.all.n,
+            'reads_pp': self.helper.pp.n,
+            'rms_baseq': self.helper.all.rms(),
+            'rms_baseq_pp': self.helper.pp.rms(),
+        }
 
-cpdef dict rec_baseq_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_pp': 0,
-            'rms_baseq': 0,
-            'rms_baseq_pp': 0,
-            }
+        # reset counters
+        self.reset()
+
+        return rec
 
 
-#####################################
-# BASE QUALITY STATISTICS BY STRAND #
-#####################################
+# noinspection PyAttributeOutsideInit
+cdef class BaseqStrandPpHelper:
+
+    cdef:
+        BaseqHelper all
+        BaseqHelper fwd
+        BaseqHelper rev
+        BaseqHelper pp
+        BaseqHelper pp_fwd
+        BaseqHelper pp_rev
+
+    def __init__(self):
+        self.all = BaseqHelper()
+        self.fwd = BaseqHelper()
+        self.rev = BaseqHelper()
+        self.pp = BaseqHelper()
+        self.pp_fwd = BaseqHelper()
+        self.pp_rev = BaseqHelper()
+        self.reset()
+
+    def reset(self):
+        self.all.reset()
+        self.fwd.reset()
+        self.rev.reset()
+        self.pp.reset()
+        self.pp_fwd.reset()
+        self.pp_rev.reset()
+
+    cdef void update(self, int64_t baseq_squared, bint is_proper_pair, bint is_reverse):
+        self.all.update(baseq_squared)
+        if is_reverse:
+            self.rev.update(baseq_squared)
+        else:
+            self.fwd.update(baseq_squared)
+        if is_proper_pair:
+            self.pp.update(baseq_squared)
+            if is_reverse:
+                self.pp_rev.update(baseq_squared)
+            else:
+                self.pp_fwd.update(baseq_squared)
 
 
-cpdef dict rec_baseq_strand(AlignmentFile alignmentfile, FastaFile fafile, PileupColumn col,
-                            bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class BaseqStrand(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
+    cdef:
+        BaseqStrandPpHelper helper
 
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bint is_reverse
-    cdef uint64_t baseq
-    cdef uint64_t baseq_squared
+    def __init__(self):
+        self.helper = BaseqStrandPpHelper()
+        self.reset()
 
-    cdef uint64_t baseq_squared_sum = 0
-    cdef uint64_t baseq_fwd_squared_sum = 0
-    cdef uint64_t baseq_rev_squared_sum = 0
-    cdef uint64_t baseq_pp_squared_sum = 0
-    cdef uint64_t baseq_pp_fwd_squared_sum = 0
-    cdef uint64_t baseq_pp_rev_squared_sum = 0
+    def reset(self):
+        self.helper.reset()
 
-    cdef int reads_rev = 0
-    cdef int reads_fwd = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_rev = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_nodel = 0
-    cdef int reads_rev_nodel = 0
-    cdef int reads_fwd_nodel = 0
-    cdef int reads_pp_nodel = 0
-    cdef int reads_pp_rev_nodel = 0
-    cdef int reads_pp_fwd_nodel = 0
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            int64_t baseq = -1
+            int64_t baseq_squared = -1
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
-
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
 
-        if is_reverse:
-            reads_rev += 1
-        else:
-            reads_fwd += 1
-        if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
-
-        # N.B., baseq only makes sense if not a deletion
+        # do the counting
         if not read.is_del:
-            reads_nodel += 1
-            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(read.b)[read.qpos]
             baseq_squared = baseq**2
-            baseq_squared_sum += baseq_squared
-            if is_reverse:
-                reads_rev_nodel += 1
-                baseq_rev_squared_sum += baseq_squared
-            else:
-                reads_fwd_nodel += 1
-                baseq_fwd_squared_sum += baseq_squared
-            if is_proper_pair:
-                reads_pp_nodel += 1
-                baseq_pp_squared_sum += baseq_squared
-                if is_reverse:
-                    reads_pp_rev_nodel += 1
-                    baseq_pp_rev_squared_sum += baseq_squared
-                else:
-                    reads_pp_fwd_nodel += 1
-                    baseq_pp_fwd_squared_sum += baseq_squared
 
-    # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
+        self.helper.update(baseq_squared, is_proper_pair, is_reverse)
 
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': n,
-            'reads_fwd': reads_fwd,
-            'reads_rev': reads_rev,
-            'reads_pp': reads_pp,
-            'reads_pp_fwd': reads_pp_fwd,
-            'reads_pp_rev': reads_pp_rev,
-            'rms_baseq': rms_baseq,
-            'rms_baseq_fwd': rms_baseq_fwd,
-            'rms_baseq_rev': rms_baseq_rev,
-            'rms_baseq_pp': rms_baseq_pp,
-            'rms_baseq_pp_fwd': rms_baseq_pp_fwd,
-            'rms_baseq_pp_rev': rms_baseq_pp_rev,
-            }
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
+        # make record
+        rec = {
+            'reads_all': self.helper.all.n,
+            'reads_fwd': self.helper.fwd.n,
+            'reads_rev': self.helper.rev.n,
+            'reads_pp': self.helper.pp.n,
+            'reads_pp_fwd': self.helper.pp_fwd.n,
+            'reads_pp_rev': self.helper.pp_rev.n,
+            'rms_baseq': self.helper.all.rms(),
+            'rms_baseq_fwd': self.helper.fwd.rms(),
+            'rms_baseq_rev': self.helper.rev.rms(),
+            'rms_baseq_pp': self.helper.pp.rms(),
+            'rms_baseq_pp_fwd': self.helper.pp_fwd.rms(),
+            'rms_baseq_pp_rev': self.helper.pp_rev.rms(),
+        }
 
-cpdef dict rec_baseq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom,
-            'pos': pos,
-            'reads_all': 0,
-            'reads_fwd': 0,
-            'reads_rev': 0,
-            'reads_pp': 0,
-            'reads_pp_fwd': 0,
-            'reads_pp_rev': 0,
-            'rms_baseq': 0,
-            'rms_baseq_fwd': 0,
-            'rms_baseq_rev': 0,
-            'rms_baseq_pp': 0,
-            'rms_baseq_pp_fwd': 0,
-            'rms_baseq_pp_rev': 0,
-            }
+        # reset counters
+        self.reset()
+
+        return rec
 
 
 ####################################
@@ -1663,346 +1285,178 @@ cpdef dict rec_baseq_strand_pad(FastaFile fafile, chrom, pos, bint one_based=Fal
 ####################################
 
 
-cpdef dict rec_baseq_ext(AlignmentFile alignmentfile, FastaFile fafile,
-                         PileupColumn col, bint one_based=False):
+# noinspection PyAttributeOutsideInit
+cdef class BaseqExt(PileupStat):
 
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bytes refbase_b, alnbase
-    # counting variables
-    cdef int reads_nodel = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_nodel = 0
-    cdef int matches = 0
-    cdef int matches_pp = 0
-    cdef int mismatches = 0
-    cdef int mismatches_pp = 0
+    cdef:
+        BaseqPpHelper all
+        BaseqPpHelper matches
+        BaseqPpHelper mismatches
 
-    cdef uint64_t baseq
-    cdef uint64_t baseq_squared
+    def __init__(self):
+        self.all = BaseqPpHelper()
+        self.matches = BaseqPpHelper()
+        self.mismatches = BaseqPpHelper()
+        self.reset()
 
-    cdef uint64_t baseq_squared_sum = 0
-    cdef uint64_t baseq_pp_squared_sum = 0
-    cdef uint64_t baseq_matches_squared_sum = 0
-    cdef uint64_t baseq_matches_pp_squared_sum = 0
-    cdef uint64_t baseq_mismatches_squared_sum = 0
-    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
+    def reset(self):
+        self.all.reset()
+        self.matches.reset()
+        self.mismatches.reset()
 
-    # initialise variables
-    n = col.n
-    plp = col.plp
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            int64_t baseq = -1
+            int64_t baseq_squared = -1
+            bytes alnbase
 
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # reference base
-    refbase = fafile.fetch(reference=chrom, start=col.pos,
-                           end=col.pos + 1).upper()
-    if not PY2:
-        refbase_b = refbase.encode('ascii')
-    else:
-        refbase_b = refbase
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
-        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
-        if is_proper_pair:
-            reads_pp += 1
-        if not read.is_del:
-            reads_nodel += 1
-            baseq = pysam_bam_get_qual(aln)[read.qpos]
-            baseq_squared = baseq**2
-            baseq_squared_sum += baseq_squared
-            if is_proper_pair:
-                reads_pp_nodel += 1
-                baseq_pp_squared_sum += baseq_squared
-            alnbase = get_seq_base(aln, read.qpos)
-            if alnbase == refbase_b:
-                matches += 1
-                baseq_matches_squared_sum += baseq_squared
-                if is_proper_pair:
-                    matches_pp += 1
-                    baseq_matches_pp_squared_sum += baseq_squared
-            else:
-                mismatches += 1
-                baseq_mismatches_squared_sum += baseq_squared
-                if is_proper_pair:
-                    mismatches_pp += 1
-                    baseq_mismatches_pp_squared_sum += baseq_squared
-
-    # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum,
-                                       mismatches_pp)
-
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_pp': reads_pp,
-            'matches': matches,
-            'matches_pp': matches_pp,
-            'mismatches': mismatches,
-            'mismatches_pp': mismatches_pp,
-            'rms_baseq': rms_baseq,
-            'rms_baseq_pp': rms_baseq_pp,
-            'rms_baseq_matches': rms_baseq_matches,
-            'rms_baseq_matches_pp': rms_baseq_matches_pp,
-            'rms_baseq_mismatches': rms_baseq_mismatches,
-            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp,
-            }
-
-
-cpdef dict rec_baseq_ext_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': 0, 'reads_pp': 0,
-            'matches': 0,
-            'matches_pp': 0,
-            'mismatches': 0,
-            'mismatches_pp': 0,
-            'rms_baseq': 0,
-            'rms_baseq_pp': 0,
-            'rms_baseq_matches': 0,
-            'rms_baseq_matches_pp': 0,
-            'rms_baseq_mismatches': 0,
-            'rms_baseq_mismatches_pp': 0,
-            }
-
-
-##############################################
-# EXTENDED BASE QUALITY STATISTICS BY STRAND #
-##############################################
-
-
-cpdef dict rec_baseq_ext_strand(AlignmentFile alignmentfile, FastaFile fafile,
-                                PileupColumn col, bint one_based=False):
-
-    # statically typed variables
-    cdef bam_pileup1_t ** plp
-    cdef bam_pileup1_t * read
-    cdef bam1_t * aln
-    cdef int i, n # loop index
-    cdef int reads_all # total number of reads in column
-    cdef uint32_t flag
-    cdef bint is_proper_pair
-    cdef bint is_reverse
-    cdef bytes alnbase, refbase_b
-    # counting variables
-    cdef int reads_fwd = 0
-    cdef int reads_rev = 0
-    cdef int reads_nodel = 0
-    cdef int reads_fwd_nodel = 0
-    cdef int reads_rev_nodel = 0
-    cdef int reads_pp = 0
-    cdef int reads_pp_fwd = 0
-    cdef int reads_pp_rev = 0
-    cdef int reads_pp_nodel = 0
-    cdef int reads_pp_fwd_nodel = 0
-    cdef int reads_pp_rev_nodel = 0
-    cdef int matches = 0
-    cdef int matches_fwd = 0
-    cdef int matches_rev = 0
-    cdef int matches_pp = 0
-    cdef int matches_pp_fwd = 0
-    cdef int matches_pp_rev = 0
-    cdef int mismatches = 0
-    cdef int mismatches_fwd = 0
-    cdef int mismatches_rev = 0
-    cdef int mismatches_pp = 0
-    cdef int mismatches_pp_fwd = 0
-    cdef int mismatches_pp_rev = 0
-
-    cdef uint64_t baseq
-    cdef uint64_t baseq_squared
-
-    cdef uint64_t baseq_squared_sum = 0
-    cdef uint64_t baseq_fwd_squared_sum = 0
-    cdef uint64_t baseq_rev_squared_sum = 0
-    cdef uint64_t baseq_pp_squared_sum = 0
-    cdef uint64_t baseq_pp_fwd_squared_sum = 0
-    cdef uint64_t baseq_pp_rev_squared_sum = 0
-    cdef uint64_t baseq_matches_squared_sum = 0
-    cdef uint64_t baseq_matches_fwd_squared_sum = 0
-    cdef uint64_t baseq_matches_rev_squared_sum = 0
-    cdef uint64_t baseq_matches_pp_squared_sum = 0
-    cdef uint64_t baseq_matches_pp_fwd_squared_sum = 0
-    cdef uint64_t baseq_matches_pp_rev_squared_sum = 0
-    cdef uint64_t baseq_mismatches_squared_sum = 0
-    cdef uint64_t baseq_mismatches_fwd_squared_sum = 0
-    cdef uint64_t baseq_mismatches_rev_squared_sum = 0
-    cdef uint64_t baseq_mismatches_pp_squared_sum = 0
-    cdef uint64_t baseq_mismatches_pp_fwd_squared_sum = 0
-    cdef uint64_t baseq_mismatches_pp_rev_squared_sum = 0
-
-    # initialise variables
-    n = col.n
-    plp = col.plp
-
-    # get chromosome name and position
-    chrom = alignmentfile.getrname(col.tid)
-    pos = col.pos + 1 if one_based else col.pos
-
-    # reference base
-    refbase = fafile.fetch(reference=chrom, start=col.pos, end=col.pos+1).upper()
-    if not PY2:
-        refbase_b = refbase.encode('ascii')
-    else:
-        refbase_b = refbase
-
-    # loop over reads, extract what we need
-    for i in range(n):
-        read = &(plp[0][i])
-        aln = read.b
-        flag = aln.core.flag
+        # convenience variables
+        flag = read.b.core.flag
         is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
         is_reverse = <bint>(flag & BAM_FREVERSE)
 
-        if is_reverse:
-            reads_rev += 1
-        else:
-            reads_fwd += 1
-        if is_proper_pair:
-            reads_pp += 1
-            if is_reverse:
-                reads_pp_rev += 1
-            else:
-                reads_pp_fwd += 1
-
+        # do the counting
         if not read.is_del:
-            reads_nodel += 1
-            baseq = pysam_bam_get_qual(aln)[read.qpos]
+            baseq = pysam_bam_get_qual(read.b)[read.qpos]
             baseq_squared = baseq**2
-            baseq_squared_sum += baseq_squared
-            if is_reverse:
-                reads_rev_nodel += 1
-                baseq_rev_squared_sum += baseq_squared
+
+        self.all.update(baseq_squared, is_proper_pair)
+        if not read.is_del:
+            alnbase = get_seq_base(read.b, read.qpos)
+            if alnbase == refbase:
+                self.matches.update(baseq_squared, is_proper_pair)
             else:
-                reads_fwd_nodel += 1
-                baseq_fwd_squared_sum += baseq_squared
-            if is_proper_pair:
-                reads_pp_nodel += 1
-                baseq_pp_squared_sum += baseq_squared
-                if is_reverse:
-                    reads_pp_rev_nodel += 1
-                    baseq_pp_rev_squared_sum += baseq_squared
-                else:
-                    reads_pp_fwd_nodel += 1
-                    baseq_pp_fwd_squared_sum += baseq_squared
-            alnbase = get_seq_base(aln, read.qpos)
-            if alnbase == refbase_b:
-                matches += 1
-                baseq_matches_squared_sum += baseq_squared
-                if is_reverse:
-                    matches_rev += 1
-                    baseq_matches_rev_squared_sum += baseq_squared
-                else:
-                    matches_fwd += 1
-                    baseq_matches_fwd_squared_sum += baseq_squared
+                self.mismatches.update(baseq_squared, is_proper_pair)
 
-                if is_proper_pair:
-                    matches_pp += 1
-                    baseq_matches_pp_squared_sum += baseq_squared
-                    if is_reverse:
-                        matches_pp_rev += 1
-                        baseq_matches_pp_rev_squared_sum += baseq_squared
-                    else:
-                        matches_pp_fwd += 1
-                        baseq_matches_pp_fwd_squared_sum += baseq_squared
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # make record
+        if PY2:
+            ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
+        rec = {
+            'ref': ref,
+            'reads_all': self.all.all.n,
+            'reads_pp': self.all.pp.n,
+            'matches': self.matches.all.n,
+            'matches_pp': self.matches.pp.n,
+            'mismatches': self.mismatches.all.n,
+            'mismatches_pp': self.mismatches.pp.n,
+            'rms_baseq': self.all.all.rms(),
+            'rms_baseq_pp': self.all.pp.rms(),
+            'rms_baseq_matches': self.matches.all.rms(),
+            'rms_baseq_matches_pp': self.matches.pp.rms(),
+            'rms_baseq_mismatches': self.mismatches.all.rms(),
+            'rms_baseq_mismatches_pp': self.mismatches.pp.rms(),
+        }
+
+        # reset counters
+        self.reset()
+
+        return rec
+
+
+# noinspection PyAttributeOutsideInit
+cdef class BaseqExtStrand(PileupStat):
+
+    cdef:
+        BaseqStrandPpHelper all
+        BaseqStrandPpHelper matches
+        BaseqStrandPpHelper mismatches
+
+    def __init__(self):
+        self.all = BaseqStrandPpHelper()
+        self.matches = BaseqStrandPpHelper()
+        self.mismatches = BaseqStrandPpHelper()
+        self.reset()
+
+    def reset(self):
+        self.all.reset()
+        self.matches.reset()
+        self.mismatches.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            uint32_t flag
+            bint is_proper_pair
+            bint is_reverse
+            int64_t baseq = -1
+            int64_t baseq_squared = -1
+            bytes alnbase
+
+        # convenience variables
+        flag = read.b.core.flag
+        is_proper_pair = <bint>(flag & BAM_FPROPER_PAIR)
+        is_reverse = <bint>(flag & BAM_FREVERSE)
+
+        # do the counting
+        if not read.is_del:
+            baseq = pysam_bam_get_qual(read.b)[read.qpos]
+            baseq_squared = baseq**2
+
+        self.all.update(baseq_squared, is_proper_pair, is_reverse)
+        if not read.is_del:
+            alnbase = get_seq_base(read.b, read.qpos)
+            if alnbase == refbase:
+                self.matches.update(baseq_squared, is_proper_pair, is_reverse)
             else:
-                mismatches += 1
-                baseq_mismatches_squared_sum += baseq_squared
-                if is_reverse:
-                    mismatches_rev += 1
-                    baseq_mismatches_rev_squared_sum += baseq_squared
-                else:
-                    mismatches_fwd += 1
-                    baseq_mismatches_fwd_squared_sum += baseq_squared
+                self.mismatches.update(baseq_squared, is_proper_pair, is_reverse)
 
-                if is_proper_pair:
-                    mismatches_pp += 1
-                    baseq_mismatches_pp_squared_sum += baseq_squared
-                    if is_reverse:
-                        mismatches_pp_rev += 1
-                        baseq_mismatches_pp_rev_squared_sum += baseq_squared
-                    else:
-                        mismatches_pp_fwd += 1
-                        baseq_mismatches_pp_fwd_squared_sum += baseq_squared
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
-    # construct output variables
-    rms_baseq = rootmean(baseq_squared_sum, reads_nodel)
-    rms_baseq_fwd = rootmean(baseq_fwd_squared_sum, reads_fwd_nodel)
-    rms_baseq_rev = rootmean(baseq_rev_squared_sum, reads_rev_nodel)
-    rms_baseq_pp = rootmean(baseq_pp_squared_sum, reads_pp_nodel)
-    rms_baseq_pp_fwd = rootmean(baseq_pp_fwd_squared_sum, reads_pp_fwd_nodel)
-    rms_baseq_pp_rev = rootmean(baseq_pp_rev_squared_sum, reads_pp_rev_nodel)
-    rms_baseq_matches = rootmean(baseq_matches_squared_sum, matches)
-    rms_baseq_matches_fwd = rootmean(baseq_matches_fwd_squared_sum,
-                                     matches_fwd)
-    rms_baseq_matches_rev = rootmean(baseq_matches_rev_squared_sum,
-                                     matches_rev)
-    rms_baseq_matches_pp = rootmean(baseq_matches_pp_squared_sum, matches_pp)
-    rms_baseq_matches_pp_fwd = rootmean(baseq_matches_pp_fwd_squared_sum,
-                                        matches_pp_fwd)
-    rms_baseq_matches_pp_rev = rootmean(baseq_matches_pp_rev_squared_sum,
-                                        matches_pp_rev)
-    rms_baseq_mismatches = rootmean(baseq_mismatches_squared_sum, mismatches)
-    rms_baseq_mismatches_fwd = rootmean(baseq_mismatches_fwd_squared_sum,
-                                        mismatches_fwd)
-    rms_baseq_mismatches_rev = rootmean(baseq_mismatches_rev_squared_sum,
-                                        mismatches_rev)
-    rms_baseq_mismatches_pp = rootmean(baseq_mismatches_pp_squared_sum,
-                                       mismatches_pp)
-    rms_baseq_mismatches_pp_fwd = rootmean(baseq_mismatches_pp_fwd_squared_sum,
-                                           mismatches_pp_fwd)
-    rms_baseq_mismatches_pp_rev = rootmean(baseq_mismatches_pp_rev_squared_sum,
-                                           mismatches_pp_rev)
+        # make record
+        if PY2:
+            ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
+        rec = {
+            'ref': ref,
+            'reads_all': self.all.all.n,
+            'reads_fwd': self.all.fwd.n,
+            'reads_rev': self.all.rev.n,
+            'reads_pp': self.all.pp.n,
+            'reads_pp_fwd': self.all.pp_fwd.n,
+            'reads_pp_rev': self.all.pp_rev.n,
+            'matches': self.matches.all.n,
+            'matches_fwd': self.matches.fwd.n,
+            'matches_rev': self.matches.rev.n,
+            'matches_pp': self.matches.pp.n,
+            'matches_pp_fwd': self.matches.pp_fwd.n,
+            'matches_pp_rev': self.matches.pp_rev.n,
+            'mismatches': self.mismatches.all.n,
+            'mismatches_fwd': self.mismatches.fwd.n,
+            'mismatches_rev': self.mismatches.rev.n,
+            'mismatches_pp': self.mismatches.pp.n,
+            'mismatches_pp_fwd': self.mismatches.pp_fwd.n,
+            'mismatches_pp_rev': self.mismatches.pp_rev.n,
+            'rms_baseq': self.all.all.rms(),
+            'rms_baseq_fwd': self.all.fwd.rms(),
+            'rms_baseq_rev': self.all.rev.rms(),
+            'rms_baseq_pp': self.all.pp.rms(),
+            'rms_baseq_pp_fwd': self.all.pp_fwd.rms(),
+            'rms_baseq_pp_rev': self.all.pp_rev.rms(),
+            'rms_baseq_matches': self.matches.all.rms(),
+            'rms_baseq_matches_fwd': self.matches.fwd.rms(),
+            'rms_baseq_matches_rev': self.matches.rev.rms(),
+            'rms_baseq_matches_pp': self.matches.pp.rms(),
+            'rms_baseq_matches_pp_fwd': self.matches.pp_fwd.rms(),
+            'rms_baseq_matches_pp_rev': self.matches.pp_rev.rms(),
+            'rms_baseq_mismatches': self.mismatches.all.rms(),
+            'rms_baseq_mismatches_fwd': self.mismatches.fwd.rms(),
+            'rms_baseq_mismatches_rev': self.mismatches.rev.rms(),
+            'rms_baseq_mismatches_pp': self.mismatches.pp.rms(),
+            'rms_baseq_mismatches_pp_fwd': self.mismatches.pp_fwd.rms(),
+            'rms_baseq_mismatches_pp_rev': self.mismatches.pp_rev.rms(),
+        }
 
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': n, 'reads_fwd': reads_fwd, 'reads_rev': reads_rev,
-            'reads_pp': reads_pp, 'reads_pp_fwd': reads_pp_fwd, 'reads_pp_rev': reads_pp_rev,
-            'matches': matches, 'matches_fwd': matches_fwd, 'matches_rev': matches_rev,
-            'matches_pp': matches_pp, 'matches_pp_fwd': matches_pp_fwd, 'matches_pp_rev': matches_pp_rev,
-            'mismatches': mismatches, 'mismatches_fwd': mismatches_fwd, 'mismatches_rev': mismatches_rev,
-            'mismatches_pp': mismatches_pp, 'mismatches_pp_fwd': mismatches_pp_fwd, 'mismatches_pp_rev': mismatches_pp_rev,
-            'rms_baseq': rms_baseq, 'rms_baseq_fwd': rms_baseq_fwd, 'rms_baseq_rev': rms_baseq_rev,
-            'rms_baseq_pp': rms_baseq_pp, 'rms_baseq_pp_fwd': rms_baseq_pp_fwd, 'rms_baseq_pp_rev': rms_baseq_pp_rev,
-            'rms_baseq_matches': rms_baseq_matches, 'rms_baseq_matches_fwd': rms_baseq_matches_fwd, 'rms_baseq_matches_rev': rms_baseq_matches_rev,
-            'rms_baseq_matches_pp': rms_baseq_matches_pp, 'rms_baseq_matches_pp_fwd': rms_baseq_matches_pp_fwd, 'rms_baseq_matches_pp_rev': rms_baseq_matches_pp_rev,
-            'rms_baseq_mismatches': rms_baseq_mismatches, 'rms_baseq_mismatches_fwd': rms_baseq_mismatches_fwd, 'rms_baseq_mismatches_rev': rms_baseq_mismatches_rev,
-            'rms_baseq_mismatches_pp': rms_baseq_mismatches_pp, 'rms_baseq_mismatches_pp_fwd': rms_baseq_mismatches_pp_fwd, 'rms_baseq_mismatches_pp_rev': rms_baseq_mismatches_pp_rev,
-            }
+        # reset counters
+        self.reset()
 
-
-cpdef dict rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos, bint one_based=False):
-    refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-    pos = pos + 1 if one_based else pos
-    return {'chrom': chrom, 'pos': pos, 'ref': refbase,
-            'reads_all': 0, 'reads_fwd': 0, 'reads_rev': 0,
-            'reads_pp': 0, 'reads_pp_fwd': 0, 'reads_pp_rev': 0,
-            'matches': 0, 'matches_fwd': 0, 'matches_rev': 0,
-            'matches_pp': 0, 'matches_pp_fwd': 0, 'matches_pp_rev': 0,
-            'mismatches': 0, 'mismatches_fwd': 0, 'mismatches_rev': 0,
-            'mismatches_pp': 0, 'mismatches_pp_fwd': 0, 'mismatches_pp_rev': 0,
-            'rms_baseq': 0, 'rms_baseq_fwd': 0, 'rms_baseq_rev': 0,
-            'rms_baseq_pp': 0, 'rms_baseq_pp_fwd': 0, 'rms_baseq_pp_rev': 0,
-            'rms_baseq_matches': 0, 'rms_baseq_matches_fwd': 0, 'rms_baseq_matches_rev': 0,
-            'rms_baseq_matches_pp': 0, 'rms_baseq_matches_pp_fwd': 0, 'rms_baseq_matches_pp_rev': 0,
-            'rms_baseq_mismatches': 0, 'rms_baseq_mismatches_fwd': 0, 'rms_baseq_mismatches_rev': 0,
-            'rms_baseq_mismatches_pp': 0, 'rms_baseq_mismatches_pp_fwd': 0, 'rms_baseq_mismatches_pp_rev': 0,
-            }
+        return rec
 
 
 #################################################
@@ -2010,49 +1464,56 @@ cpdef dict rec_baseq_ext_strand_pad(FastaFile fafile, chrom, pos, bint one_based
 #################################################
 
 
-def frecs_coverage_gc(window_size=300, window_offset=None):
+# noinspection PyAttributeOutsideInit
+cdef class CoverageGC(PileupStat):
 
-    if window_offset is None:
-        window_offset = window_size / 2
+    cdef:
+        CountPp reads
+        int window_size, window_offset
 
-    def rec_coverage_gc(AlignmentFile alignmentfile, FastaFile fafile,
-                         PileupColumn col, bint one_based):
-        chrom = alignmentfile.getrname(col.tid)
+    def __init__(self, window_size, window_offset):
+        self.window_size = window_size
+        if window_offset is None:
+            window_offset = window_size // 2
+        self.window_offset = window_offset
+        self.reads = CountPp()
+        self.reset()
 
-        ref_window_start = col.pos - window_offset
-        ref_window_end = ref_window_start + window_size
+    def reset(self):
+        self.reads.reset()
+
+    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+        cdef:
+            bint is_proper_pair
+
+        # convenience variables
+        is_proper_pair = <bint>(read.b.core.flag & BAM_FPROPER_PAIR)
+
+        # do the counting
+        self.reads.incr(is_proper_pair)
+
+    cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
+
+        # compute GC
+        ref_window_start = pos - self.window_offset
+        ref_window_end = ref_window_start + self.window_size
         if ref_window_start < 0:
             ref_window_start = 0
-        ref_window = fafile\
-            .fetch(chrom, ref_window_start, ref_window_end)\
-            .lower()
+        ref_window = fafile.fetch(chrom, ref_window_start, ref_window_end).lower()
         if len(ref_window) == 0:
             gc = -1
         else:
             gc = gc_content(ref_window)
 
-        rec = rec_coverage(alignmentfile, fafile, col, one_based)
-        rec['gc'] = gc
-        return rec
+        # make record
+        rec = {'reads_all': self.reads.all,
+               'reads_pp': self.reads.pp,
+               'gc': gc}
 
-    def rec_coverage_gc_pad(FastaFile fafile, chrom, pos,
-                             bint one_based):
-        ref_window_start = pos - window_offset
-        ref_window_end = ref_window_start + window_size
-        if ref_window_start < 0:
-            ref_window_start = 0
-        ref_window = fafile\
-            .fetch(chrom, ref_window_start, ref_window_end)\
-            .lower()
-        if len(ref_window) == 0:
-            gc = -1
-        else:
-            gc = gc_content(ref_window)
-        rec = rec_coverage_pad(fafile, chrom, pos, one_based)
-        rec['gc'] = gc
-        return rec
+        # reset counters
+        self.reset()
 
-    return rec_coverage_gc, rec_coverage_gc_pad
+        return rec
 
 
 ###################
@@ -2075,16 +1536,16 @@ cdef int gc_content(ref_window) except -1:
     return gc
 
 
-cdef class StatBinned(object):
+cdef class BinnedStat(object):
 
     cdef dict rec(self, chrom, bin_start, bin_end, FastaFile fafile):
         return dict()
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         pass
 
 
-cdef class CoverageBinned(StatBinned):
+cdef class CoverageBinned(BinnedStat):
 
     cdef int reads_all, reads_pp
 
@@ -2107,7 +1568,7 @@ cdef class CoverageBinned(StatBinned):
 
         return rec
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_proper_pair
@@ -2125,7 +1586,7 @@ cdef class CoverageBinned(StatBinned):
 ############################################
 
 
-cdef class CoverageExtBinned(StatBinned):
+cdef class CoverageExtBinned(BinnedStat):
 
     cdef int reads_all, reads_pp, reads_mate_unmapped, reads_mate_other_chr, \
         reads_mate_same_strand, reads_faceaway, reads_softclipped, \
@@ -2162,7 +1623,7 @@ cdef class CoverageExtBinned(StatBinned):
 
         return rec
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_reverse
@@ -2203,7 +1664,7 @@ cdef class CoverageExtBinned(StatBinned):
 ###############
 
 
-cdef class MapqBinned(StatBinned):
+cdef class MapqBinned(BinnedStat):
 
     cdef int reads_all, reads_mapq0
     cdef uint64_t mapq, mapq_squared_sum
@@ -2223,7 +1684,7 @@ cdef class MapqBinned(StatBinned):
 
         return rec
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef uint64_t mapq
@@ -2244,7 +1705,7 @@ cdef class MapqBinned(StatBinned):
 ################
 
 
-cdef class AlignmentBinned(StatBinned):
+cdef class AlignmentBinned(BinnedStat):
 
     cdef int reads_all, M, I, D, N, S, H, P, EQ, X
 
@@ -2266,7 +1727,7 @@ cdef class AlignmentBinned(StatBinned):
 
         return rec
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef int k, op, l
@@ -2305,7 +1766,7 @@ cdef class AlignmentBinned(StatBinned):
 ###############
 
 
-cdef class TlenBinned(StatBinned):
+cdef class TlenBinned(BinnedStat):
 
     cdef int reads_all
     cdef int reads_pp
@@ -2334,7 +1795,7 @@ cdef class TlenBinned(StatBinned):
 
         return rec
 
-    cdef recv(self, bam1_t * b):
+    cdef void recv(self, bam1_t* b):
         cdef uint32_t flag
         cdef bint is_unmapped
         cdef bint is_proper_pair
@@ -2360,9 +1821,7 @@ cdef class TlenBinned(StatBinned):
 #####################
 
 
-def iter_pileup(frec, fpad, alignmentfile, fafile=None, chrom=None, start=None,
-                end=None, one_based=False, truncate=False, pad=False,
-                max_depth=8000, **kwargs):
+def iter_pileup(stat, alignmentfile, fafile, pad, **kwargs):
     """General purpose function to generate statistics, where one record is
     generated for each genome position in the selected range, based on a
     pileup column.
@@ -2376,77 +1835,163 @@ def iter_pileup(frec, fpad, alignmentfile, fafile=None, chrom=None, start=None,
         fafile = FastaFile(fafile)
 
     if pad:
-        return iter_pileup_padded(frec, fpad, alignmentfile,
-                                  fafile=fafile, chrom=chrom,
-                                  start=start, end=end, one_based=one_based,
-                                  truncate=truncate, max_depth=max_depth,
-                                  **kwargs)
+        return iter_pileup_padded(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
     else:
-        return iter_pileup_default(frec, alignmentfile, fafile=fafile, chrom=chrom,
-                                   start=start, end=end, one_based=one_based,
-                                   truncate=truncate, max_depth=max_depth,
-                                   **kwargs)
+        return iter_pileup_default(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
 
 
-def iter_pileup_default(frec, alignmentfile, fafile=None,
-                        chrom=None, start=None, end=None,
-                        one_based=False, truncate=False,
-                        max_depth=8000, **kwargs):
+def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,
+                        max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
+    cdef:
+        PileupColumn col
+
+    # obtain pileup iterator
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
+                              max_depth=max_depth)
+
+    # iterate over pileup columns
     for col in it:
-        yield frec(alignmentfile, fafile, col, one_based)
+
+        rec = stat_pileup(stat, col, alignmentfile=alignmentfile, fafile=fafile,
+                          one_based=one_based, min_mapq=min_mapq, min_baseq=min_baseq,
+                          no_del=no_del, no_dup=no_dup)
+
+        yield rec
 
 
-def iter_pileup_padded(frec, fpad, alignmentfile, fafile=None, chrom=None,
-                       start=None, end=None, one_based=False,
-                       truncate=False, max_depth=8000, **kwargs):
+def stat_pileup(PileupStat stat,
+                PileupColumn col,
+                AlignmentFile alignmentfile,
+                FastaFile fafile,
+                bint one_based,
+                int min_mapq,
+                int min_baseq,
+                bint no_del,
+                bint no_dup):
+    cdef:
+        bam_pileup1_t** plp
+        bam_pileup1_t* read
+        bam1_t* b
+        int i, n
 
+    # setup intermediate variables
+    n = col.n
+    plp = col.plp
+
+    # get current chromosome
+    chrom = alignmentfile.getrname(col.tid)
+
+    # setup reference base
+    refbase = get_refbase(fafile, chrom, col.pos)
+
+    # iterate over reads in the column
+    for i in range(n):
+        read = &(plp[0][i])
+        b = read.b
+
+        # read filters
+        if min_mapq > 0:
+            if b.core.qual < min_mapq:
+                continue
+        if min_baseq > 0:
+            if not read.is_del:
+                if pysam_bam_get_qual(read.b)[read.qpos] < min_baseq:
+                    continue
+        if no_del:
+            if read.is_del:
+                continue
+        if no_dup:
+            if b.core.flag & BAM_FDUP:
+                continue
+
+        # accumulate statistics
+        stat.recv(read, col, refbase)
+
+    # construct record
+    rec = stat.rec(chrom, col.pos, fafile, refbase)
+    pos = col.pos + 1 if one_based else col.pos
+    rec['chrom'] = chrom
+    rec['pos'] = pos
+    return rec
+
+
+def iter_pileup_padded(stat, alignmentfile, fafile, chrom, **kwargs):
     if chrom is not None:
-        it = iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile=fafile,
-                                      chrom=chrom, start=start, end=end,
-                                      one_based=one_based,
-                                      truncate=truncate,
-                                      max_depth=max_depth, **kwargs)
+        it = iter_pileup_padded_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
+                                      chrom=chrom, **kwargs)
     else:
         its = list()
         for chrom in alignmentfile.references:
-            itc = iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile=fafile,
-                                           chrom=chrom, start=None,
-                                           end=None,
-                                           one_based=one_based,
-                                           truncate=truncate,
-                                           max_depth=max_depth,
-                                           **kwargs)
+            itc = iter_pileup_padded_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
+                                           chrom=chrom, **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
     return it
 
 
-def iter_pileup_padded_chrom(frec, fpad, alignmentfile, fafile, chrom, start=None,
-                             end=None, one_based=False, truncate=False,
-                             max_depth=8000, **kwargs):
-    cdef PileupColumn col
-    cdef int curpos
+def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,
+                             one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+    cdef:
+        PileupColumn col
+        int curpos
+
+    # obtain pileup iterator
     assert chrom is not None, 'chromosome is None'
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end,
-                        truncate=truncate, max_depth=max_depth)
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
+                              max_depth=max_depth)
+
+    # keep track of current position
     curpos = start
+
+    # iterate over pileup columns
     for col in it:
+
+        # pad up to next pileup column
         while curpos < col.pos:
-            yield fpad(fafile, chrom, curpos, one_based)
+            # setup reference base
+            refbase = get_refbase(fafile, chrom, curpos)
+            # construct record
+            rec = stat.rec(chrom, curpos, fafile, refbase)
+            rec['chrom'] = chrom
+            pos = curpos + 1 if one_based else curpos
+            rec['pos'] = pos
+            yield rec
             curpos += 1
-        yield frec(alignmentfile, fafile, col, one_based)
+
+        # construct and yield statistics record for current pileup column
+        rec = stat_pileup(stat, col, alignmentfile=alignmentfile, fafile=fafile,
+                          one_based=one_based, min_mapq=min_mapq, min_baseq=min_baseq,
+                          no_del=no_del, no_dup=no_dup)
+        yield rec
+
+        # advance current position
         curpos = col.pos + 1
+
     while curpos < end:
-        yield fpad(fafile, chrom, curpos, one_based)
+
+        # pad out to end position
+        refbase = get_refbase(fafile, chrom, curpos)
+        rec = stat.rec(chrom, curpos, fafile, refbase)
+        rec['chrom'] = chrom
+        pos = curpos + 1 if one_based else curpos
+        rec['pos'] = pos
+        yield rec
         curpos += 1
 
 
-def iter_binned(stat, alignmentfile, fafile=None, chrom=None, start=None, end=None,
-                one_based=False, window_size=300, window_offset=None,
+def get_refbase(fafile, chrom, pos):
+    if fafile is not None:
+        refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
+        if not PY2:
+            refbase = refbase.encode('ascii')
+    else:
+        refbase = None
+    return refbase
+
+
+def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offset=None,
                 **kwargs):
 
     if isinstance(alignmentfile, _string_types):
@@ -2461,26 +2006,23 @@ def iter_binned(stat, alignmentfile, fafile=None, chrom=None, start=None, end=No
     if chrom is None:
         its = list()
         for chrom in alignmentfile.references:
-            itc = iter_binned_chrom(stat, alignmentfile=alignmentfile,
-                                    fafile=fafile, chrom=chrom, start=None,
-                                    end=None, one_based=one_based,
-                                    window_size=window_size,
-                                    window_offset=window_offset)
+            itc = iter_binned_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
+                                    chrom=chrom, window_size=window_size,
+                                    window_offset=window_offset, **kwargs)
             its.append(itc)
         it = itertools.chain(*its)
 
     else:
         it = iter_binned_chrom(stat, alignmentfile=alignmentfile, fafile=fafile,
-                               chrom=chrom, start=start, end=end,
-                               one_based=one_based, window_size=window_size,
-                               window_offset=window_offset)
+                               chrom=chrom, window_size=window_size, window_offset=window_offset,
+                               **kwargs)
 
     return it
 
 
-def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fafile,
-                      chrom, start=None, end=None, one_based=False,
-                      int window_size=300, int window_offset=150, **kwargs):
+def iter_binned_chrom(BinnedStat stat, AlignmentFile alignmentfile, FastaFile fafile,
+                      chrom, start, end, one_based, int window_size, int window_offset,
+                      int min_mapq, int no_dup):
 
     # setup
 
@@ -2488,13 +2030,11 @@ def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fa
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
 
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
-    has_coord, rtid, rstart, rend = \
-        alignmentfile.parse_region(chrom, start, end, None)
+    has_coord, rtid, rstart, rend = alignmentfile.parse_region(chrom, start, end, None)
 
     cdef IteratorRowRegion it
-    cdef bam1_t * b
-    it = IteratorRowRegion(alignmentfile, rtid, rstart, rend,
-                           multiple_iterators=False)
+    cdef bam1_t* b
+    it = IteratorRowRegion(alignmentfile, rtid, rstart, rend, multiple_iterators=False)
     b = it.b
 
     # setup first bin
@@ -2520,6 +2060,14 @@ def iter_binned_chrom(StatBinned stat, AlignmentFile alignmentfile, FastaFile fa
             bin_end = bin_start + window_size
 
         # process current read
+        if min_mapq > 0:
+            if b.core.qual < min_mapq:
+                it.cnext()
+                continue
+        if no_dup:
+            if <bint>(b.core.flag & BAM_FDUP):
+                it.cnext()
+                continue
         stat.recv(b)
 
         # move iterator on
@@ -2579,7 +2127,7 @@ def normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based):
         return start, end
 
 
-cdef inline bint is_softclipped(bam1_t * aln):
+cdef inline bint is_softclipped(bam1_t* aln):
     cdef int k
     cigar_p = pysam_bam_get_cigar(aln)
     for k in range(aln.core.n_cigar):
@@ -2590,8 +2138,8 @@ cdef inline bint is_softclipped(bam1_t * aln):
 
 
 cdef inline object get_seq_base(bam1_t *src, uint32_t k):
-    cdef uint8_t * p
-    cdef char * s
+    cdef uint8_t* p
+    cdef char* s
 
     if not src.core.l_qseq:
         return None
@@ -2605,14 +2153,14 @@ cdef inline object get_seq_base(bam1_t *src, uint32_t k):
     return seq
 
 
-cdef inline int rootmean(uint64_t sqsum, int count):
+def rootmean(uint64_t sqsum, int count):
     if count > 0:
         return int(round(sqrt(sqsum / count)))
     else:
         return 0
 
 
-cdef inline int mean(int64_t total, int count):
+def mean(int64_t total, int count):
     if count > 0:
         return int(round(total / count))
     else:

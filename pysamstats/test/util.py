@@ -36,39 +36,18 @@ def compare_iterators(expected, actual):
                 else:
                     eq_(v, a[k])
             except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
+                debug('mismatch %r, expected %r, found %r' % (k, v, a[k]))
+                debug('expected: %r' % sorted(e.items()))
+                debug('actual: %r' % sorted(a.items()))
                 raise
         for k in a:  # check no unexpected fields
             try:
                 assert k in e
             except:
-                debug(k)
-                debug('expected: %r' % e)
-                debug('actual: %r' % a)
+                debug('missing %r' % k)
+                debug('expected: %r' % sorted(e.items()))
+                debug('actual: %r' % sorted(a.items()))
                 raise
-
-
-def compare_stats(impl, refimpl):
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
-    compare_iterators(expected, actual)
-
-
-def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
-                          fasta_fn='fixture/ref.fa'):
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    compare_iterators(expected, actual)
 
 
 def normalise_coords(one_based, start, end):
@@ -119,8 +98,11 @@ def mean(a):
 
 
 def std(a):
-    if a:
-        return int(round(np.std(a)))
+    if len(a) >= 2:
+        std = np.std(a, ddof=1)
+        if np.isnan(std):
+            return 0
+        return int(round(std))
     else:
         return 0
 

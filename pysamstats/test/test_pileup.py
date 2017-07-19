@@ -6,10 +6,10 @@ import sys
 
 from nose.tools import eq_
 from pysam import Samfile, Fastafile
+import numpy as np
 
 
-from .util import normalise_coords, compare_stats, compare_stats_withref, fwd, rev, pp, mean, \
-    std, rms, vmax, compare_iterators
+from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
 import pysamstats
 
 
@@ -21,13 +21,65 @@ debug = logger.debug
 PY2 = sys.version_info[0] == 2
 
 
-def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None,
-                          one_based=False):
+def compare_stats(impl, refimpl):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+
+
+def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
+                          fasta_fn='fixture/ref.fa'):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+
+
+def filter_reads(reads, min_mapq, min_baseq, no_del, no_dup):
+    if min_mapq > 0:
+        reads = [r for r in reads if r.alignment.mapq >= min_mapq]
+    if min_baseq > 0:
+        reads = [r for r, q in zip(reads, baseq(reads))
+                 if q is not None and q >= min_baseq]
+    if no_del:
+        reads = nodel(reads)
+    if no_dup:
+        reads = nodup(reads)
+    return reads
+
+
+def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
+                          min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos, 'reads_all': len(reads),
                'reads_pp': len(pp(reads))}
 
@@ -37,12 +89,13 @@ def test_stat_coverage():
 
 
 def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                                 one_based=False):
+                                 one_based=False, min_mapq=0, min_baseq=0, no_del=False,
+                                 no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos,
                'reads_all': len(reads),
                'reads_fwd': len(fwd(reads)),
@@ -56,13 +109,13 @@ def test_stat_coverage_strand():
     compare_stats(pysamstats.stat_coverage_strand, stat_coverage_strand_refimpl)
 
 
-def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None,
-                              one_based=False):
+def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                              min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_mate_unmapped = [read for read in reads
                                if read.alignment.mate_is_unmapped]
         reads_mate_mapped = [read for read in reads
@@ -104,13 +157,13 @@ def test_stat_coverage_ext():
     compare_stats(pysamstats.stat_coverage_ext, stat_coverage_ext_refimpl)
 
 
-def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                                     one_based=False):
+def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                                     min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
         reads_mate_unmapped = [read for read in reads
                                if read.alignment.mate_is_unmapped]
@@ -170,19 +223,20 @@ def test_stat_coverage_ext_strand():
     compare_stats(pysamstats.stat_coverage_ext_strand, stat_coverage_ext_strand_refimpl)
 
 
-def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None,
-                           one_based=False):
+def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False,
+                           min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
         reads_pp = pp(reads)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
         debug('%r %r %r', chrom, pos, ref)
-        debug(repr(reads[0].alignment.seq[reads[0].query_position]))
+        if reads:
+            debug(repr(reads[0].alignment.seq[reads[0].query_position]))
         matches = [read for read in reads_nodel
                    if read.alignment.seq[read.query_position] == ref]
         matches_pp = [read for read in reads_pp_nodel
@@ -243,13 +297,14 @@ def test_stat_variation():
     compare_stats_withref(pysamstats.stat_variation, stat_variation_refimpl)
 
 
-def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None,
-                                  end=None, one_based=False):
+def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None,
+                                  one_based=False, min_mapq=0, min_baseq=0, no_del=False,
+                                  no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
         reads_pp = [read for read in reads if read.alignment.is_proper_pair]
         reads_pp_nodel = [read for read in reads
@@ -341,13 +396,13 @@ def test_stat_variation_strand():
                           stat_variation_strand_refimpl)
 
 
-def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None,
-                      one_based=False):
+def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
+                      min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         # N.B., tlen only means something if mate is mapped to same chromosome
         reads_paired = [read for read in reads
                         if not read.alignment.mate_is_unmapped
@@ -356,10 +411,9 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None,
         mean_tlen, rms_tlen, std_tlen = mean(tlen), rms(tlen), std(tlen)
         reads_pp = pp(reads)
         tlen_pp = [read.alignment.tlen for read in reads_pp]
-        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = \
-            mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
+        mean_tlen_pp, rms_tlen_pp, std_tlen_pp = mean(tlen_pp), rms(tlen_pp), std(tlen_pp)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_paired': len(reads_paired),
                'reads_pp': len(reads_pp),
                'mean_tlen': mean_tlen,
@@ -374,13 +428,13 @@ def test_stat_tlen():
     compare_stats(pysamstats.stat_tlen, stat_tlen_refimpl)
 
 
-def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                             one_based=False):
+def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                             min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
 
         # all "paired" reads
         reads_paired = [read for read in reads
@@ -413,7 +467,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None,
 
         # yield record
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_fwd': len(fwd(reads)),
                'reads_rev': len(rev(reads)),
                'reads_paired': len(reads_paired),
@@ -454,13 +508,13 @@ def mapq(reads):
     return [read.alignment.mapq for read in reads]
 
 
-def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None,
-                      one_based=False):
+def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
+                      min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
         reads_mapq0 = mapq0(reads)
         reads_mapq0_pp = mapq0(reads_pp)
@@ -469,7 +523,7 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None,
         mapq_pp = mapq(reads_pp)
         rms_mapq_pp, max_mapq_pp = rms(mapq_pp), vmax(mapq_pp)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_pp': len(reads_pp),
                'reads_mapq0': len(reads_mapq0),
                'reads_mapq0_pp': len(reads_mapq0_pp),
@@ -484,13 +538,13 @@ def test_stat_mapq():
     compare_stats(pysamstats.stat_mapq, stat_mapq_refimpl)
 
 
-def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                             one_based=False):
+def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                             min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_fwd = fwd(reads)
         reads_rev = rev(reads)
         reads_pp = pp(reads)
@@ -515,7 +569,7 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None,
         mapq_pp_rev = mapq(reads_pp_rev)
         rms_mapq_pp_rev, max_mapq_pp_rev = rms(mapq_pp_rev), vmax(mapq_pp_rev)
         yield {'chrom': chrom, 'pos': pos,
-               'reads_all': col.n,
+               'reads_all': len(reads),
                'reads_fwd': len(reads_fwd),
                'reads_rev': len(reads_rev),
                'reads_pp': len(reads_pp),
@@ -548,6 +602,8 @@ def test_stat_mapq_strand():
 
 def baseq(reads):
     l = [ord(read.alignment.qual[read.query_position]) - 33
+         if read.query_position is not None
+         else None
          for read in reads]
     return l
 
@@ -556,13 +612,17 @@ def nodel(reads):
     return [read for read in reads if not read.is_del]
 
 
-def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None,
-                       one_based=False):
+def nodup(reads):
+    return [read for read in reads if not read.alignment.is_duplicate]
+
+
+def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
+                       min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         # N.B., make sure aligned base is not a deletion
         reads_nodel = nodel(reads)
         reads_pp = pp(reads)
@@ -580,13 +640,13 @@ def test_stat_baseq():
     compare_stats(pysamstats.stat_baseq, stat_baseq_refimpl)
 
 
-def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None,
-                              one_based=False):
+def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                              min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_fwd = fwd(reads)
         reads_rev = rev(reads)
         reads_pp = pp(reads)
@@ -625,13 +685,13 @@ def test_stat_baseq_strand():
     compare_stats(pysamstats.stat_baseq_strand, stat_baseq_strand_refimpl)
 
 
-def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None,
-                           one_based=False):
+def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False,
+                           min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
         reads_pp = pp(reads)
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
@@ -671,13 +731,14 @@ def test_stat_baseq_ext():
     compare_stats_withref(pysamstats.stat_baseq_ext, stat_baseq_ext_refimpl)
 
 
-def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None,
-                                  end=None, one_based=False):
+def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None,
+                                  one_based=False, min_mapq=0, min_baseq=0, no_del=False,
+                                  no_dup=False):
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
         reads_nodel = [read for read in reads if not read.is_del]
         reads_nodel_fwd = fwd(reads_nodel)
@@ -768,15 +829,15 @@ def test_stat_baseq_ext_strand():
 from collections import Counter
 
 
-def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None,
-                             end=None, one_based=False, window_size=300,
-                             window_offset=150):
+def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150, min_mapq=0, min_baseq=0,
+                             no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
 
     for col in samfile.pileup(reference=chrom, start=start, end=end):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
-        reads = col.pileups
+        reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
 
         if col.pos <= window_offset:
             continue  # until we get a bit further into the chromosome
@@ -890,6 +951,7 @@ def test_pileup_pad():
             a = f(Samfile('fixture/test.bam'), **kwargs_pad)
         eq_(0, a['pos'][0])
         eq_(19999, a['pos'][-1])
+        assert np.all(np.diff(a['pos']) == 1)
 
 
 def test_pileup_pad_wg():

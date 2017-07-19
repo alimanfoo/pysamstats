@@ -27,3 +27,5 @@ script:
   - pysamstats --type coverage_binned --fasta=fixture/ref.fa fixture/test.bam > coverage_binned.txt
   - pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.txt fixture/test.bam
   - pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.h5 --format=hdf5 fixture/test.bam
+  - pysamstats --type=coverage --min-mapq=27 --min-baseq=17 --no-dup --no-del fixture/test.bam > coverage_filtered.txt
+  - pysamstats --type=coverage_binned --fasta=fixture/ref.fa --min-mapq=27 --no-dup fixture/test.bam > coverage_binned_filtered.txt

@@ -10,27 +10,69 @@ from nose.tools import eq_
 
 
 import pysamstats
-from .util import normalise_coords, compare_stats, compare_stats_withref, mean, rms, rootmean, \
-    compare_iterators
+from .util import normalise_coords, mean, rms, rootmean, compare_iterators
 
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
 
 
+def compare_stats(impl, refimpl):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+
+
+def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
+                          fasta_fn='fixture/ref.fa'):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+
+
+def filter_alignments(alignments, min_mapq, no_dup):
+    if min_mapq > 0:
+        alignments = (a for a in alignments if a.mapq >= min_mapq)
+    if no_dup:
+        alignments = (a for a in alignments if not a.is_duplicate)
+    return alignments
+
+
 def stat_coverage_binned_refimpl(samfile, fastafile, chrom=None, start=None,
                                  end=None, one_based=False, window_size=300,
-                                 window_offset=150):
+                                 window_offset=150, min_mapq=0, no_dup=False):
     if chrom is None:
         # noinspection PyTypeChecker
         it = chain(*[
-            iter_coverage_binned(samfile, fastafile, chrom, None, None,
-                                 one_based, window_size, window_offset)
+            iter_coverage_binned(samfile, fastafile, chrom, None, None, one_based, window_size,
+                                 window_offset, min_mapq, no_dup)
             for chrom in samfile.references
         ])
     else:
-        it = iter_coverage_binned(samfile, fastafile, chrom, start, end,
-                                  one_based, window_size, window_offset)
+        it = iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based, window_size,
+                                  window_offset, min_mapq, no_dup)
     return it
 
 
@@ -42,7 +84,7 @@ def gc_content(fastafile, chrom, start, end):
 
 
 def iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
-                         window_size, window_offset):
+                         window_size, window_offset, min_mapq, no_dup):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -58,7 +100,9 @@ def iter_coverage_binned(samfile, fastafile, chrom, start, end, one_based,
     reads_all = reads_pp = 0
 
     # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
+    alignments = samfile.fetch(chrom, start, end)
+    alignments = filter_alignments(alignments, min_mapq, no_dup)
+    for aln in alignments:
         while aln.pos > bin_end:  # end of bin
             gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
@@ -112,24 +156,24 @@ def test_stat_coverage_binned_uppercase_fasta():
                           fasta_fn='fixture/ref.upper.fa')
 
 
-def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None,
-                                     start=None, end=None, one_based=False,
-                                     window_size=300, window_offset=150):
+def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None, start=None, end=None,
+                                     one_based=False, window_size=300, window_offset=150,
+                                     min_mapq=0, no_dup=False):
     if chrom is None:
         # noinspection PyTypeChecker
         it = chain(*[
-            iter_coverage_ext_binned(samfile, fastafile, chrom, None, None,
-                                     one_based, window_size, window_offset)
+            iter_coverage_ext_binned(samfile, fastafile, chrom, None, None, one_based,
+                                     window_size, window_offset, min_mapq, no_dup)
             for chrom in samfile.references
         ])
     else:
-        it = iter_coverage_ext_binned(samfile, fastafile, chrom, start, end,
-                                      one_based, window_size, window_offset)
+        it = iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
+                                      window_size, window_offset, min_mapq, no_dup)
     return it
 
 
-def iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
-                             window_size, window_offset):
+def iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based, window_size,
+                             window_offset, min_mapq, no_dup):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -147,7 +191,9 @@ def iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
         reads_duplicate = 0
 
     # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
+    alignments = samfile.fetch(chrom, start, end)
+    alignments = filter_alignments(alignments, min_mapq, no_dup)
+    for aln in alignments:
         while aln.pos > bin_end:  # end of bin
             gc = gc_content(fastafile, chrom, bin_start, bin_end)
             pos = bin_start + window_offset
@@ -169,7 +215,7 @@ def iter_coverage_ext_binned(samfile, fastafile, chrom, start, end, one_based,
                 = reads_duplicate = 0
             bin_start = bin_end
             bin_end = bin_start + window_size
-#        debug(aln, aln.cigar, repr(aln.cigarstring))
+#        debug(reads, reads.cigar, repr(reads.cigarstring))
         if not aln.is_unmapped:
             reads_all += 1
             if aln.is_proper_pair:
@@ -246,22 +292,21 @@ def test_stat_coverage_ext_binned_uppercase_fasta():
                           fasta_fn='fixture/ref.upper.fa')
 
 
-def stat_mapq_binned_refimpl(samfile,
-                             chrom=None, start=None, end=None, one_based=False,
-                             window_size=300, window_offset=150):
+def stat_mapq_binned_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150, min_mapq=0, no_dup=False):
     if chrom is None:
         # noinspection PyTypeChecker
-        it = chain(*[iter_mapq_binned(samfile, chrom, None, None, one_based,
-                                      window_size, window_offset)
+        it = chain(*[iter_mapq_binned(samfile, chrom, None, None, one_based, window_size,
+                                      window_offset, min_mapq, no_dup)
                      for chrom in samfile.references])
     else:
-        it = iter_mapq_binned(samfile, chrom, start, end, one_based,
-                              window_size, window_offset)
+        it = iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset,
+                              min_mapq, no_dup)
     return it
 
 
-def iter_mapq_binned(samfile, chrom, start, end, one_based, window_size,
-                     window_offset):
+def iter_mapq_binned(samfile, chrom, start, end, one_based, window_size, window_offset, min_mapq,
+                     no_dup):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -277,7 +322,9 @@ def iter_mapq_binned(samfile, chrom, start, end, one_based, window_size,
     reads_all = reads_mapq0 = mapq_square_sum = 0
 
     # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
+    alignments = samfile.fetch(chrom, start, end)
+    alignments = filter_alignments(alignments, min_mapq, no_dup)
+    for aln in alignments:
         while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:
@@ -326,27 +373,26 @@ def test_stat_mapq_binned():
     compare_stats(pysamstats.stat_mapq_binned, stat_mapq_binned_refimpl)
 
 
-def stat_alignment_binned_refimpl(samfile, chrom=None, start=None, end=None,
-                                  one_based=False, window_size=300,
-                                  window_offset=150):
+def stat_alignment_binned_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                                  window_size=300, window_offset=150, min_mapq=0, no_dup=False):
     if chrom is None:
         # noinspection PyTypeChecker
         it = chain(*[
-            iter_alignment_binned(samfile, chrom, None, None, one_based,
-                                  window_size, window_offset)
+            iter_alignment_binned(samfile, chrom, None, None, one_based, window_size,
+                                  window_offset, min_mapq, no_dup)
             for chrom in samfile.references]
         )
     else:
-        it = iter_alignment_binned(samfile, chrom, start, end, one_based,
-                                   window_size, window_offset)
+        it = iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
+                                   window_offset, min_mapq, no_dup)
     return it
 
 
 CIGAR = 'MIDNSHP=X'
 
 
-def iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
-                          window_offset):
+def iter_alignment_binned(samfile, chrom, start, end, one_based, window_size, window_offset,
+                          min_mapq, no_dup):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -363,7 +409,9 @@ def iter_alignment_binned(samfile, chrom, start, end, one_based, window_size,
     reads_all = 0
 
     # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
+    alignments = samfile.fetch(chrom, start, end)
+    alignments = filter_alignments(alignments, min_mapq, no_dup)
+    for aln in alignments:
         while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:
@@ -422,22 +470,21 @@ def test_stat_alignment_binned():
     compare_stats(pysamstats.stat_alignment_binned, stat_alignment_binned_refimpl)
 
 
-def stat_tlen_binned_refimpl(samfile,
-                             chrom=None, start=None, end=None, one_based=False,
-                             window_size=300, window_offset=150):
+def stat_tlen_binned_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
+                             window_size=300, window_offset=150, min_mapq=0, no_dup=False):
     if chrom is None:
         # noinspection PyTypeChecker
-        it = chain(*[iter_tlen_binned(samfile, chrom, None, None, one_based,
-                                      window_size, window_offset)
+        it = chain(*[iter_tlen_binned(samfile, chrom, None, None, one_based, window_size,
+                                      window_offset, min_mapq, no_dup)
                      for chrom in samfile.references])
     else:
-        it = iter_tlen_binned(samfile, chrom, start, end, one_based,
-                              window_size, window_offset)
+        it = iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset,
+                              min_mapq, no_dup)
     return it
 
 
-def iter_tlen_binned(samfile, chrom, start, end, one_based, window_size,
-                     window_offset):
+def iter_tlen_binned(samfile, chrom, start, end, one_based, window_size, window_offset, min_mapq,
+                     no_dup):
     assert chrom is not None
     start, end = normalise_coords(one_based, start, end)
     chrlen = samfile.lengths[samfile.references.index(chrom)]
@@ -455,7 +502,9 @@ def iter_tlen_binned(samfile, chrom, start, end, one_based, window_size,
     tlens_pp = []
 
     # iterate over reads
-    for aln in samfile.fetch(chrom, start, end):
+    alignments = samfile.fetch(chrom, start, end)
+    alignments = filter_alignments(alignments, min_mapq, no_dup)
+    for aln in alignments:
         while aln.pos > bin_end:  # end of bin
             pos = bin_start + window_offset
             if one_based:

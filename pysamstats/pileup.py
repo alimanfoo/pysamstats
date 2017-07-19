@@ -17,26 +17,36 @@ _doc_params = """
         "mapq_strand", "baseq", "baseq_strand", "baseq_ext", "baseq_ext_strand", "coverage_gc".
     alignmentfile : pysam.AlignmentFile or string
         SAM or BAM file or file path.
-    fafile : pysam.FastaFile or string
+    fafile : pysam.FastaFile or string, optional
         FASTA file or file path, only required for some statistics types.
-    chrom : string
+    chrom : string, optional
         Chromosome/contig.
-    start : int
+    start : int, optional
         Start position.
-    end : int
+    end : int, optional
         End position.
-    one_based : bool
+    one_based : bool, optional
         Coordinate system, False if zero-based (default), True if one-based.
-    truncate : bool
+    truncate : bool, optional
         If True, truncate output to selected region.
-    pad : bool
+    pad : bool, optional
         If True, emit records for every position, even if no reads are aligned.
-    max_depth : int
+    max_depth : int, optional
         Maximum depth to allow in pileup column.
-    window_size : int
+    window_size : int, optional
         Window size to use for percent GC calculation (only applies to coverage_gc).
-    window_offset : int
-        Distance from window start to record position (only applies to coverage_gc)."""
+    window_offset : int, optional
+        Distance from window start to record position (only applies to coverage_gc).
+    min_mapq : int, optional
+        Only reads with mapping quality equal to or greater than this value will be counted (0
+        by default).
+    min_baseq : int, optional
+        Only reads with base quality equal to or greater than this value will be counted (0 by
+        default).
+    no_del : bool, optional
+        If True, don't count reads aligned with a deletion at the current position.
+    no_dup : bool, optional
+        If True, don't count reads flagged as duplicate."""
 
 
 # noinspection PyShadowingBuiltins
@@ -51,7 +61,11 @@ def stat_pileup(type,
                 pad=False,
                 max_depth=8000,
                 window_size=300,
-                window_offset=None):
+                window_offset=None,
+                min_mapq=0,
+                min_baseq=0,
+                no_del=False,
+                no_dup=False):
     """Generate statistics per genome position, based on read pileups.
     {params}
 
@@ -62,19 +76,21 @@ def stat_pileup(type,
 
     """
 
+    if type in config.stats_types_withref and fafile is None:
+        raise ValueError('reference sequence is required; please provide fafile argument')
+
     try:
         if type == 'coverage_gc':
-            # special case needed to handle window parameters
-            rec, rec_pad = opt.frecs_coverage_gc(window_size=window_size,
-                                                 window_offset=window_offset)
+            stat = stats_classes_pileup[type](window_size=window_size, window_offset=window_offset)
         else:
-            rec, rec_pad = frecs_pileup[type]
+            stat = stats_classes_pileup[type]()
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return opt.iter_pileup(rec, rec_pad, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
+    return opt.iter_pileup(stat, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
-                           max_depth=max_depth)
+                           max_depth=max_depth, min_mapq=min_mapq, min_baseq=min_baseq,
+                           no_del=no_del, no_dup=no_dup)
 
 
 stat_pileup.__doc__ = stat_pileup.__doc__.format(params=_doc_params)
@@ -109,13 +125,13 @@ def load_pileup(type,
 
     """
 
-    stat = functools.partial(stat_pileup, type)
+    statfun = functools.partial(stat_pileup, type)
     try:
         default_dtype = getattr(config, 'dtype_' + type)
     except AttributeError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype,
+    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype,
                            user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
                            chrom=chrom, start=start, end=end, one_based=one_based,
                            truncate=truncate, pad=pad, max_depth=max_depth, window_size=window_size,
@@ -125,21 +141,22 @@ def load_pileup(type,
 load_pileup.__doc__ = load_pileup.__doc__.format(params=_doc_params)
 
 
-frecs_pileup = {
-    'coverage': (opt.rec_coverage, opt.rec_coverage_pad),
-    'coverage_strand': (opt.rec_coverage_strand, opt.rec_coverage_strand_pad),
-    'coverage_ext': (opt.rec_coverage_ext, opt.rec_coverage_ext_pad),
-    'coverage_ext_strand': (opt.rec_coverage_ext_strand, opt.rec_coverage_ext_strand_pad),
-    'variation': (opt.rec_variation, opt.rec_variation_pad),
-    'variation_strand': (opt.rec_variation_strand, opt.rec_variation_strand_pad),
-    'tlen': (opt.rec_tlen, opt.rec_tlen_pad),
-    'tlen_strand': (opt.rec_tlen_strand, opt.rec_tlen_strand_pad),
-    'mapq': (opt.rec_mapq, opt.rec_mapq_pad),
-    'mapq_strand': (opt.rec_mapq_strand, opt.rec_mapq_strand_pad),
-    'baseq': (opt.rec_baseq, opt.rec_baseq_pad),
-    'baseq_strand': (opt.rec_baseq_strand, opt.rec_baseq_strand_pad),
-    'baseq_ext': (opt.rec_baseq_ext, opt.rec_baseq_ext_pad),
-    'baseq_ext_strand': (opt.rec_baseq_ext_strand, opt.rec_baseq_ext_strand_pad),
+stats_classes_pileup = {
+    'coverage': opt.Coverage,
+    'coverage_strand': opt.CoverageStrand,
+    'coverage_ext': opt.CoverageExt,
+    'coverage_ext_strand': opt.CoverageExtStrand,
+    'variation': opt.Variation,
+    'variation_strand': opt.VariationStrand,
+    'tlen': opt.Tlen,
+    'tlen_strand': opt.TlenStrand,
+    'mapq': opt.Mapq,
+    'mapq_strand': opt.MapqStrand,
+    'baseq': opt.Baseq,
+    'baseq_strand': opt.BaseqStrand,
+    'baseq_ext': opt.BaseqExt,
+    'baseq_ext_strand': opt.BaseqExtStrand,
+    'coverage_gc': opt.CoverageGC,
 }
 
 
@@ -151,7 +168,7 @@ _stat_doc_lines = stat_pileup.__doc__.split('\n')
 _load_doc_lines = load_pileup.__doc__.split('\n')
 # strip "type" parameter
 _stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[8:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[8:])
+_load_doc = '\n'.join(_load_doc_lines[:4] + _load_doc_lines[8:])
 
 
 def _specialize(type):

@@ -29,7 +29,12 @@ _doc_params = """
         Window size to use.
     window_offset : int
         Distance from window start to record position.
-"""
+    min_mapq : int, optional
+        Only reads with mapping quality equal to or greater than this value will be counted (0
+        by default).
+    no_dup : bool, optional
+        If True, don't count reads flagged as duplicate."""
+
 
 
 # noinspection PyShadowingBuiltins
@@ -41,10 +46,13 @@ def stat_binned(type,
                 end=None,
                 one_based=False,
                 window_size=300,
-                window_offset=None):
+                window_offset=None,
+                min_mapq=0,
+                no_dup=False):
     """Generate statistics per genome window, based on all reads whose alignment starts within
     the window.
     {params}
+
     Returns
     -------
     recs : iterator
@@ -53,13 +61,13 @@ def stat_binned(type,
     """
 
     try:
-        stat = statsobj_binned[type]
+        stat = stats_classes_binned[type]()
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
     return opt.iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, window_size=window_size,
-                           window_offset=window_offset)
+                           window_offset=window_offset, min_mapq=min_mapq, no_dup=no_dup)
 
 
 stat_binned.__doc__ = stat_binned.__doc__.format(params=_doc_params)
@@ -75,6 +83,8 @@ def load_binned(type,
                 one_based=False,
                 window_size=300,
                 window_offset=None,
+                min_mapq=0,
+                no_dup=False,
                 dtype=None,
                 fields=None):
     """Load statistics per genome window, based on all reads whose alignment starts within
@@ -92,27 +102,28 @@ def load_binned(type,
 
     """
 
-    stat = functools.partial(stat_binned, type)
+    statfun = functools.partial(stat_binned, type)
     try:
         default_dtype = getattr(config, 'dtype_' + type + '_binned')
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(stat, user_dtype=dtype, default_dtype=default_dtype, user_fields=fields,
-                           alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
-                           start=start, end=end, one_based=one_based, window_size=window_size,
-                           window_offset=window_offset)
+    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype,
+                           user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
+                           chrom=chrom, start=start, end=end, one_based=one_based,
+                           window_size=window_size, window_offset=window_offset,
+                           min_mapq=min_mapq, no_dup=no_dup)
 
 
 load_binned.__doc__ = load_binned.__doc__.format(params=_doc_params)
 
 
-statsobj_binned = {
-    'coverage': opt.CoverageBinned(),
-    'coverage_ext': opt.CoverageExtBinned(),
-    'mapq': opt.MapqBinned(),
-    'alignment': opt.AlignmentBinned(),
-    'tlen': opt.TlenBinned(),
+stats_classes_binned = {
+    'coverage': opt.CoverageBinned,
+    'coverage_ext': opt.CoverageExtBinned,
+    'mapq': opt.MapqBinned,
+    'alignment': opt.AlignmentBinned,
+    'tlen': opt.TlenBinned,
 }
 
 
@@ -123,18 +134,18 @@ statsobj_binned = {
 _stat_doc_lines = stat_binned.__doc__.split('\n')
 _load_doc_lines = load_binned.__doc__.split('\n')
 # strip "type" parameter
-_stat_doc = '\n'.join(_stat_doc_lines[:4] + _stat_doc_lines[6:])
-_load_doc = '\n'.join(_load_doc_lines[:4] + _stat_doc_lines[6:])
+_stat_doc = '\n'.join(_stat_doc_lines[:5] + _stat_doc_lines[7:])
+_load_doc = '\n'.join(_load_doc_lines[:5] + _load_doc_lines[7:])
 
 
 def _specialize(type):
-    stat = functools.partial(stat_binned, type)
-    stat.__doc__ = _stat_doc
-    stat.__name__ = 'stat_' + type
-    load = functools.partial(load_binned, type)
-    load.__doc__ = _load_doc
-    load.__name__ = 'load_' + type
-    return stat, load
+    statfun = functools.partial(stat_binned, type)
+    statfun.__doc__ = _stat_doc
+    statfun.__name__ = 'stat_' + type
+    loadfun = functools.partial(load_binned, type)
+    loadfun.__doc__ = _load_doc
+    loadfun.__name__ = 'load_' + type
+    return statfun, loadfun
 
 
 # named functions
