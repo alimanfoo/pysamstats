@@ -29,7 +29,12 @@ _doc_params = """
         Window size to use.
     window_offset : int
         Distance from window start to record position.
-"""
+    min_mapq : int, optional
+        Only reads with mappinng quality equal to or greater than this value will be counted (0
+        by default).
+    no_dup : bool, optional
+        If True, don't count reads flagged as duplicate."""
+
 
 
 # noinspection PyShadowingBuiltins
@@ -41,10 +46,13 @@ def stat_binned(type,
                 end=None,
                 one_based=False,
                 window_size=300,
-                window_offset=None):
+                window_offset=None,
+                min_mapq=0,
+                no_dup=False):
     """Generate statistics per genome window, based on all reads whose alignment starts within
     the window.
     {params}
+
     Returns
     -------
     recs : iterator
@@ -59,7 +67,7 @@ def stat_binned(type,
 
     return opt.iter_binned(stat, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
                            start=start, end=end, one_based=one_based, window_size=window_size,
-                           window_offset=window_offset)
+                           window_offset=window_offset, min_mapq=min_mapq, no_dup=no_dup)
 
 
 stat_binned.__doc__ = stat_binned.__doc__.format(params=_doc_params)
@@ -75,6 +83,8 @@ def load_binned(type,
                 one_based=False,
                 window_size=300,
                 window_offset=None,
+                min_mapq=0,
+                no_dup=False,
                 dtype=None,
                 fields=None):
     """Load statistics per genome window, based on all reads whose alignment starts within
@@ -98,10 +108,11 @@ def load_binned(type,
     except KeyError:
         raise ValueError('unsupported statistics type: %r' % type)
 
-    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype, user_fields=fields,
-                           alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
-                           start=start, end=end, one_based=one_based, window_size=window_size,
-                           window_offset=window_offset)
+    return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype,
+                           user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
+                           chrom=chrom, start=start, end=end, one_based=one_based,
+                           window_size=window_size, window_offset=window_offset,
+                           min_mapq=min_mapq, no_dup=no_dup)
 
 
 load_binned.__doc__ = load_binned.__doc__.format(params=_doc_params)

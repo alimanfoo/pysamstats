@@ -9,8 +9,7 @@ from pysam import Samfile, Fastafile
 import numpy as np
 
 
-from .util import normalise_coords, compare_stats, compare_stats_withref, fwd, rev, pp, mean, \
-    std, rms, vmax, compare_iterators
+from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
 import pysamstats
 
 
@@ -20,6 +19,45 @@ debug = logger.debug
 
 # PY2/3 compatibility
 PY2 = sys.version_info[0] == 2
+
+
+def compare_stats(impl, refimpl):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
+    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    compare_iterators(expected, actual)
+
+
+def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
+                          fasta_fn='fixture/ref.fa'):
+    # no read filters
+    kwargs = {'chrom': 'Pf3D7_01_v3',
+              'start': 0,
+              'end': 2000,
+              'one_based': False}
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
+    # read filters
+    kwargs['min_mapq'] = 1
+    kwargs['min_baseq'] = 17
+    kwargs['no_del'] = True
+    kwargs['no_dup'] = True
+    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    compare_iterators(expected, actual)
 
 
 def filter_reads(reads, min_mapq, min_baseq, no_del, no_dup):
