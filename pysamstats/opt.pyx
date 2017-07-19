@@ -506,10 +506,10 @@ cdef class Variation(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if not PY2:
-            ref = str(refbase, 'ascii')
-        else:
+        if PY2:
             ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_pp': self.reads.pp,
@@ -615,10 +615,10 @@ cdef class VariationStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if not PY2:
-            ref = str(refbase, 'ascii')
-        else:
+        if PY2:
             ref = refbase
+        else:
+            ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_fwd': self.reads.fwd,
@@ -1334,7 +1334,9 @@ cdef class BaseqExt(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if not PY2:
+        if PY2:
+            ref = refbase
+        else:
             ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
@@ -1407,7 +1409,9 @@ cdef class BaseqExtStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if not PY2:
+        if PY2:
+            ref = refbase
+        else:
             ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
