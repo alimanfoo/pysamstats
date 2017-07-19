@@ -62,98 +62,117 @@ Version: {version} (pysam {pysamversion})
     OptionParser.format_epilog = lambda self, formatter: self.epilog
     parser = OptionParser(usage=usage, description=description, epilog=epilog)
 
-    parser.add_option('-t', '--type', dest='type', default='coverage',
-                      help='Type of statistics to print, one of: %s.' % ', '.join(stats_types))
+    parser.add_option(
+        '-t', '--type', dest='type', default='coverage',
+        help='Type of statistics to print, one of: %s.' % ', '.join(stats_types))
 
-    parser.add_option('-c', '--chromosome', dest='chromosome', default=None,
-                      help='Chromosome name.')
+    parser.add_option(
+        '-c', '--chromosome', dest='chromosome', default=None,
+        help='Chromosome name.')
 
-    parser.add_option('-s', '--start', dest='start', type='int', default=None,
-                      help='Start position (1-based).')
+    parser.add_option(
+        '-s', '--start', dest='start', type='int', default=None,
+        help='Start position (1-based).')
 
-    parser.add_option('-e', '--end', dest='end', type='int', default=None,
-                      help='End position (1-based).')
+    parser.add_option(
+        '-e', '--end', dest='end', type='int', default=None,
+        help='End position (1-based).')
 
-    parser.add_option('-z', '--zero-based', dest='zero_based',
-                      action='store_true', default=False,
-                      help='Use zero-based coordinates (default is false, i.e.,'
-                           ' use one-based coords).')
+    parser.add_option(
+        '-z', '--zero-based', dest='zero_based', action='store_true', default=False,
+        help='Use zero-based coordinates (default is false, i.e., use one-based coords).')
 
-    parser.add_option('-u', '--truncate', dest='truncate', action='store_true',
-                      default=False,
-                      help='Truncate pileup-based stats so no records are '
-                           'emitted outside the specified position range.')
+    parser.add_option(
+        '-u', '--truncate', dest='truncate', action='store_true', default=False,
+        help='Truncate pileup-based stats so no records are emitted outside the specified range.')
 
-    parser.add_option('-d', '--pad', dest='pad', action='store_true',
-                      default=False,
-                      help='Pad pileup-based stats so a record is emitted for '
-                           'every position (default is only covered positions).')
+    parser.add_option(
+        '-d', '--pad', dest='pad', action='store_true', default=False,
+        help='Pad pileup-based stats so a record is emitted for every position (default is only '
+             'covered positions).')
 
-    parser.add_option('-D', '--max-depth', dest='max_depth', type=int,
-                      default=8000,
-                      help='Maximum read depth permitted in pileup-based '
-                           'statistics. The default limit is 8000.')
+    parser.add_option(
+        '-D', '--max-depth', dest='max_depth', type=int, default=8000,
+        help='Maximum read depth permitted in pileup-based statistics. The default limit is 8000.')
 
-    parser.add_option('-f', '--fasta', dest='fasta', default=None,
-                      help='Reference sequence file, only required for some '
-                           'statistics.')
+    parser.add_option(
+        '-f', '--fasta', dest='fasta', default=None,
+        help='Reference sequence file, only required for some statistics.')
 
-    parser.add_option('-o', '--omit-header', dest='omit_header', default=False,
-                      action='store_true', help='Omit header row from output.')
+    parser.add_option(
+        '-o', '--omit-header', dest='omit_header', default=False, action='store_true',
+        help='Omit header row from output.')
 
-    parser.add_option('-p', '--progress', dest='progress', type='int',
-                      metavar='N', default=None,
-                      help='Report progress every N rows.')
+    parser.add_option(
+        '-p', '--progress', dest='progress', type='int', metavar='N', default=None,
+        help='Report progress every N rows.')
 
-    parser.add_option('--window-size', dest='window_size', type='int',
-                      metavar='N', default=300,
-                      help='Size of window for binned statistics (default is '
-                           '300).')
+    parser.add_option(
+        '--window-size', dest='window_size', type='int', metavar='N', default=300,
+        help='Size of window for binned statistics (default is 300).')
 
-    parser.add_option('--window-offset', dest='window_offset', type=int,
-                      default=None, metavar='N',
-                      help='Window offset to use for deciding which genome '
-                           'position to report binned statistics against. The '
-                           'default is 150, i.e., the middle of 300bp window.')
+    parser.add_option(
+        '--window-offset', dest='window_offset', type=int, default=None, metavar='N',
+        help='Window offset to use for deciding which genome position to report binned statistics '
+             'against. The default is 150, i.e., the middle of 300bp window.')
 
-    parser.add_option('--format', dest='format', default='tsv',
-                      help='Output format, one of {tsv, csv, hdf5} (defaults '
-                           'to tsv). N.B., hdf5 requires PyTables to be '
-                           'installed.')
+    parser.add_option(
+        '--format', dest='format', default='tsv',
+        help='Output format, one of {tsv, csv, hdf5} (defaults to tsv). N.B., hdf5 requires '
+             'PyTables to be installed.')
 
-    parser.add_option('--output', dest='output',
-                      help='Path to output file. If not provided, write to '
-                           'stdout.')
+    parser.add_option(
+        '--output', dest='output',
+        help='Path to output file. If not provided, write to stdout.')
 
-    parser.add_option('--fields', dest='fields', default=None,
-                      help='Comma-separated list of fields to output ('
-                           'defaults to all fields).')
+    parser.add_option(
+        '--fields', dest='fields', default=None,
+        help='Comma-separated list of fields to output (defaults to all fields).')
 
-    parser.add_option('--hdf5-group', dest='hdf5_group', default='/',
-                      help='Name of HDF5 group to write to (defaults to the '
-                           'root group).')
+    parser.add_option(
+        '--hdf5-group', dest='hdf5_group', default='/',
+        help='Name of HDF5 group to write to (defaults to the root group).')
 
-    parser.add_option('--hdf5-dataset', dest='hdf5_dataset', default='data',
-                      help='Name of HDF5 dataset to create (defaults to '
-                           '"data").')
+    parser.add_option(
+        '--hdf5-dataset', dest='hdf5_dataset', default='data',
+        help='Name of HDF5 dataset to create (defaults to "data").')
 
-    parser.add_option('--hdf5-complib', dest='hdf5_complib', default='zlib',
-                      help='HDF5 compression library (defaults to zlib).')
+    parser.add_option(
+        '--hdf5-complib', dest='hdf5_complib', default='zlib',
+        help='HDF5 compression library (defaults to zlib).')
 
-    parser.add_option('--hdf5-complevel', dest='hdf5_complevel', type=int,
-                      default=1,
-                      help='HDF5 compression level (defaults to 5).')
+    parser.add_option(
+        '--hdf5-complevel', dest='hdf5_complevel', type=int, default=1,
+        help='HDF5 compression level (defaults to 5).')
 
-    parser.add_option('--hdf5-chunksize', dest='hdf5_chunksize', type=int,
-                      default=2**20,
-                      help='Size of chunks in number of bytes (defaults to '
-                           '2**20).')
+    parser.add_option(
+        '--hdf5-chunksize', dest='hdf5_chunksize', type=int, default=2**20,
+        help='Size of chunks in number of bytes (defaults to 2**20).')
+
+    parser.add_option(
+        '--min-mapq', dest='min_mapq', type=int, default=0,
+        help='Only reads with mapping quality equal to or greater than this value will be counted '
+             '(0 by default).')
+
+    parser.add_option(
+        '--min-baseq', dest='min_baseq', type=int, default=0,
+        help='Only reads with base quality equal to or greater than this value will be counted '
+             '(0 by default). Only applies to pileup-based statistics.')
+
+    parser.add_option(
+        '--no-dup', dest='no_dup', default=False, action='store_true',
+        help="Don't count reads flagged as duplicate.")
+
+    parser.add_option(
+        '--no-del', dest='no_del', default=False, action='store_true',
+        help="Don't count reads aligned with a deletion at the given position. Only applies to "
+             "pileup-based statistics.")
 
     options, args = parser.parse_args()
 
     if len(args) != 1:
-        parser.error('missing SAM or BAM file operand\n\nTry "pysamstats '
-                     '--help" for more information.')
+        parser.error('missing SAM or BAM file operand\n\nTry "pysamstats --help" for more '
+                     'information.')
 
     samfile = args[0]
     one_based = not options.zero_based
@@ -185,11 +204,15 @@ Version: {version} (pysam {pysamversion})
                 one_based=one_based,
                 window_size=options.window_size,
                 window_offset=options.window_offset,
+                min_mapq=options.min_mapq,
+                no_dup=options.no_dup
             )
             if not options.type.endswith('_binned'):
                 kwargs['truncate'] = options.truncate
                 kwargs['pad'] = options.pad
                 kwargs['max_depth'] = options.max_depth
+                kwargs['min_baseq'] = options.min_baseq
+                kwargs['no_del'] = options.no_del
 
             if options.format.lower() in ['tsv', 'csv']:
 
