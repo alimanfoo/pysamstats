@@ -11,7 +11,7 @@ based on sequence alignments from a SAM or BAM file.
 Installation
 ------------
 
-Building pysamstats depends on 
+Building pysamstats depends on
 [pysam version 0.8.4](http://pysam.readthedocs.org/en/latest/).
 Please **install pysam first**, before attempting to install
 pysamstats, e.g.:
@@ -64,7 +64,7 @@ Options:
   -z, --zero-based      Use zero-based coordinates (default is false, i.e.,
                         use one-based coords).
   -u, --truncate        Truncate pileup-based stats so no records are emitted
-                        outside the specified position range.
+                        outside the specified range.
   -d, --pad             Pad pileup-based stats so a record is emitted for
                         every position (default is only covered positions).
   -D MAX_DEPTH, --max-depth=MAX_DEPTH
@@ -94,7 +94,16 @@ Options:
   --hdf5-complevel=HDF5_COMPLEVEL
                         HDF5 compression level (defaults to 5).
   --hdf5-chunksize=HDF5_CHUNKSIZE
-                        Size of chunks in number of bytes (defaults to 2**17).
+                        Size of chunks in number of bytes (defaults to 2**20).
+  --min-mapq=MIN_MAPQ   Only reads with mapping quality equal to or greater
+                        than this value will be counted (0 by default).
+  --min-baseq=MIN_BASEQ
+                        Only reads with base quality equal to or greater than
+                        this value will be counted (0 by default). Only
+                        applies to pileup-based statistics.
+  --no-dup              Don't count reads flagged as duplicate.
+  --no-del              Don't count reads aligned with a deletion at the given
+                        position. Only applies to pileup-based statistics.
 
 Pileup-based statistics types (each row has statistics over reads in a pileup column):
 
@@ -102,7 +111,7 @@ Pileup-based statistics types (each row has statistics over reads in a pileup co
                             (total and properly paired).
     * coverage_strand     - As coverage but with forward/reverse strand counts.
     * coverage_ext        - Various additional coverage metrics, including
-                            coverage for reads not properly paired (mate 
+                            coverage for reads not properly paired (mate
                             unmapped, mate on other chromosome, ...).
     * coverage_ext_strand - As coverage_ext but with forward/reverse strand counts.
     * coverage_gc         - As coverage but also includes a column for %GC.
@@ -132,7 +141,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 0.24.2 (pysam 0.8.4)
+Version: 1.0.0 (pysam 0.11.2.2)
 ```
 
 From Python:
@@ -178,9 +187,9 @@ reads mapped to the reverse strand. E.g., **reads_fwd** means the
 number of reads mapped to the forward strand.
 
 The suffix **_pp** means the field is restricted to reads flagged as
-properly paired. 
+properly paired.
 
-* **chrom** - Chromosome name.  
+* **chrom** - Chromosome name.
 
 * **pos** - Position within chromosome. One-based by default when
     using the command line, zero-based by default when using the
@@ -258,3 +267,12 @@ properly paired.
 * **rms_baseq_mismatches** - Root-mean-square value of base qualities
     for bases aligned at this position where the base does not match
     the reference.
+
+Release notes
+-------------
+
+1.0.0
+~~~~~
+
+* Upgrades for compatibility with pysam 0.11.
+* Added options for filtering reads based on mapping quality, base quality, deletion status and duplicate flag.
