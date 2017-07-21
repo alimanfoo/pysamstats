@@ -11,13 +11,18 @@ based on sequence alignments from a SAM or BAM file.
 Installation
 ------------
 
-Building pysamstats depends on
-[pysam version 0.8.4](http://pysam.readthedocs.org/en/latest/).
-Please **install pysam first**, before attempting to install
-pysamstats, e.g.:
+The easiest way to install pysamstats is via conda, e.g.:
 
 ```
-$ pip install pysam==0.8.4
+$ conda install -c bioconda pysamstats
+```
+
+Alternatively, pysamstats can be installed from source via pip. This requires
+[pysam version 0.11 or later](http://pysam.readthedocs.org/en/latest/) to be
+already installed. E.g.:
+
+```
+$ pip install pysam
 $ pip install pysamstats
 ```
 
@@ -26,15 +31,15 @@ Alternatively, clone the git repo and install:
 ```
 $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
-$ python cythonize.py  # optional, required if making any changes to pysamstats.pyx
 $ python setup.py install
 $ nosetests -v  # optional, run test suite
 ```
 
-If you have problems installing pysam, email the
+If you have problems installing pysam, please email the
 [pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
 
-N.B., some functions also require [numpy](http://www.numpy.org) and [pytables](http://www.pytables.org) to be installed.
+N.B., some functions also require [numpy](http://www.numpy.org) and
+[pytables](http://www.pytables.org) to be installed.
 
 Usage
 -----
@@ -141,7 +146,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 1.0.0 (pysam 0.11.2.2)
+Version: 1.0.1 (pysam 0.11.2.2)
 ```
 
 From Python:
@@ -172,7 +177,7 @@ plt.plot(a.pos, a.reads_all)
 plt.show()
 ```
 
-For pileup-based statistics function, note the following:
+For pileup-based statistics functions, note the following:
 
 * By default a row is emitted for all genome positions covered by reads overlapping the selected region. This means rows will be emitted for positions outside the selected region, but statistics may not be accurate as not all reads overlapping that position will have been counted. To truncate output to exactly the selected region, provide a ``truncate=True`` keyword argument.
 * By default a row is only emitted for genome positions covered by at least one read. To emit a row for every genome position, provide a ``pad=True`` keyword argument.
@@ -271,8 +276,12 @@ properly paired.
 Release notes
 -------------
 
-1.0.0
-~~~~~
+**1.0.1**
+
+* Changed output of deletions field to exclude RNA reads aligned with a splice ("N" in cigar)
+  ([#65](https://github.com/alimanfoo/pysamstats/issues/65))
+
+**1.0.0**
 
 * Upgrades for compatibility with pysam 0.11.
 * Added options for filtering reads based on mapping quality, base quality, deletion status and duplicate flag.
