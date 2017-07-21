@@ -235,8 +235,8 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         reads_pp_nodel = [read for read in reads_pp if not read.is_del]
         ref = fafile.fetch(chrom, col.pos, col.pos+1).upper()
         debug('%r %r %r', chrom, pos, ref)
-        if reads:
-            debug(repr(reads[0].alignment.seq[reads[0].query_position]))
+        # if reads:
+        #     debug(repr(reads[0].alignment.seq[reads[0].query_position]))
         matches = [read for read in reads_nodel
                    if read.alignment.seq[read.query_position] == ref]
         matches_pp = [read for read in reads_pp_nodel
@@ -246,9 +246,9 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
         mismatches_pp = [read for read in reads_pp_nodel
                          if read.alignment.seq[read.query_position] != ref]
         deletions = [read for read in reads
-                     if read.is_del]
+                     if read.is_del and not read.is_refskip]
         deletions_pp = [read for read in reads_pp
-                        if read.is_del]
+                        if read.is_del and not read.is_refskip]
         insertions = [read for read in reads
                       if read.indel > 0]
         insertions_pp = [read for read in reads_pp
@@ -297,6 +297,11 @@ def test_stat_variation():
     compare_stats_withref(pysamstats.stat_variation, stat_variation_refimpl)
 
 
+def test_stat_variation_rna():
+    compare_stats_withref(pysamstats.stat_variation, stat_variation_refimpl,
+                          bam_fn='fixture/rna.bam')
+
+
 def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None,
                                   one_based=False, min_mapq=0, min_baseq=0, no_del=False,
                                   no_dup=False):
@@ -319,9 +324,9 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
         mismatches_pp = [read for read in reads_pp_nodel
                          if read.alignment.seq[read.query_position] != ref]
         deletions = [read for read in reads
-                     if read.is_del]
+                     if read.is_del and not read.is_refskip]
         deletions_pp = [read for read in reads_pp
-                        if read.is_del]
+                        if read.is_del and not read.is_refskip]
         insertions = [read for read in reads
                       if read.indel > 0]
         insertions_pp = [read for read in reads_pp
@@ -394,6 +399,11 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
 def test_stat_variation_strand():
     compare_stats_withref(pysamstats.stat_variation_strand,
                           stat_variation_strand_refimpl)
+
+
+def test_stat_variation_strand_rna():
+    compare_stats_withref(pysamstats.stat_variation_strand, stat_variation_strand_refimpl,
+                          bam_fn='fixture/rna.bam')
 
 
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,

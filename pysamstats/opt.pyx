@@ -483,7 +483,8 @@ cdef class Variation(PileupStat):
         # do the counting
         self.reads.incr(is_proper_pair)
         if read.is_del:
-            self.deletions.incr(is_proper_pair)
+            if not read.is_refskip:
+                self.deletions.incr(is_proper_pair)
         else:
             alnbase = get_seq_base(read.b, read.qpos)
             if alnbase == b'A':
@@ -592,7 +593,8 @@ cdef class VariationStrand(PileupStat):
         # do the counting
         self.reads.incr(is_reverse, is_proper_pair)
         if read.is_del:
-            self.deletions.incr(is_reverse, is_proper_pair)
+            if not read.is_refskip:
+                self.deletions.incr(is_reverse, is_proper_pair)
         else:
             alnbase = get_seq_base(read.b, read.qpos)
             if alnbase == b'A':
