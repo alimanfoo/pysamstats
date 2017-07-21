@@ -278,8 +278,8 @@ Release notes
 
 **1.0.1**
 
-* Changed output of deletions field to exclude RNA reads aligned with a splice ("N" in cigar)
-  ([#65](https://github.com/alimanfoo/pysamstats/issues/65))
+* Changed output of deletions field in variation stats to exclude RNA reads aligned with a splice
+  ("N" in cigar) ([#65](https://github.com/alimanfoo/pysamstats/issues/65))
 
 **1.0.0**
 
