@@ -18,11 +18,11 @@ $ conda install -c bioconda pysamstats
 ```
 
 Alternatively, pysamstats can be installed from source via pip. This requires
-[pysam version 0.11 or later](http://pysam.readthedocs.org/en/latest/) to be
+[pysam version 0.11](http://pysam.readthedocs.org/en/latest/) to be
 already installed. E.g.:
 
 ```
-$ pip install pysam
+$ pip install pysam==0.11.2.2
 $ pip install pysamstats
 ```
 
