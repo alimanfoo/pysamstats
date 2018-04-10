@@ -29,7 +29,6 @@ def flatten(recs, *fields):
 
 def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
 
-    print("load_stats")
     import numpy as np
 
     # determine fields to load
