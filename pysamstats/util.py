@@ -29,6 +29,7 @@ def flatten(recs, *fields):
 
 def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
 
+    print("load_stats")
     import numpy as np
 
     # determine fields to load
@@ -42,6 +43,13 @@ def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
 
     # determine dtype
     dtype = dict(default_dtype)
+
+    # check if contig label dtype is appropriate length
+    if "alignmentfile" in kwargs:
+        max_seqid_len = max([len(x) for x in kwargs["alignmentfile"].references])
+        if max_seqid_len > np.dtype(dtype["chrom"]).itemsize:
+            dtype["chrom"] = "a{0}".format(max_seqid_len)
+
     if user_dtype is not None:
         dtype.update(dict(user_dtype))
 
