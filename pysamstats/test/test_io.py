@@ -1,30 +1,39 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division
 import logging
-import sys
 
+from pysam import Samfile
+from pysamstats import load_coverage, stat_coverage
 
-from nose.tools import eq_
-from pysam import Samfile, Fastafile
-import numpy as np
-
-
-# from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
-# import pysamstats
 from pysamstats.io import write_hdf5
 import tables
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
 
-def test_pileup_csize():
 
+def write_hdf5_dtype(arg):
+
+    # testing auto dtype determination.
+    dtype, alignment, result, label = arg
     import tempfile
-    label = "AS2_scf7180000696055"
-    tmp = tempfile.mktemp(suffix=".h5")
-    print("xxx")
-    write_hdf5("coverage", tmp, Samfile("fixture/z2.bam"), chrom=label)
-    print(tmp)
-    eq_(1, 1)
-    #tables.File(tmp)
 
+    # use auto
+    tmp = tempfile.mktemp(suffix=".h5")
+    write_hdf5("coverage", tmp, alignment, chrom=label, dtype=dtype)
+    with tables.open_file(tmp, mode="r") as h5file:
+        assert result == h5file.root.data.dtype["chrom"].itemsize
+
+
+def test_write_hdf5():
+
+    contig_label = "AS2_scf7180000696055"
+    bampath = "fixture/longcontignames.bam"
+
+    dtypes = [None, {"chrom": "a20"}, {"chrom": "a20"}]
+    alignments = [Samfile(bampath), Samfile(bampath), bampath]
+    results = [len(contig_label), 20, 20]
+    labels = [contig_label, contig_label, contig_label]
+
+    for arg in zip(dtypes, alignments, results, labels):
+        yield (write_hdf5_dtype, arg)
