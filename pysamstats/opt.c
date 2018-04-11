@@ -477,7 +477,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "htslib/vcfutils.h"
 #include "htslib/cram.h"
 #include "pysam_stream.h"
-#include "samfile_util.h"
+//#include "samfile_util.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif /* _OPENMP */
