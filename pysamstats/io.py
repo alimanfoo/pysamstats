@@ -150,8 +150,7 @@ def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None, h
     if dtype is None:
         dtype = dict(default_dtype)
         max_seqid_len = determine_max_seqid(alignmentfile)
-        if max_seqid_len > np.dtype(dtype["chrom"]).itemsize:
-            dtype["chrom"] = "a{0}".format(max_seqid_len)
+        dtype["chrom"] = "a{0}".format(max_seqid_len)
 
     else:
         default_dtype = dict(default_dtype)

@@ -3,7 +3,6 @@ from __future__ import absolute_import, print_function, division
 import logging
 
 from pysam import Samfile
-from pysamstats import load_coverage, stat_coverage
 
 from pysamstats.io import write_hdf5
 import tables
@@ -12,20 +11,22 @@ logger = logging.getLogger(__name__)
 debug = logger.debug
 
 
-def write_hdf5_dtype(arg):
+def check_write_hdf5_chrom_dtype(arg):
 
     # testing auto dtype determination.
     dtype, alignment, result, label = arg
     import tempfile
 
     # use auto
-    tmp = tempfile.mktemp(suffix=".h5")
-    write_hdf5("coverage", tmp, alignment, chrom=label, dtype=dtype)
-    with tables.open_file(tmp, mode="r") as h5file:
-        assert result == h5file.root.data.dtype["chrom"].itemsize
+    with tempfile.NamedTemporaryFile(suffix=".h5") as tmp:
+
+        write_hdf5("coverage", tmp.name, alignment, chrom=label, dtype=dtype)
+
+        with tables.open_file(tmp.name, mode="r") as h5file:
+            return result == h5file.root.data.dtype["chrom"].itemsize
 
 
-def test_write_hdf5():
+def test_write_hdf5_chrom_dtype():
 
     contig_label = "AS2_scf7180000696055"
     bampath = "fixture/longcontignames.bam"
@@ -36,4 +37,4 @@ def test_write_hdf5():
     labels = [contig_label, contig_label, contig_label]
 
     for arg in zip(dtypes, alignments, results, labels):
-        yield (write_hdf5_dtype, arg)
+        assert check_write_hdf5_chrom_dtype(arg)
