@@ -1047,16 +1047,3 @@ def test_pileup_limit():
         else:
             a = f(Samfile('fixture/deep.bam'), **kwargs)
         eq_(8052, a[70])  # no idea why limit is not exact
-
-
-def test_load_cov():
-    # test that long chrom labels auto handled.
-
-    label = "AS2_scf7180000696055"
-    bampath = "fixture/longcontignames.bam"
-
-    x = pysamstats.load_coverage(bampath, chrom=label)
-    assert len(label) == x.dtype["chrom"].itemsize
-
-    x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "a10"})
-    assert 10 == x.dtype["chrom"].itemsize
