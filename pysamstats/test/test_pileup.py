@@ -1033,7 +1033,7 @@ def test_pileup_limit():
         eq_(8052, a[70])  # no idea why limit is not exact
 
 
-def test_load_cov():
+def test_load_cov_long_contig_name():
     # test that long chrom labels auto handled.
 
     label = "AS2_scf7180000696055"
