@@ -1849,7 +1849,7 @@ def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_base
 
     # obtain pileup iterator
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
                               max_depth=max_depth)
 
     # iterate over pileup columns
@@ -1941,7 +1941,7 @@ def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, star
     # obtain pileup iterator
     assert chrom is not None, 'chromosome is None'
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate,
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
                               max_depth=max_depth)
 
     # keep track of current position

@@ -75,8 +75,10 @@ def filter_reads(reads, min_mapq, min_baseq, no_del, no_dup):
 
 def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
                           min_baseq=0, no_del=False, no_dup=False):
+
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -92,7 +94,8 @@ def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
                                  one_based=False, min_mapq=0, min_baseq=0, no_del=False,
                                  no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -112,7 +115,8 @@ def test_stat_coverage_strand():
 def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
                               min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -160,7 +164,8 @@ def test_stat_coverage_ext():
 def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
                                      min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -226,7 +231,8 @@ def test_stat_coverage_ext_strand():
 def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False,
                            min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -306,7 +312,8 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
                                   one_based=False, min_mapq=0, min_baseq=0, no_del=False,
                                   no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -409,7 +416,8 @@ def test_stat_variation_strand_rna():
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
                       min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -441,7 +449,8 @@ def test_stat_tlen():
 def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
                              min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -521,7 +530,8 @@ def mapq(reads):
 def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
                       min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -551,7 +561,8 @@ def test_stat_mapq():
 def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
                              min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -629,7 +640,8 @@ def nodup(reads):
 def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
                        min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -653,7 +665,8 @@ def test_stat_baseq():
 def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
                               min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -698,7 +711,8 @@ def test_stat_baseq_strand():
 def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, one_based=False,
                            min_mapq=0, min_baseq=0, no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -745,7 +759,8 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
                                   one_based=False, min_mapq=0, min_baseq=0, no_del=False,
                                   no_dup=False):
     start, end = normalise_coords(one_based, start, end)
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
@@ -844,7 +859,8 @@ def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, 
                              no_del=False, no_dup=False):
     start, end = normalise_coords(one_based, start, end)
 
-    for col in samfile.pileup(reference=chrom, start=start, end=end):
+    for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
+                              min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
         chrom = samfile.getrname(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
