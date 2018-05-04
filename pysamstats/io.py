@@ -147,15 +147,16 @@ def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None, h
         fields = [t[0] for t in default_dtype]
 
     # determine dtype
-    if dtype is None:
-        dtype = dict(default_dtype)
-        max_seqid_len = determine_max_seqid(alignmentfile)
-        dtype["chrom"] = "a{0}".format(max_seqid_len)
+    default_dtype = dict(default_dtype)
+    max_seqid_len = determine_max_seqid(alignmentfile)
+    dtype["chrom"] = "a{0}".format(max_seqid_len)
 
-    else:
-        default_dtype = dict(default_dtype)
+    # update if user passed
+    if dtype is not None:
         default_dtype.update(dict(dtype))
-        dtype = default_dtype
+    dtype = default_dtype
+
+    # fields
     if len(fields) == 1:
         dtype = dtype[fields[0]]
     else:
