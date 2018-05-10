@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, division
 from operator import itemgetter
+from pysam import AlignmentFile
 
 
 def flatten(recs, *fields):
@@ -42,6 +43,11 @@ def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
 
     # determine dtype
     dtype = dict(default_dtype)
+
+    # check if contig label dtype is appropriate length
+    max_seqid_len = determine_max_seqid(kwargs["alignmentfile"])
+    dtype["chrom"] = "a{0}".format(max_seqid_len)
+
     if user_dtype is not None:
         dtype.update(dict(user_dtype))
 
@@ -65,3 +71,11 @@ def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
         a = a.view(np.recarray)
 
     return a
+
+
+def determine_max_seqid(alignmentfile):
+
+    if isinstance(alignmentfile, str):
+        alignmentfile = AlignmentFile(alignmentfile)
+
+    return max([len(x) for x in alignmentfile.references])

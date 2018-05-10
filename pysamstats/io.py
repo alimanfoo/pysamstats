@@ -7,7 +7,7 @@ import sys
 
 
 import pysamstats
-from pysamstats.util import flatten
+from pysamstats.util import flatten, determine_max_seqid
 import pysamstats.config as config
 
 
@@ -147,12 +147,16 @@ def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None, h
         fields = [t[0] for t in default_dtype]
 
     # determine dtype
-    if dtype is None:
-        dtype = dict(default_dtype)
-    else:
-        default_dtype = dict(default_dtype)
+    default_dtype = dict(default_dtype)
+    max_seqid_len = determine_max_seqid(alignmentfile)
+    default_dtype["chrom"] = "a{0}".format(max_seqid_len)
+
+    # update if user passed
+    if dtype is not None:
         default_dtype.update(dict(dtype))
-        dtype = default_dtype
+    dtype = default_dtype
+
+    # fields
     if len(fields) == 1:
         dtype = dtype[fields[0]]
     else:
