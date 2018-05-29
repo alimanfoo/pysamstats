@@ -87,10 +87,10 @@ Version: {version} (pysam {pysamversion})
         help='Truncate pileup-based stats so no records are emitted outside the specified range.')
 
     parser.add_option(
-        '-S', '--stepper', dest='stepper', action='store', default="nofilter",
+        '-S', '--stepper', dest='stepper', action='store', default='all',
         help='Stepper to provide to underlying pysam call. Options are:'
-             '"nofilter" (default), which applies no filter to returned reads; '
-             '"all": all reads are returned, except where flags BAM_FUNMAP, BAM_FSECONDARY, BAM_FQCFAIL, BAM_FDUP set; '
+             '"all" (default): all reads are returned, except where flags BAM_FUNMAP, BAM_FSECONDARY, BAM_FQCFAIL, '
+             'BAM_FDUP set; "nofilter" applies no filter to returned reads; '
              '"samtools": filter & read processing as in _csamtools_ pileup. This requires a ‘fasta` file. '
              'For complete details see the pysam documentation.')
 
@@ -218,8 +218,7 @@ Version: {version} (pysam {pysamversion})
                 window_size=options.window_size,
                 window_offset=options.window_offset,
                 min_mapq=options.min_mapq,
-                no_dup=options.no_dup,
-                stepper=options.stepper
+                no_dup=options.no_dup
             )
             # some options only make sense if not performing binned analysis
             if not options.type.endswith('_binned'):
@@ -228,6 +227,7 @@ Version: {version} (pysam {pysamversion})
                 kwargs['max_depth'] = options.max_depth
                 kwargs['min_baseq'] = options.min_baseq
                 kwargs['no_del'] = options.no_del
+                kwargs['stepper'] = options.stepper
 
             if options.format.lower() in ['tsv', 'csv']:
 
