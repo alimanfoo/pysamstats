@@ -7,6 +7,7 @@ import sys
 from nose.tools import eq_
 from pysam import Samfile, Fastafile
 import numpy as np
+from os.path import isfile
 
 
 from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
@@ -1060,3 +1061,33 @@ def test_load_cov_long_contig_name():
 
     x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "a10"})
     assert 10 == x.dtype["chrom"].itemsize
+
+
+# no test_prefix so not run
+def generate_fixtures():
+
+    bampath = "fixture/deep.bam"
+    archive = "fixture/deep.npz"
+    dd = {q: getattr(pysamstats, q)(Samfile(bampath))
+          for q in ["load_coverage", "load_baseq", "load_mapq"]}
+
+    assert not isfile(archive), "Attempting to regenerate static test archive."
+    np.savez_compressed(archive, **dd)
+
+
+def test_against_fixtures():
+
+    # load fixtures from numpy array.
+    bampath = "fixture/deep.bam"
+    archive = "fixture/deep.npz"
+
+    testset = np.load(archive)
+
+    for q in ["load_coverage", "load_baseq", "load_mapq"]:
+        x = getattr(pysamstats, q)(Samfile(bampath))
+        assert np.array_equal(testset[q], x)
+
+    # check if not equal.
+    for q in ["load_coverage", "load_baseq", "load_mapq"]:
+        x = getattr(pysamstats, q)(Samfile(bampath), pad=True)
+        assert not np.array_equal(testset[q], x)
