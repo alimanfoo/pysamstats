@@ -4,7 +4,7 @@ import logging
 import sys
 
 
-from nose.tools import eq_
+from nose.tools import eq_, assert_raises
 from pysam import Samfile, Fastafile
 import numpy as np
 
@@ -1052,11 +1052,31 @@ def test_pileup_limit():
 def test_load_cov_long_contig_name():
     # test that long chrom labels auto handled.
 
-    label = "AS2_scf7180000696055"
-    bampath = "fixture/longcontignames.bam"
+    label = 'AS2_scf7180000696055'
+    bampath = 'fixture/longcontignames.bam'
 
     x = pysamstats.load_coverage(bampath, chrom=label)
     assert len(label) == x.dtype["chrom"].itemsize
 
     x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "a10"})
     assert 10 == x.dtype["chrom"].itemsize
+
+
+def test_load_cov_using_steppers():
+
+    # test that expected steppers give different/consistent results
+    # this is the only bam file that differs between all/nofilter
+    bampath = "fixture/longcontignames.bam"
+    seq = 'AS2_scf7180000695891'
+    pos = 14311
+    steppers = ["all", "nofilter", "samtools"]
+    reads_all = [7, 8, 4]
+    reads_pp = [4, 5, 4]
+
+    for exp_all, exp_pp, step in zip(reads_all, reads_pp, steppers):
+        a = pysamstats.load_coverage(Samfile(bampath), chrom=seq, stepper=step, pad=True)
+        eq_(exp_all, a[pos]["reads_all"])
+        eq_(exp_pp, a[pos]["reads_pp"])
+
+    with assert_raises(ValueError):
+        pysamstats.load_coverage(Samfile(bampath), chrom=seq, stepper="notastepper")

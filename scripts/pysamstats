@@ -91,7 +91,7 @@ Version: {version} (pysam {pysamversion})
         help='Stepper to provide to underlying pysam call. Options are:'
              '"all" (default): all reads are returned, except where flags BAM_FUNMAP, BAM_FSECONDARY, BAM_FQCFAIL, '
              'BAM_FDUP set; "nofilter" applies no filter to returned reads; '
-             '"samtools": filter & read processing as in _csamtools_ pileup. This requires a ‘fasta` file. '
+             '"samtools": filter & read processing as in _csamtools_ pileup. This requires a fasta file. '
              'For complete details see the pysam documentation.')
 
     parser.add_option(
