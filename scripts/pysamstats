@@ -200,7 +200,7 @@ Version: {version} (pysam {pysamversion})
         elif options.stepper not in stepper_types:
             parser.error('unsupported stepper type: "%s"\nMust be one of %s or '
                          '"pysamstats --help" for more information.'
-                         % (options.stepper, stats_types))
+                         % (options.stepper, stepper_types))
 
         elif options.type in stats_types_withref \
                 and options.fasta is None:
