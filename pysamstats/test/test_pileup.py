@@ -1071,7 +1071,7 @@ def generate_fixtures():
     dd = {q: getattr(pysamstats, q)(Samfile(bampath))
           for q in ["load_coverage", "load_baseq", "load_mapq"]}
 
-    assert isfile(archive), "Attempting to regenerate static test archive."
+    assert not isfile(archive), "Attempting to regenerate static test archive."
     np.savez_compressed(archive, **dd)
 
 
