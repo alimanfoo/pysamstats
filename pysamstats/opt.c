@@ -4,23 +4,23 @@
 {
     "distutils": {
         "depends": [
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/htslib_util.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/bgzf.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/cram.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/faidx.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/hfile.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/hts.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/kstring.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/sam.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/tbx.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/vcf.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib/htslib/vcfutils.h",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/pysam_stream.h"
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/htslib_util.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/bgzf.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/cram.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/faidx.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/hfile.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/hts.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/kstring.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/sam.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/tbx.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/vcf.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib/htslib/vcfutils.h",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/pysam_stream.h"
         ],
         "include_dirs": [
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/htslib",
-            "/home/njh/miniconda3/envs/tpysam2/lib/python3.6/site-packages/pysam/include/samtools"
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/htslib",
+            "/home/njh/miniconda3/envs/pysamstats/lib/python3.5/site-packages/pysam/include/samtools"
         ],
         "name": "pysamstats.opt",
         "sources": [
@@ -1906,7 +1906,7 @@ struct __pyx_obj_10pysamstats_3opt_TlenBinned {
 /* "pysamstats/opt.pyx":1845
  * 
  * 
- * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,             # <<<<<<<<<<<<<<
+ * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,             # <<<<<<<<<<<<<<
  *                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
  *     cdef:
  */
@@ -1927,6 +1927,7 @@ struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct__iter_pileup_default {
   PyObject *__pyx_v_rec;
   PyObject *__pyx_v_start;
   PyObject *__pyx_v_stat;
+  PyObject *__pyx_v_stepper;
   PyObject *__pyx_v_truncate;
   PyObject *__pyx_t_0;
   Py_ssize_t __pyx_t_1;
@@ -1938,7 +1939,7 @@ struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct__iter_pileup_default {
  * 
  * 
  * def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,             # <<<<<<<<<<<<<<
- *                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+ *                              one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
  *     cdef:
  */
 struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_padded_chrom {
@@ -1961,6 +1962,7 @@ struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_padded_chrom
   PyObject *__pyx_v_refbase;
   PyObject *__pyx_v_start;
   struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat;
+  PyObject *__pyx_v_stepper;
   PyObject *__pyx_v_truncate;
   PyObject *__pyx_t_0;
   Py_ssize_t __pyx_t_1;
@@ -3716,7 +3718,6 @@ static const char __pyx_k_getrname[] = "getrname";
 static const char __pyx_k_getstate[] = "__getstate__";
 static const char __pyx_k_max_mapq[] = "max_mapq";
 static const char __pyx_k_min_mapq[] = "min_mapq";
-static const char __pyx_k_nofilter[] = "nofilter";
 static const char __pyx_k_pyx_type[] = "__pyx_type";
 static const char __pyx_k_reads_pp[] = "reads_pp";
 static const char __pyx_k_rms_mapq[] = "rms_mapq";
@@ -4074,7 +4075,6 @@ static PyObject *__pyx_n_s_name;
 static PyObject *__pyx_n_s_new;
 static PyObject *__pyx_n_s_no_del;
 static PyObject *__pyx_n_s_no_dup;
-static PyObject *__pyx_n_s_nofilter;
 static PyObject *__pyx_n_s_normalise_coords;
 static PyObject *__pyx_n_s_one_based;
 static PyObject *__pyx_n_s_pad;
@@ -4347,10 +4347,10 @@ static int __pyx_pf_10pysamstats_3opt_10TlenBinned___init__(struct __pyx_obj_10p
 static PyObject *__pyx_pf_10pysamstats_3opt_10TlenBinned_2__reduce_cython__(struct __pyx_obj_10pysamstats_3opt_TlenBinned *__pyx_v_self); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_10TlenBinned_4__setstate_cython__(struct __pyx_obj_10pysamstats_3opt_TlenBinned *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_iter_pileup(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_pad, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_3opt_2iter_pileup_default(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_max_depth, int __pyx_v_min_mapq, int __pyx_v_min_baseq, int __pyx_v_no_del, int __pyx_v_no_dup); /* proto */
+static PyObject *__pyx_pf_10pysamstats_3opt_2iter_pileup_default(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_stepper, PyObject *__pyx_v_max_depth, int __pyx_v_min_mapq, int __pyx_v_min_baseq, int __pyx_v_no_del, int __pyx_v_no_dup); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_5stat_pileup(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat, struct __pyx_obj_5pysam_18libcalignedsegment_PileupColumn *__pyx_v_col, struct __pyx_obj_5pysam_17libcalignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_9libcfaidx_FastaFile *__pyx_v_fafile, int __pyx_v_one_based, int __pyx_v_min_mapq, int __pyx_v_min_baseq, int __pyx_v_no_del, int __pyx_v_no_dup); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_7iter_pileup_padded(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_kwargs); /* proto */
-static PyObject *__pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_max_depth, PyObject *__pyx_v_min_mapq, PyObject *__pyx_v_min_baseq, PyObject *__pyx_v_no_del, PyObject *__pyx_v_no_dup); /* proto */
+static PyObject *__pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_stepper, PyObject *__pyx_v_max_depth, PyObject *__pyx_v_min_mapq, PyObject *__pyx_v_min_baseq, PyObject *__pyx_v_no_del, PyObject *__pyx_v_no_dup); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_12get_refbase(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_pos); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_14iter_binned(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_window_size, PyObject *__pyx_v_window_offset, PyObject *__pyx_v_kwargs); /* proto */
 static PyObject *__pyx_pf_10pysamstats_3opt_16iter_binned_chrom(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_BinnedStat *__pyx_v_stat, struct __pyx_obj_5pysam_17libcalignmentfile_AlignmentFile *__pyx_v_alignmentfile, struct __pyx_obj_5pysam_9libcfaidx_FastaFile *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, int __pyx_v_window_size, int __pyx_v_window_offset, int __pyx_v_min_mapq, int __pyx_v_no_dup); /* proto */
@@ -33783,14 +33783,14 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
 /* "pysamstats/opt.pyx":1845
  * 
  * 
- * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,             # <<<<<<<<<<<<<<
+ * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,             # <<<<<<<<<<<<<<
  *                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
  *     cdef:
  */
 
 /* Python wrapper */
 static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_10pysamstats_3opt_2iter_pileup_default[] = "iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, max_depth, int min_mapq, int min_baseq, bool no_del, bool no_dup)";
+static char __pyx_doc_10pysamstats_3opt_2iter_pileup_default[] = "iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper, max_depth, int min_mapq, int min_baseq, bool no_del, bool no_dup)";
 static PyMethodDef __pyx_mdef_10pysamstats_3opt_3iter_pileup_default = {"iter_pileup_default", (PyCFunction)__pyx_pw_10pysamstats_3opt_3iter_pileup_default, METH_VARARGS|METH_KEYWORDS, __pyx_doc_10pysamstats_3opt_2iter_pileup_default};
 static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   PyObject *__pyx_v_stat = 0;
@@ -33801,6 +33801,7 @@ static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx
   PyObject *__pyx_v_end = 0;
   PyObject *__pyx_v_one_based = 0;
   PyObject *__pyx_v_truncate = 0;
+  PyObject *__pyx_v_stepper = 0;
   PyObject *__pyx_v_max_depth = 0;
   int __pyx_v_min_mapq;
   int __pyx_v_min_baseq;
@@ -33810,12 +33811,14 @@ static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("iter_pileup_default (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_stat,&__pyx_n_s_alignmentfile,&__pyx_n_s_fafile,&__pyx_n_s_chrom,&__pyx_n_s_start,&__pyx_n_s_end,&__pyx_n_s_one_based,&__pyx_n_s_truncate,&__pyx_n_s_max_depth,&__pyx_n_s_min_mapq,&__pyx_n_s_min_baseq,&__pyx_n_s_no_del,&__pyx_n_s_no_dup,0};
-    PyObject* values[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_stat,&__pyx_n_s_alignmentfile,&__pyx_n_s_fafile,&__pyx_n_s_chrom,&__pyx_n_s_start,&__pyx_n_s_end,&__pyx_n_s_one_based,&__pyx_n_s_truncate,&__pyx_n_s_stepper,&__pyx_n_s_max_depth,&__pyx_n_s_min_mapq,&__pyx_n_s_min_baseq,&__pyx_n_s_no_del,&__pyx_n_s_no_dup,0};
+    PyObject* values[14] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case 14: values[13] = PyTuple_GET_ITEM(__pyx_args, 13);
+        CYTHON_FALLTHROUGH;
         case 13: values[12] = PyTuple_GET_ITEM(__pyx_args, 12);
         CYTHON_FALLTHROUGH;
         case 12: values[11] = PyTuple_GET_ITEM(__pyx_args, 11);
@@ -33854,79 +33857,85 @@ static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_alignmentfile)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 1); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 1); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_fafile)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 2); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 2); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_chrom)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 3); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 3); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_start)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 4); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 4); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_end)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 5); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 5); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  6:
         if (likely((values[6] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_one_based)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 6); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 6); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  7:
         if (likely((values[7] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_truncate)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 7); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 7); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  8:
-        if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_max_depth)) != 0)) kw_args--;
+        if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_stepper)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 8); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 8); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  9:
-        if (likely((values[9] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_mapq)) != 0)) kw_args--;
+        if (likely((values[9] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_max_depth)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 9); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 9); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 10:
-        if (likely((values[10] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_baseq)) != 0)) kw_args--;
+        if (likely((values[10] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_mapq)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 10); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 10); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 11:
-        if (likely((values[11] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_del)) != 0)) kw_args--;
+        if (likely((values[11] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_baseq)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 11); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 11); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 12:
-        if (likely((values[12] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_dup)) != 0)) kw_args--;
+        if (likely((values[12] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_del)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, 12); __PYX_ERR(0, 1845, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 12); __PYX_ERR(0, 1845, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case 13:
+        if (likely((values[13] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_dup)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, 13); __PYX_ERR(0, 1845, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "iter_pileup_default") < 0)) __PYX_ERR(0, 1845, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 13) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 14) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -33942,6 +33951,7 @@ static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx
       values[10] = PyTuple_GET_ITEM(__pyx_args, 10);
       values[11] = PyTuple_GET_ITEM(__pyx_args, 11);
       values[12] = PyTuple_GET_ITEM(__pyx_args, 12);
+      values[13] = PyTuple_GET_ITEM(__pyx_args, 13);
     }
     __pyx_v_stat = values[0];
     __pyx_v_alignmentfile = values[1];
@@ -33951,28 +33961,29 @@ static PyObject *__pyx_pw_10pysamstats_3opt_3iter_pileup_default(PyObject *__pyx
     __pyx_v_end = values[5];
     __pyx_v_one_based = values[6];
     __pyx_v_truncate = values[7];
-    __pyx_v_max_depth = values[8];
-    __pyx_v_min_mapq = __Pyx_PyInt_As_int(values[9]); if (unlikely((__pyx_v_min_mapq == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
-    __pyx_v_min_baseq = __Pyx_PyInt_As_int(values[10]); if (unlikely((__pyx_v_min_baseq == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
-    __pyx_v_no_del = __Pyx_PyObject_IsTrue(values[11]); if (unlikely((__pyx_v_no_del == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
-    __pyx_v_no_dup = __Pyx_PyObject_IsTrue(values[12]); if (unlikely((__pyx_v_no_dup == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
+    __pyx_v_stepper = values[8];
+    __pyx_v_max_depth = values[9];
+    __pyx_v_min_mapq = __Pyx_PyInt_As_int(values[10]); if (unlikely((__pyx_v_min_mapq == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
+    __pyx_v_min_baseq = __Pyx_PyInt_As_int(values[11]); if (unlikely((__pyx_v_min_baseq == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
+    __pyx_v_no_del = __Pyx_PyObject_IsTrue(values[12]); if (unlikely((__pyx_v_no_del == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
+    __pyx_v_no_dup = __Pyx_PyObject_IsTrue(values[13]); if (unlikely((__pyx_v_no_dup == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 1846, __pyx_L3_error)
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 13, 13, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1845, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("iter_pileup_default", 1, 14, 14, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1845, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pysamstats.opt.iter_pileup_default", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  __pyx_r = __pyx_pf_10pysamstats_3opt_2iter_pileup_default(__pyx_self, __pyx_v_stat, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_chrom, __pyx_v_start, __pyx_v_end, __pyx_v_one_based, __pyx_v_truncate, __pyx_v_max_depth, __pyx_v_min_mapq, __pyx_v_min_baseq, __pyx_v_no_del, __pyx_v_no_dup);
+  __pyx_r = __pyx_pf_10pysamstats_3opt_2iter_pileup_default(__pyx_self, __pyx_v_stat, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_chrom, __pyx_v_start, __pyx_v_end, __pyx_v_one_based, __pyx_v_truncate, __pyx_v_stepper, __pyx_v_max_depth, __pyx_v_min_mapq, __pyx_v_min_baseq, __pyx_v_no_del, __pyx_v_no_dup);
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_3opt_2iter_pileup_default(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_max_depth, int __pyx_v_min_mapq, int __pyx_v_min_baseq, int __pyx_v_no_del, int __pyx_v_no_dup) {
+static PyObject *__pyx_pf_10pysamstats_3opt_2iter_pileup_default(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_stepper, PyObject *__pyx_v_max_depth, int __pyx_v_min_mapq, int __pyx_v_min_baseq, int __pyx_v_no_del, int __pyx_v_no_dup) {
   struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct__iter_pileup_default *__pyx_cur_scope;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -34009,6 +34020,9 @@ static PyObject *__pyx_pf_10pysamstats_3opt_2iter_pileup_default(CYTHON_UNUSED P
   __pyx_cur_scope->__pyx_v_truncate = __pyx_v_truncate;
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_truncate);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_truncate);
+  __pyx_cur_scope->__pyx_v_stepper = __pyx_v_stepper;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_stepper);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_stepper);
   __pyx_cur_scope->__pyx_v_max_depth = __pyx_v_max_depth;
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_max_depth);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_max_depth);
@@ -34062,7 +34076,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
  * 
  *     # obtain pileup iterator
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)             # <<<<<<<<<<<<<<
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
  *                               max_depth=max_depth)
  */
   __pyx_t_2 = __Pyx_GetModuleGlobalName(__pyx_n_s_normalise_coords); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1851, __pyx_L1_error)
@@ -34179,7 +34193,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
   /* "pysamstats/opt.pyx":1852
  *     # obtain pileup iterator
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",             # <<<<<<<<<<<<<<
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,             # <<<<<<<<<<<<<<
  *                               max_depth=max_depth)
  * 
  */
@@ -34191,11 +34205,11 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
   if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_start, __pyx_cur_scope->__pyx_v_start) < 0) __PYX_ERR(0, 1852, __pyx_L1_error)
   if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_end, __pyx_cur_scope->__pyx_v_end) < 0) __PYX_ERR(0, 1852, __pyx_L1_error)
   if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_truncate, __pyx_cur_scope->__pyx_v_truncate) < 0) __PYX_ERR(0, 1852, __pyx_L1_error)
-  if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_stepper, __pyx_n_s_nofilter) < 0) __PYX_ERR(0, 1852, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_5, __pyx_n_s_stepper, __pyx_cur_scope->__pyx_v_stepper) < 0) __PYX_ERR(0, 1852, __pyx_L1_error)
 
   /* "pysamstats/opt.pyx":1853
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
  *                               max_depth=max_depth)             # <<<<<<<<<<<<<<
  * 
  *     # iterate over pileup columns
@@ -34205,7 +34219,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
   /* "pysamstats/opt.pyx":1852
  *     # obtain pileup iterator
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",             # <<<<<<<<<<<<<<
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,             # <<<<<<<<<<<<<<
  *                               max_depth=max_depth)
  * 
  */
@@ -34382,7 +34396,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_4generator(__pyx_CoroutineObject *__
   /* "pysamstats/opt.pyx":1845
  * 
  * 
- * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,             # <<<<<<<<<<<<<<
+ * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,             # <<<<<<<<<<<<<<
  *                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
  *     cdef:
  */
@@ -35463,13 +35477,13 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
  * 
  * 
  * def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,             # <<<<<<<<<<<<<<
- *                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+ *                              one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
  *     cdef:
  */
 
 /* Python wrapper */
 static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
-static char __pyx_doc_10pysamstats_3opt_9iter_pileup_padded_chrom[] = "iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup)";
+static char __pyx_doc_10pysamstats_3opt_9iter_pileup_padded_chrom[] = "iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup)";
 static PyMethodDef __pyx_mdef_10pysamstats_3opt_10iter_pileup_padded_chrom = {"iter_pileup_padded_chrom", (PyCFunction)__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom, METH_VARARGS|METH_KEYWORDS, __pyx_doc_10pysamstats_3opt_9iter_pileup_padded_chrom};
 static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject *__pyx_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
   struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat = 0;
@@ -35480,6 +35494,7 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
   PyObject *__pyx_v_end = 0;
   PyObject *__pyx_v_one_based = 0;
   PyObject *__pyx_v_truncate = 0;
+  PyObject *__pyx_v_stepper = 0;
   PyObject *__pyx_v_max_depth = 0;
   PyObject *__pyx_v_min_mapq = 0;
   PyObject *__pyx_v_min_baseq = 0;
@@ -35489,12 +35504,14 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("iter_pileup_padded_chrom (wrapper)", 0);
   {
-    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_stat,&__pyx_n_s_alignmentfile,&__pyx_n_s_fafile,&__pyx_n_s_chrom,&__pyx_n_s_start,&__pyx_n_s_end,&__pyx_n_s_one_based,&__pyx_n_s_truncate,&__pyx_n_s_max_depth,&__pyx_n_s_min_mapq,&__pyx_n_s_min_baseq,&__pyx_n_s_no_del,&__pyx_n_s_no_dup,0};
-    PyObject* values[13] = {0,0,0,0,0,0,0,0,0,0,0,0,0};
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_stat,&__pyx_n_s_alignmentfile,&__pyx_n_s_fafile,&__pyx_n_s_chrom,&__pyx_n_s_start,&__pyx_n_s_end,&__pyx_n_s_one_based,&__pyx_n_s_truncate,&__pyx_n_s_stepper,&__pyx_n_s_max_depth,&__pyx_n_s_min_mapq,&__pyx_n_s_min_baseq,&__pyx_n_s_no_del,&__pyx_n_s_no_dup,0};
+    PyObject* values[14] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     if (unlikely(__pyx_kwds)) {
       Py_ssize_t kw_args;
       const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
       switch (pos_args) {
+        case 14: values[13] = PyTuple_GET_ITEM(__pyx_args, 13);
+        CYTHON_FALLTHROUGH;
         case 13: values[12] = PyTuple_GET_ITEM(__pyx_args, 12);
         CYTHON_FALLTHROUGH;
         case 12: values[11] = PyTuple_GET_ITEM(__pyx_args, 11);
@@ -35533,79 +35550,85 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
         case  1:
         if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_alignmentfile)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 1); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 1); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  2:
         if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_fafile)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 2); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 2); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  3:
         if (likely((values[3] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_chrom)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 3); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 3); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  4:
         if (likely((values[4] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_start)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 4); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 4); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  5:
         if (likely((values[5] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_end)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 5); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 5); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  6:
         if (likely((values[6] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_one_based)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 6); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 6); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  7:
         if (likely((values[7] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_truncate)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 7); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 7); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  8:
-        if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_max_depth)) != 0)) kw_args--;
+        if (likely((values[8] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_stepper)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 8); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 8); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case  9:
-        if (likely((values[9] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_mapq)) != 0)) kw_args--;
+        if (likely((values[9] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_max_depth)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 9); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 9); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 10:
-        if (likely((values[10] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_baseq)) != 0)) kw_args--;
+        if (likely((values[10] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_mapq)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 10); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 10); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 11:
-        if (likely((values[11] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_del)) != 0)) kw_args--;
+        if (likely((values[11] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_min_baseq)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 11); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 11); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
         CYTHON_FALLTHROUGH;
         case 12:
-        if (likely((values[12] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_dup)) != 0)) kw_args--;
+        if (likely((values[12] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_del)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, 12); __PYX_ERR(0, 1935, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 12); __PYX_ERR(0, 1935, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case 13:
+        if (likely((values[13] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_no_dup)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, 13); __PYX_ERR(0, 1935, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "iter_pileup_padded_chrom") < 0)) __PYX_ERR(0, 1935, __pyx_L3_error)
       }
-    } else if (PyTuple_GET_SIZE(__pyx_args) != 13) {
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 14) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
@@ -35621,6 +35644,7 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
       values[10] = PyTuple_GET_ITEM(__pyx_args, 10);
       values[11] = PyTuple_GET_ITEM(__pyx_args, 11);
       values[12] = PyTuple_GET_ITEM(__pyx_args, 12);
+      values[13] = PyTuple_GET_ITEM(__pyx_args, 13);
     }
     __pyx_v_stat = ((struct __pyx_obj_10pysamstats_3opt_PileupStat *)values[0]);
     __pyx_v_alignmentfile = values[1];
@@ -35630,22 +35654,23 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
     __pyx_v_end = values[5];
     __pyx_v_one_based = values[6];
     __pyx_v_truncate = values[7];
-    __pyx_v_max_depth = values[8];
-    __pyx_v_min_mapq = values[9];
-    __pyx_v_min_baseq = values[10];
-    __pyx_v_no_del = values[11];
-    __pyx_v_no_dup = values[12];
+    __pyx_v_stepper = values[8];
+    __pyx_v_max_depth = values[9];
+    __pyx_v_min_mapq = values[10];
+    __pyx_v_min_baseq = values[11];
+    __pyx_v_no_del = values[12];
+    __pyx_v_no_dup = values[13];
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 13, 13, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1935, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("iter_pileup_padded_chrom", 1, 14, 14, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 1935, __pyx_L3_error)
   __pyx_L3_error:;
   __Pyx_AddTraceback("pysamstats.opt.iter_pileup_padded_chrom", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_stat), __pyx_ptype_10pysamstats_3opt_PileupStat, 1, "stat", 0))) __PYX_ERR(0, 1935, __pyx_L1_error)
-  __pyx_r = __pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(__pyx_self, __pyx_v_stat, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_chrom, __pyx_v_start, __pyx_v_end, __pyx_v_one_based, __pyx_v_truncate, __pyx_v_max_depth, __pyx_v_min_mapq, __pyx_v_min_baseq, __pyx_v_no_del, __pyx_v_no_dup);
+  __pyx_r = __pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(__pyx_self, __pyx_v_stat, __pyx_v_alignmentfile, __pyx_v_fafile, __pyx_v_chrom, __pyx_v_start, __pyx_v_end, __pyx_v_one_based, __pyx_v_truncate, __pyx_v_stepper, __pyx_v_max_depth, __pyx_v_min_mapq, __pyx_v_min_baseq, __pyx_v_no_del, __pyx_v_no_dup);
 
   /* function exit code */
   goto __pyx_L0;
@@ -35656,7 +35681,7 @@ static PyObject *__pyx_pw_10pysamstats_3opt_10iter_pileup_padded_chrom(PyObject 
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_max_depth, PyObject *__pyx_v_min_mapq, PyObject *__pyx_v_min_baseq, PyObject *__pyx_v_no_del, PyObject *__pyx_v_no_dup) {
+static PyObject *__pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(CYTHON_UNUSED PyObject *__pyx_self, struct __pyx_obj_10pysamstats_3opt_PileupStat *__pyx_v_stat, PyObject *__pyx_v_alignmentfile, PyObject *__pyx_v_fafile, PyObject *__pyx_v_chrom, PyObject *__pyx_v_start, PyObject *__pyx_v_end, PyObject *__pyx_v_one_based, PyObject *__pyx_v_truncate, PyObject *__pyx_v_stepper, PyObject *__pyx_v_max_depth, PyObject *__pyx_v_min_mapq, PyObject *__pyx_v_min_baseq, PyObject *__pyx_v_no_del, PyObject *__pyx_v_no_dup) {
   struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_padded_chrom *__pyx_cur_scope;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -35693,6 +35718,9 @@ static PyObject *__pyx_pf_10pysamstats_3opt_9iter_pileup_padded_chrom(CYTHON_UNU
   __pyx_cur_scope->__pyx_v_truncate = __pyx_v_truncate;
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_truncate);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_truncate);
+  __pyx_cur_scope->__pyx_v_stepper = __pyx_v_stepper;
+  __Pyx_INCREF(__pyx_cur_scope->__pyx_v_stepper);
+  __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_stepper);
   __pyx_cur_scope->__pyx_v_max_depth = __pyx_v_max_depth;
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_max_depth);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_max_depth);
@@ -35760,7 +35788,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
  *     # obtain pileup iterator
  *     assert chrom is not None, 'chromosome is None'             # <<<<<<<<<<<<<<
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
  */
   #ifndef CYTHON_WITHOUT_ASSERTIONS
   if (unlikely(!Py_OptimizeFlag)) {
@@ -35776,7 +35804,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
  *     # obtain pileup iterator
  *     assert chrom is not None, 'chromosome is None'
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)             # <<<<<<<<<<<<<<
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
  *                               max_depth=max_depth)
  */
   __pyx_t_3 = __Pyx_GetModuleGlobalName(__pyx_n_s_normalise_coords); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 1943, __pyx_L1_error)
@@ -35893,7 +35921,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
   /* "pysamstats/opt.pyx":1944
  *     assert chrom is not None, 'chromosome is None'
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",             # <<<<<<<<<<<<<<
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,             # <<<<<<<<<<<<<<
  *                               max_depth=max_depth)
  * 
  */
@@ -35905,11 +35933,11 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
   if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_start, __pyx_cur_scope->__pyx_v_start) < 0) __PYX_ERR(0, 1944, __pyx_L1_error)
   if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_end, __pyx_cur_scope->__pyx_v_end) < 0) __PYX_ERR(0, 1944, __pyx_L1_error)
   if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_truncate, __pyx_cur_scope->__pyx_v_truncate) < 0) __PYX_ERR(0, 1944, __pyx_L1_error)
-  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_stepper, __pyx_n_s_nofilter) < 0) __PYX_ERR(0, 1944, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_6, __pyx_n_s_stepper, __pyx_cur_scope->__pyx_v_stepper) < 0) __PYX_ERR(0, 1944, __pyx_L1_error)
 
   /* "pysamstats/opt.pyx":1945
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
  *                               max_depth=max_depth)             # <<<<<<<<<<<<<<
  * 
  *     # keep track of current position
@@ -35919,7 +35947,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
   /* "pysamstats/opt.pyx":1944
  *     assert chrom is not None, 'chromosome is None'
  *     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
- *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",             # <<<<<<<<<<<<<<
+ *     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,             # <<<<<<<<<<<<<<
  *                               max_depth=max_depth)
  * 
  */
@@ -36438,7 +36466,7 @@ static PyObject *__pyx_gb_10pysamstats_3opt_11generator1(__pyx_CoroutineObject *
  * 
  * 
  * def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,             # <<<<<<<<<<<<<<
- *                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+ *                              one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
  *     cdef:
  */
 
@@ -59270,6 +59298,7 @@ static void __pyx_tp_dealloc_10pysamstats_3opt___pyx_scope_struct__iter_pileup_d
   Py_CLEAR(p->__pyx_v_rec);
   Py_CLEAR(p->__pyx_v_start);
   Py_CLEAR(p->__pyx_v_stat);
+  Py_CLEAR(p->__pyx_v_stepper);
   Py_CLEAR(p->__pyx_v_truncate);
   Py_CLEAR(p->__pyx_t_0);
   if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_10pysamstats_3opt___pyx_scope_struct__iter_pileup_default < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct__iter_pileup_default)))) {
@@ -59314,6 +59343,9 @@ static int __pyx_tp_traverse_10pysamstats_3opt___pyx_scope_struct__iter_pileup_d
   }
   if (p->__pyx_v_stat) {
     e = (*v)(p->__pyx_v_stat, a); if (e) return e;
+  }
+  if (p->__pyx_v_stepper) {
+    e = (*v)(p->__pyx_v_stepper, a); if (e) return e;
   }
   if (p->__pyx_v_truncate) {
     e = (*v)(p->__pyx_v_truncate, a); if (e) return e;
@@ -59418,6 +59450,7 @@ static void __pyx_tp_dealloc_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_
   Py_CLEAR(p->__pyx_v_refbase);
   Py_CLEAR(p->__pyx_v_start);
   Py_CLEAR(p->__pyx_v_stat);
+  Py_CLEAR(p->__pyx_v_stepper);
   Py_CLEAR(p->__pyx_v_truncate);
   Py_CLEAR(p->__pyx_t_0);
   if (CYTHON_COMPILING_IN_CPYTHON && ((__pyx_freecount_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_padded_chrom < 8) & (Py_TYPE(o)->tp_basicsize == sizeof(struct __pyx_obj_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_padded_chrom)))) {
@@ -59477,6 +59510,9 @@ static int __pyx_tp_traverse_10pysamstats_3opt___pyx_scope_struct_1_iter_pileup_
   }
   if (p->__pyx_v_stat) {
     e = (*v)(((PyObject *)p->__pyx_v_stat), a); if (e) return e;
+  }
+  if (p->__pyx_v_stepper) {
+    e = (*v)(p->__pyx_v_stepper, a); if (e) return e;
   }
   if (p->__pyx_v_truncate) {
     e = (*v)(p->__pyx_v_truncate, a); if (e) return e;
@@ -59871,7 +59907,6 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_new, __pyx_k_new, sizeof(__pyx_k_new), 0, 0, 1, 1},
   {&__pyx_n_s_no_del, __pyx_k_no_del, sizeof(__pyx_k_no_del), 0, 0, 1, 1},
   {&__pyx_n_s_no_dup, __pyx_k_no_dup, sizeof(__pyx_k_no_dup), 0, 0, 1, 1},
-  {&__pyx_n_s_nofilter, __pyx_k_nofilter, sizeof(__pyx_k_nofilter), 0, 0, 1, 1},
   {&__pyx_n_s_normalise_coords, __pyx_k_normalise_coords, sizeof(__pyx_k_normalise_coords), 0, 0, 1, 1},
   {&__pyx_n_s_one_based, __pyx_k_one_based, sizeof(__pyx_k_one_based), 0, 0, 1, 1},
   {&__pyx_n_s_pad, __pyx_k_pad, sizeof(__pyx_k_pad), 0, 0, 1, 1},
@@ -60089,14 +60124,14 @@ static int __Pyx_InitCachedConstants(void) {
   /* "pysamstats/opt.pyx":1845
  * 
  * 
- * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,             # <<<<<<<<<<<<<<
+ * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,             # <<<<<<<<<<<<<<
  *                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
  *     cdef:
  */
-  __pyx_tuple__10 = PyTuple_Pack(16, __pyx_n_s_stat, __pyx_n_s_alignmentfile, __pyx_n_s_fafile, __pyx_n_s_chrom, __pyx_n_s_start, __pyx_n_s_end, __pyx_n_s_one_based, __pyx_n_s_truncate, __pyx_n_s_max_depth, __pyx_n_s_min_mapq, __pyx_n_s_min_baseq, __pyx_n_s_no_del, __pyx_n_s_no_dup, __pyx_n_s_col, __pyx_n_s_it, __pyx_n_s_rec); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 1845, __pyx_L1_error)
+  __pyx_tuple__10 = PyTuple_Pack(17, __pyx_n_s_stat, __pyx_n_s_alignmentfile, __pyx_n_s_fafile, __pyx_n_s_chrom, __pyx_n_s_start, __pyx_n_s_end, __pyx_n_s_one_based, __pyx_n_s_truncate, __pyx_n_s_stepper, __pyx_n_s_max_depth, __pyx_n_s_min_mapq, __pyx_n_s_min_baseq, __pyx_n_s_no_del, __pyx_n_s_no_dup, __pyx_n_s_col, __pyx_n_s_it, __pyx_n_s_rec); if (unlikely(!__pyx_tuple__10)) __PYX_ERR(0, 1845, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__10);
   __Pyx_GIVEREF(__pyx_tuple__10);
-  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(13, 0, 16, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pysamstats_opt_pyx, __pyx_n_s_iter_pileup_default, 1845, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 1845, __pyx_L1_error)
+  __pyx_codeobj__3 = (PyObject*)__Pyx_PyCode_New(14, 0, 17, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__10, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pysamstats_opt_pyx, __pyx_n_s_iter_pileup_default, 1845, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__3)) __PYX_ERR(0, 1845, __pyx_L1_error)
 
   /* "pysamstats/opt.pyx":1865
  * 
@@ -60126,13 +60161,13 @@ static int __Pyx_InitCachedConstants(void) {
  * 
  * 
  * def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,             # <<<<<<<<<<<<<<
- *                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+ *                              one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
  *     cdef:
  */
-  __pyx_tuple__15 = PyTuple_Pack(19, __pyx_n_s_stat, __pyx_n_s_alignmentfile, __pyx_n_s_fafile, __pyx_n_s_chrom, __pyx_n_s_start, __pyx_n_s_end, __pyx_n_s_one_based, __pyx_n_s_truncate, __pyx_n_s_max_depth, __pyx_n_s_min_mapq, __pyx_n_s_min_baseq, __pyx_n_s_no_del, __pyx_n_s_no_dup, __pyx_n_s_col, __pyx_n_s_curpos, __pyx_n_s_it, __pyx_n_s_refbase, __pyx_n_s_rec, __pyx_n_s_pos); if (unlikely(!__pyx_tuple__15)) __PYX_ERR(0, 1935, __pyx_L1_error)
+  __pyx_tuple__15 = PyTuple_Pack(20, __pyx_n_s_stat, __pyx_n_s_alignmentfile, __pyx_n_s_fafile, __pyx_n_s_chrom, __pyx_n_s_start, __pyx_n_s_end, __pyx_n_s_one_based, __pyx_n_s_truncate, __pyx_n_s_stepper, __pyx_n_s_max_depth, __pyx_n_s_min_mapq, __pyx_n_s_min_baseq, __pyx_n_s_no_del, __pyx_n_s_no_dup, __pyx_n_s_col, __pyx_n_s_curpos, __pyx_n_s_it, __pyx_n_s_refbase, __pyx_n_s_rec, __pyx_n_s_pos); if (unlikely(!__pyx_tuple__15)) __PYX_ERR(0, 1935, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__15);
   __Pyx_GIVEREF(__pyx_tuple__15);
-  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(13, 0, 19, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__15, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pysamstats_opt_pyx, __pyx_n_s_iter_pileup_padded_chrom, 1935, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 1935, __pyx_L1_error)
+  __pyx_codeobj__4 = (PyObject*)__Pyx_PyCode_New(14, 0, 20, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__15, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_pysamstats_opt_pyx, __pyx_n_s_iter_pileup_padded_chrom, 1935, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__4)) __PYX_ERR(0, 1935, __pyx_L1_error)
 
   /* "pysamstats/opt.pyx":1986
  * 
@@ -61220,7 +61255,7 @@ if (!__Pyx_RefNanny) {
   /* "pysamstats/opt.pyx":1845
  * 
  * 
- * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,             # <<<<<<<<<<<<<<
+ * def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,             # <<<<<<<<<<<<<<
  *                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
  *     cdef:
  */
@@ -61257,7 +61292,7 @@ if (!__Pyx_RefNanny) {
  * 
  * 
  * def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,             # <<<<<<<<<<<<<<
- *                              one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+ *                              one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
  *     cdef:
  */
   __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_10pysamstats_3opt_10iter_pileup_padded_chrom, NULL, __pyx_n_s_pysamstats_opt); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 1935, __pyx_L1_error)

@@ -58,6 +58,7 @@ def stat_pileup(type,
                 end=None,
                 one_based=False,
                 truncate=False,
+                stepper="nofilter",
                 pad=False,
                 max_depth=8000,
                 window_size=300,
@@ -88,7 +89,7 @@ def stat_pileup(type,
         raise ValueError('unsupported statistics type: %r' % type)
 
     return opt.iter_pileup(stat, alignmentfile=alignmentfile, fafile=fafile, chrom=chrom,
-                           start=start, end=end, one_based=one_based, truncate=truncate, pad=pad,
+                           start=start, end=end, one_based=one_based, truncate=truncate, stepper=stepper, pad=pad,
                            max_depth=max_depth, min_mapq=min_mapq, min_baseq=min_baseq,
                            no_del=no_del, no_dup=no_dup)
 
@@ -105,6 +106,7 @@ def load_pileup(type,
                 end=None,
                 one_based=False,
                 truncate=False,
+                stepper="nofilter",
                 pad=False,
                 max_depth=8000,
                 window_size=300,
@@ -134,7 +136,7 @@ def load_pileup(type,
     return util.load_stats(statfun, user_dtype=dtype, default_dtype=default_dtype,
                            user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
                            chrom=chrom, start=start, end=end, one_based=one_based,
-                           truncate=truncate, pad=pad, max_depth=max_depth, window_size=window_size,
+                           truncate=truncate, stepper=stepper, pad=pad, max_depth=max_depth, window_size=window_size,
                            window_offset=window_offset)
 
 

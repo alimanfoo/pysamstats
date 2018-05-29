@@ -26,6 +26,10 @@ stats_types_withref = ('variation',
 
 stats_types = sorted(stats_types_noref + stats_types_withref)
 
+stepper_types = ('nofilter',
+                 'samtools',
+                 'all')
+
 dtype_coverage = [
     ('chrom', 'a12'),
     ('pos', 'i4'),
