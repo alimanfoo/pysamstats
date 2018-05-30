@@ -8,7 +8,7 @@ import errno
 
 import pysam
 import pysamstats
-from pysamstats.config import stats_types, stats_types_withref
+from pysamstats.config import stats_types, stats_types_withref, stepper_types
 from pysamstats.io import write_csv, write_hdf5
 
 
@@ -85,6 +85,14 @@ Version: {version} (pysam {pysamversion})
     parser.add_option(
         '-u', '--truncate', dest='truncate', action='store_true', default=False,
         help='Truncate pileup-based stats so no records are emitted outside the specified range.')
+
+    parser.add_option(
+        '-S', '--stepper', dest='stepper', action='store', default='all',
+        help='Stepper to provide to underlying pysam call. Options are:'
+             '"all" (default): all reads are returned, except where flags BAM_FUNMAP, BAM_FSECONDARY, BAM_FQCFAIL, '
+             'BAM_FDUP set; "nofilter" applies no filter to returned reads; '
+             '"samtools": filter & read processing as in _csamtools_ pileup. This requires a fasta file. '
+             'For complete details see the pysam documentation.')
 
     parser.add_option(
         '-d', '--pad', dest='pad', action='store_true', default=False,
@@ -189,6 +197,11 @@ Version: {version} (pysam {pysamversion})
                          '"pysamstats --help" for more information.'
                          % (options.type, stats_types))
 
+        elif options.stepper not in stepper_types:
+            parser.error('unsupported stepper type: "%s"\nMust be one of %s or '
+                         '"pysamstats --help" for more information.'
+                         % (options.stepper, stepper_types))
+
         elif options.type in stats_types_withref \
                 and options.fasta is None:
             parser.error('missing --fasta option\n\nTry "pysamstats --help"'
@@ -207,12 +220,14 @@ Version: {version} (pysam {pysamversion})
                 min_mapq=options.min_mapq,
                 no_dup=options.no_dup
             )
+            # some options only make sense if not performing binned analysis
             if not options.type.endswith('_binned'):
                 kwargs['truncate'] = options.truncate
                 kwargs['pad'] = options.pad
                 kwargs['max_depth'] = options.max_depth
                 kwargs['min_baseq'] = options.min_baseq
                 kwargs['no_del'] = options.no_del
+                kwargs['stepper'] = options.stepper
 
             if options.format.lower() in ['tsv', 'csv']:
 

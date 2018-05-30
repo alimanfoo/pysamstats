@@ -1842,14 +1842,14 @@ def iter_pileup(stat, alignmentfile, fafile, pad, **kwargs):
         return iter_pileup_default(stat, alignmentfile=alignmentfile, fafile=fafile, **kwargs)
 
 
-def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate,
+def iter_pileup_default(stat, alignmentfile, fafile, chrom, start, end, one_based, truncate, stepper,
                         max_depth, int min_mapq, int min_baseq, bint no_del, bint no_dup):
     cdef:
         PileupColumn col
 
     # obtain pileup iterator
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
                               max_depth=max_depth)
 
     # iterate over pileup columns
@@ -1933,7 +1933,7 @@ def iter_pileup_padded(stat, alignmentfile, fafile, chrom, **kwargs):
 
 
 def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, start, end,
-                             one_based, truncate, max_depth, min_mapq, min_baseq, no_del, no_dup):
+                             one_based, truncate, stepper, max_depth, min_mapq, min_baseq, no_del, no_dup):
     cdef:
         PileupColumn col
         int curpos
@@ -1941,7 +1941,7 @@ def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, star
     # obtain pileup iterator
     assert chrom is not None, 'chromosome is None'
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
-    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper="nofilter",
+    it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
                               max_depth=max_depth)
 
     # keep track of current position
