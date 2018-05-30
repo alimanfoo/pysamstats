@@ -4,7 +4,7 @@ from __future__ import print_function, division, absolute_import
 
 
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
-from libc.math cimport sqrt
+from libc.math cimport sqrt, round
 from cpython cimport PyBytes_FromStringAndSize
 from pysam.libchtslib cimport bam1_t, bam_pileup1_t
 from pysam.libcfaidx cimport FastaFile
