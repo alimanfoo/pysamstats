@@ -10,6 +10,8 @@ from nose.tools import eq_, assert_almost_equal
 
 
 from pysam import Samfile, Fastafile
+# noinspection PyShadowingBuiltins
+from numpy import around as round
 
 
 logger = logging.getLogger(__name__)

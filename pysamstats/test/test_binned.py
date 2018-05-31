@@ -11,6 +11,8 @@ from nose.tools import eq_
 
 import pysamstats
 from .util import normalise_coords, mean, rms, rootmean, compare_iterators
+# noinspection PyShadowingBuiltins
+from numpy import around as round
 
 
 logger = logging.getLogger(__name__)

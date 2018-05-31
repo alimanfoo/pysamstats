@@ -12,6 +12,9 @@ import numpy as np
 from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
 import pysamstats
 
+# noinspection PyShadowingBuiltins
+from numpy import around as round
+
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
