@@ -915,6 +915,25 @@ pileup_functions = [
     (pysamstats.load_coverage_gc, 1),
 ]
 
+def test_pileup_kwargs():
+    # check that keyword arguments are being passed through
+    kwargs = {
+        'chrom': 'Pf3D7_01_v3',
+        'start': 2000,
+        'end': 2100,
+        'min_mapq': 1,
+        'min_baseq': 1,
+        'no_del': True,
+        'no_dup': True
+    }
+    for f, needs_ref in pileup_functions:
+        if needs_ref:
+            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+        else:
+            a = f(Samfile('fixture/test.bam'), **kwargs)
+        assert isinstance(a, np.ndarray)
+        assert a.dtype.names is not None
+
 
 def test_pileup_truncate():
     kwargs_notrunc = {'chrom': 'Pf3D7_01_v3',

@@ -111,6 +111,10 @@ def load_pileup(type,
                 max_depth=8000,
                 window_size=300,
                 window_offset=None,
+                min_mapq=0,
+                min_baseq=0,
+                no_del=False,
+                no_dup=False,
                 dtype=None,
                 fields=None):
     """Load statistics per genome position, based on read pileups.
@@ -137,7 +141,7 @@ def load_pileup(type,
                            user_fields=fields, alignmentfile=alignmentfile, fafile=fafile,
                            chrom=chrom, start=start, end=end, one_based=one_based,
                            truncate=truncate, stepper=stepper, pad=pad, max_depth=max_depth, window_size=window_size,
-                           window_offset=window_offset)
+                           window_offset=window_offset, min_mapq=min_mapq, min_baseq=min_baseq, no_del=no_del, no_dup=no_dup)
 
 
 load_pileup.__doc__ = load_pileup.__doc__.format(params=_doc_params)
