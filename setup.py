@@ -53,6 +53,9 @@ setup(
                 'BAM or CRAM file.',
     scripts=['scripts/pysamstats'],
     package_dir={'': '.'},
+    install_requires=[
+        "pysam (<0.15)"
+    ],
     packages=find_packages(),
     classifiers=[
         'Intended Audience :: Developers',

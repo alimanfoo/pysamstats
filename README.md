@@ -17,12 +17,9 @@ The easiest way to install pysamstats is via conda, e.g.:
 $ conda install -c bioconda pysamstats
 ```
 
-Alternatively, pysamstats can be installed from source via pip. This requires
-[pysam version 0.11](http://pysam.readthedocs.org/en/latest/) to be
-already installed. E.g.:
+Alternatively, pysamstats can be installed from source via pip. 
 
 ```
-$ pip install pysam==0.11.2.2
 $ pip install pysamstats
 ```
 
