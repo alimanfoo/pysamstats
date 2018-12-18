@@ -6,12 +6,23 @@ branches:
 
 sudo: false
 
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
+dist: xenial
+
+addons:
+  apt:
+    packages:
+    - libhdf5-serial-dev
+
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.5
+    - python: 3.6
+    - python: 3.7
+      sudo: true
 
 install:
+  - export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial
   - pip install -U pip setuptools wheel
   - pip install -r requirements_dev.txt
   - python setup.py build_ext --inplace

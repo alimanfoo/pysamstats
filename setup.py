@@ -7,7 +7,7 @@ try:
 except ImportError:
     raise Exception('pysam not found; please install pysam first')
 from distutils.version import LooseVersion
-required_pysam_version = '0.14'
+required_pysam_version = '0.15'
 if LooseVersion(pysam.__version__) < LooseVersion(required_pysam_version):
     raise Exception('pysam version >= %s is required; found %s' %
                     (required_pysam_version, pysam.__version__))
@@ -54,7 +54,7 @@ setup(
     scripts=['scripts/pysamstats'],
     package_dir={'': '.'},
     install_requires=[
-        "pysam (<0.15)"
+        "pysam (<0.16)"
     ],
     packages=find_packages(),
     classifiers=[
@@ -63,6 +63,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     ext_modules=extensions,

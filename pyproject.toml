@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "pysam (<0.15)"]
+requires = ["setuptools", "wheel", "pysam (<0.16)"]
 
 [tool.pysamstats]
 name='pysamstats'
@@ -17,5 +17,6 @@ classifiers=[
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Topic :: Software Development :: Libraries :: Python Modules'
 ]
