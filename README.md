@@ -281,6 +281,14 @@ properly paired.
 Release notes
 -------------
 
+**1.1.2**
+
+* Fix missing numpy as install requirement.
+
+**1.1.1**
+
+* Fix missing pyproject.toml in source distribution.
+
 **1.1.0**
 
 * Appropriate size dtype for chromosome names is now determined
