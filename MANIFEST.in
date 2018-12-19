@@ -1,2 +1,3 @@
 include *.md
+include pyproject.toml
 recursive-include pysamstats *.pyx *.pxd *.c
