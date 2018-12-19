@@ -7,6 +7,7 @@ import logging
 
 from pysam import Samfile, Fastafile
 from nose.tools import eq_
+from numpy import around as round
 
 
 import pysamstats

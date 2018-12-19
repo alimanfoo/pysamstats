@@ -7,6 +7,7 @@ import sys
 from nose.tools import eq_, assert_raises
 from pysam import Samfile, Fastafile
 import numpy as np
+from numpy import around as round
 
 
 from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
