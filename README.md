@@ -67,6 +67,14 @@ Options:
                         use one-based coords).
   -u, --truncate        Truncate pileup-based stats so no records are emitted
                         outside the specified range.
+  -S STEPPER, --stepper=STEPPER
+                        Stepper to provide to underlying pysam call. Options
+                        are:"all" (default): all reads are returned, except
+                        where flags BAM_FUNMAP, BAM_FSECONDARY, BAM_FQCFAIL,
+                        BAM_FDUP set; "nofilter" applies no filter to returned
+                        reads; "samtools": filter & read processing as in
+                        _csamtools_ pileup. This requires a fasta file. For
+                        complete details see the pysam documentation.
   -d, --pad             Pad pileup-based stats so a record is emitted for
                         every position (default is only covered positions).
   -D MAX_DEPTH, --max-depth=MAX_DEPTH
@@ -143,7 +151,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 1.0.1 (pysam 0.11.2.2)
+Version: 1.1.0 (pysam 0.15.1)
 ```
 
 From Python:
@@ -272,6 +280,37 @@ properly paired.
 
 Release notes
 -------------
+
+**1.1.0**
+
+* Appropriate size dtype for chromosome names is now determined
+  dynamically, no need to manually configure for longer
+  chromosome/contig names. By [Nick
+  Harding](https://github.com/hardingnj),
+  [#72](https://github.com/alimanfoo/pysamstats/issues/72),
+  [#74](https://github.com/alimanfoo/pysamstats/issues/74).
+  
+* Expose 'stepper' option via Python and command line API, to allow
+  setting of different pileup behaviours. By [Nick
+  Harding](https://github.com/hardingnj),
+  [#78](https://github.com/alimanfoo/pysamstats/issues/78),
+  [#86](https://github.com/alimanfoo/pysamstats/pull/86).
+
+* Expose options `min_mapq`, `min_baseq`, `no_del`, `no_dup` via
+  load_*() functions. By [nrkssa](https://github.com/nrkssa),
+  [#93](https://github.com/alimanfoo/pysamstats/pull/93).
+
+* Add pyproject.toml for package build requirements, which means that
+  there is no need to manually install pysam before installing
+  pysamstats via pip. By [Michiel
+  Vermeir](https://github.com/michielvermeir),
+  [#97](https://github.com/alimanfoo/pysamstats/pull/97).
+  
+* Added a regression test to ensure consistent outputs in future
+  package versions. By [Nick Harding](https://github.com/hardingnj),
+  [#79](https://github.com/alimanfoo/pysamstats/issues/79).
+
+* Pysam dependency upgraded to 0.15.
 
 **1.0.1**
 
