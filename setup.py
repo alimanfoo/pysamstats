@@ -54,7 +54,8 @@ setup(
     scripts=['scripts/pysamstats'],
     package_dir={'': '.'},
     install_requires=[
-        "pysam (<0.16)"
+        "pysam (<0.16)",
+        "numpy",
     ],
     packages=find_packages(),
     classifiers=[
