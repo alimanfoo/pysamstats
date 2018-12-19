@@ -6,6 +6,7 @@ from math import sqrt
 
 
 import numpy as np
+from numpy import around as round
 from nose.tools import eq_, assert_almost_equal
 
 
