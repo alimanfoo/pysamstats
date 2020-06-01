@@ -1,4 +1,4 @@
-pysam
+pysam==0.15.4
 numpy
 nose
 tables
