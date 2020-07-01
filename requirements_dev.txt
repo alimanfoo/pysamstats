@@ -1,4 +1,4 @@
-Cython==0.29.19
+Cython==0.29.20
 numpy==1.18.4
 pysam==0.15.4
 nose==1.3.7
