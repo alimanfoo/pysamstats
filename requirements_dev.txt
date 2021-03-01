@@ -1,5 +1,5 @@
 Cython==0.29.22
-numpy==1.18.4
+numpy==1.20.1
 pysam==0.15.4
 nose==1.3.7
 tables==3.6.1
