@@ -1078,7 +1078,7 @@ def test_load_cov_long_contig_name():
     x = pysamstats.load_coverage(bampath, chrom=label)
     assert len(label) == x.dtype["chrom"].itemsize
 
-    x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "a10"})
+    x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "S10"})
     assert 10 == x.dtype["chrom"].itemsize
 
 
