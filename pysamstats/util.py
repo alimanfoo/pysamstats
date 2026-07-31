@@ -46,7 +46,7 @@ def load_stats(statfun, default_dtype, user_dtype, user_fields, **kwargs):
 
     # check if contig label dtype is appropriate length
     max_seqid_len = determine_max_seqid(kwargs["alignmentfile"])
-    dtype["chrom"] = "a{0}".format(max_seqid_len)
+    dtype["chrom"] = "S{0}".format(max_seqid_len)
 
     if user_dtype is not None:
         dtype.update(dict(user_dtype))

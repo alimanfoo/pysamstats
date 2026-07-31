@@ -31,14 +31,14 @@ stepper_types = ('nofilter',
                  'all')
 
 dtype_coverage = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4')
 ]
 
 dtype_coverage_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
@@ -49,7 +49,7 @@ dtype_coverage_strand = [
 ]
 
 dtype_coverage_ext = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
@@ -62,7 +62,7 @@ dtype_coverage_ext = [
 ]
 
 dtype_coverage_ext_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
@@ -91,9 +91,9 @@ dtype_coverage_ext_strand = [
 ]
 
 dtype_variation = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
-    ('ref', 'a1'),
+    ('ref', 'S1'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
     ('matches', 'i4'),
@@ -117,9 +117,9 @@ dtype_variation = [
 ]
 
 dtype_variation_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
-    ('ref', 'a1'),
+    ('ref', 'S1'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
     ('reads_rev', 'i4'),
@@ -163,7 +163,7 @@ dtype_variation_strand = [
 ]
 
 dtype_tlen = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_paired', 'i4'),
@@ -177,7 +177,7 @@ dtype_tlen = [
 ]
 
 dtype_tlen_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
@@ -209,7 +209,7 @@ dtype_tlen_strand = [
 ]
 
 dtype_mapq = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
@@ -222,7 +222,7 @@ dtype_mapq = [
 ]
 
 dtype_mapq_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
@@ -251,7 +251,7 @@ dtype_mapq_strand = [
 ]
 
 dtype_baseq = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
@@ -260,7 +260,7 @@ dtype_baseq = [
 ]
 
 dtype_baseq_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
@@ -277,9 +277,9 @@ dtype_baseq_strand = [
 ]
 
 dtype_baseq_ext = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
-    ('ref', 'a1'),
+    ('ref', 'S1'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
     ('matches', 'i4'),
@@ -295,9 +295,9 @@ dtype_baseq_ext = [
 ]
 
 dtype_baseq_ext_strand = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
-    ('ref', 'a1'),
+    ('ref', 'S1'),
     ('reads_all', 'i4'),
     ('reads_fwd', 'i4'),
     ('reads_rev', 'i4'),
@@ -337,7 +337,7 @@ dtype_baseq_ext_strand = [
 ]
 
 dtype_coverage_gc = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('gc', 'u1'),
     ('reads_all', 'i4'),
@@ -345,7 +345,7 @@ dtype_coverage_gc = [
 ]
 
 dtype_coverage_binned = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('gc', 'u1'),
     ('reads_all', 'i4'),
@@ -353,7 +353,7 @@ dtype_coverage_binned = [
 ]
 
 dtype_coverage_ext_binned = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('gc', 'u1'),
     ('reads_all', 'i4'),
@@ -367,7 +367,7 @@ dtype_coverage_ext_binned = [
 ]
 
 dtype_mapq_binned = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_mapq0', 'i4'),
@@ -375,7 +375,7 @@ dtype_mapq_binned = [
 ]
 
 dtype_alignment_binned = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('bases_all', 'i4'),
@@ -391,7 +391,7 @@ dtype_alignment_binned = [
 ]
 
 dtype_tlen_binned = [
-    ('chrom', 'a12'),
+    ('chrom', 'S12'),
     ('pos', 'i4'),
     ('reads_all', 'i4'),
     ('reads_pp', 'i4'),
