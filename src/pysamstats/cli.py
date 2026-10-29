@@ -260,7 +260,8 @@ Version: {version} (pysam {pysamversion})
 
             elif options.format.lower() == 'hdf5':
 
-                assert options.output is not None, '--output must be specified'
+                if options.output is None:
+                    parser.error('--output must be specified')
 
                 write_hdf5(
                     options.type,

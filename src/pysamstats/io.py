@@ -130,7 +130,14 @@ def write_hdf5(stats_type, outfile, alignmentfile, fields=None, progress=None, h
 
     """
 
-    import tables
+    try:
+        import tables
+    except ModuleNotFoundError as error:
+        if error.name != 'tables':
+            raise
+        raise ImportError(
+            'HDF5 output requires PyTables; install pysamstats[hdf5].'
+        ) from error
     import numpy as np
     h5file = None
 
