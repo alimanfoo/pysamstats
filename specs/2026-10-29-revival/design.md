@@ -26,7 +26,7 @@ Rules that follow from this:
 
 - **Build against the floor, run anywhere in the range.** Cython tolerates types that grew and rejects types that shrank or vanished, so the safe direction is built-old, run-new. Tested: built on 0.23.3 and run on 0.24.1 passes, built on 0.24.1 and run on 0.23.3 passes, and built on 0.24.1 and run on 0.22.1 fails on import. The floor is 0.24.1 rather than 0.24.0 because 0.24.0 has no CPython 3.15 wheels. Building against it on 3.15 would mean compiling pysam from source.
 - **The runtime requirement has an upper bound,** `pysam>=0.24.1,<0.25`. This is the one case where an upper bound on a library is justified. Without it, pip will happily install a combination that fails on import. The build requirement uses the same range. Wheel builds pin to the floor through a build constraint.
-- **Widening the range is a deliberate act.** When pysam ships a new minor version (GitHub's release notification for pysam is the trigger), the maintainer pushes a branch that widens the upper bound, for example to `<0.26`, and runs the release workflow's dry run on it. That builds against the floor and tests every wheel against the newest pysam the widened range allows, on every platform and Python. If it passes, the branch becomes a patch release. If it fails, the next release moves the floor up and rebuilds against it.
+- **Widening the range is a deliberate act.** When pysam ships a new minor version (GitHub's release notification for pysam is the trigger), the maintainer opens a PR that widens the upper bound, for example to `<0.26`. The release workflow's dry run runs on it automatically. That builds against the floor and tests every wheel against the newest pysam the widened range allows, on every platform and Python. If it passes, the branch becomes a patch release. If it fails, the next release moves the floor up and rebuilds against it.
 - **Mixed installs are the user's responsibility.** pysam from conda with pysamstats from pip, `--no-deps`, and similar setups get no special handling beyond one sentence in the README install section: install pysam and pysamstats from the same place.
 
 ### Source layout
@@ -112,8 +112,8 @@ The rule for the fixture: when it fails after a pysam bump, find the upstream ca
 There are two workflows:
 
 1. **Pull requests and pushes to master.** Build from source and run the tests on Linux x86_64 and macOS arm64 for CPython 3.11–3.15. One extra row, on Python 3.11, uses the oldest allowed version of everything. Runtime dependencies come from uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, tables 3.10.1). Build dependencies are pinned to their floors with a build constraint (setuptools 77, Cython 3.1). That makes every declared floor something we've tested.
-2. **Release.** Runs on `v*` tags, and can also be triggered by hand as a dry run that builds and tests everything but doesn't publish. In order, it does the following:
-   - checks the tag against `__version__`;
+2. **Release.** Runs as a dry run, which builds and tests everything but doesn't publish, on every pull request, every push to master and manual dispatch. It publishes only on `v*` tags. That's the shape cibuildwheel's own example uses. The build is a single small extension, so running it on every PR costs a few minutes, and it avoids a path filter that would need maintaining. In order, it does the following:
+   - on tags, checks the tag against `__version__`;
    - builds the sdist;
    - builds the wheels **from that sdist**, not from the git checkout, so a broken sdist fails the release instead of shipping. cibuildwheel can do this directly;
    - publishes to PyPI through Trusted Publishing (a `pypi` environment, no stored token);
@@ -121,7 +121,7 @@ There are two workflows:
 
    The pysam floor pin applies to the build step only, as a build constraint. If it leaked into cibuildwheel's test install, every wheel would only ever be tested against the floor. The test install resolves pysam normally, to the newest version inside the range.
 
-There's no separate pysam-compatibility workflow, because the release dry run on a widening branch does that job (see "The pysam coupling"). The cost: trying an arbitrary pysam version, such as an older one or a pre-release, means editing `pyproject.toml` on a branch.
+There's no separate pysam-compatibility workflow, because the release dry run on a widening PR does that job (see "The pysam coupling"). The cost: trying an arbitrary pysam version, such as an older one or a pre-release, means editing `pyproject.toml` on a branch.
 
 There's no scheduled run either. pysam releases two or three times a year, and GitHub disables scheduled workflows after 60 days with no repository activity, which on this repo would turn the job off exactly when it was needed.
 
@@ -177,7 +177,7 @@ Some of these steps need maintainer access and can't be done from a pull request
 - **An exact pysam pin per release (Bioconda's model, copied to PyPI).** Rejected. It would force a pysamstats release for every pysam patch release, and the cross-version tests show the range works.
 - **Removing the pysam coupling** (link htslib ourselves, or rewrite in Rust on noodles or rust-htslib). Rejected for now. It would end the ABI dance for good, but it's a rewrite that has to reproduce pysam's pileup steppers and htslib's overlap handling exactly, and it means shipping our own htslib build. Worth reconsidering only if minor pysam releases keep breaking the coupling.
 - **Pure Python on pysam's public API.** Rejected. Measured 12× slower for `coverage` and 31–32× slower for `variation` and `baseq_ext_strand`, mostly because per-read flags force a Python object per read.
-- **A scheduled canary, a separate pysam-compatibility workflow, and an import-time guard for mixed installs.** All cut. The canary disables itself on a quiet repo. The compatibility workflow duplicated what a release dry run on a widening branch already tests. The guard was machinery for a mistake the user can avoid.
+- **A scheduled canary, a separate pysam-compatibility workflow, and an import-time guard for mixed installs.** All cut. The canary disables itself on a quiet repo. The compatibility workflow duplicated what a release dry run on a widening PR already tests. The guard was machinery for a mistake the user can avoid.
 - **setuptools-scm.** Rejected because Bioconda's tarball builds have no git metadata.
 - **meson-python or scikit-build-core.** No advantage for a single Cython extension with nothing to link.
 
