@@ -16,7 +16,7 @@ Every session that implements a stage should correct the specifications as detai
 
 ## 2. Merge #190 and #192 (manual)
 
-**Delivers:** @DrYak's two PRs, merged into master as written, so the fixes carry their author's credit:
+**Delivers:** @DrYak's two PRs, merged into the default branch as written, so the fixes carry their author's credit:
 - #190 changes the `'a'` dtype codes to `'S'` in `config.py`, `io.py`, `util.py` and the tests.
 - #192 makes the pileup array pointer in `opt.pyx` `const`.
 
@@ -39,7 +39,7 @@ Every session that implements a stage should correct the specifications as detai
 - `.github/workflows/python-package.yml` is replaced by a PR/push workflow on Linux x86_64 and macOS arm64, on one Python version. It installs with uv, builds the extension in place as the old CI did, and runs pytest from the repo root.
 - `.travis.yml`, `.pyup.yml`, `requirements.txt` and `requirements_dev.txt` are deleted.
 
-**Proof:** CI is green on both platforms, and that includes `test_against_fixtures`, which fails on master today.
+**Proof:** CI is green on both platforms, and that includes `test_against_fixtures`, which fails on the default branch today.
 
 **Leaves for later:**
 - the src layout and `MANIFEST.in` (stage 4);
@@ -65,7 +65,7 @@ Every session that implements a stage should correct the specifications as detai
 ## 5. Release pipeline
 
 **Delivers:** the release workflow described in the design, working as a dry run:
-- It runs as a dry run on every pull request and every push to master, can also be dispatched by hand, and publishes only on `v*` tags.
+- It runs as a dry run on every pull request and every push to main, can also be dispatched by hand, and publishes only on `v*` tags.
 - It checks the tag against `__version__` on tag runs.
 - It builds the sdist, then uses cibuildwheel to build wheels from that sdist on Linux x86_64, Linux aarch64 and macOS arm64, for CPython 3.11–3.15.
 - It pins pysam to the floor (0.24.1) as a build-only constraint, so the test install resolves pysam normally.
