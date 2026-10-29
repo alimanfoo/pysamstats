@@ -111,7 +111,7 @@ The rule for the fixture: when it fails after a pysam bump, find the upstream ca
 
 There are two workflows:
 
-1. **Pull requests and pushes to main.** Build from source and run the tests on Linux x86_64 and macOS arm64 for CPython 3.11–3.15. One extra row, on Python 3.11, uses the floor of every declared direct dependency. Runtime and test dependencies come from uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, pytest 7.2.1, tables 3.10.1). Build dependencies are pinned to their floors with a build constraint (setuptools 77.0.1, Cython 3.1.0, pysam 0.24.1). That tests every declared direct dependency floor.
+1. **Pull requests and pushes to main.** Build from source and run the tests on Linux x86_64 for CPython 3.11–3.15, and on macOS arm64 for 3.11 and 3.15 only. GitHub Free allows five macOS jobs at once across the whole account, and the release dry run already builds and tests a macOS wheel for every Python on every PR, so the middle macOS rows only duplicated it and slowed the queue. One extra row, on Python 3.11, uses the floor of every declared direct dependency. Runtime and test dependencies come from uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, pytest 7.2.1, tables 3.10.1). Build dependencies are pinned to their floors with a build constraint (setuptools 77.0.1, Cython 3.1.0, pysam 0.24.1). That tests every declared direct dependency floor.
 2. **Release.** Runs as a dry run, which builds and tests everything but doesn't publish, on every pull request, every push to main and manual dispatch. It publishes only on `v*` tags. That's the shape cibuildwheel's own example uses. The build is a single small extension, so running it on every PR costs a few minutes, and it avoids a path filter that would need maintaining. In order, it does the following:
    - on tags, checks the tag against `__version__`;
    - builds the sdist;
@@ -120,6 +120,8 @@ There are two workflows:
    - creates the GitHub release.
 
    The pysam floor pin applies to the build step only, as a build constraint. If it leaked into cibuildwheel's test install, every wheel would only ever be tested against the floor. The test install resolves pysam normally, to the newest version inside the range.
+
+Both workflows share a concurrency group per workflow and ref. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Runs on `main` and on tags are never cancelled.
 
 There's no separate pysam-compatibility workflow, because the release dry run on a widening PR does that job (see "The pysam coupling"). The cost: trying an arbitrary pysam version, such as an older one or a pre-release, means editing `pyproject.toml` on a branch.
 
