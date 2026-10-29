@@ -31,7 +31,7 @@ def test_write_hdf5_chrom_dtype():
     contig_label = "AS2_scf7180000696055"
     bampath = "fixture/longcontignames.bam"
 
-    dtypes = [None, {"chrom": "a20"}, {"chrom": "a20"}]
+    dtypes = [None, {"chrom": "S20"}, {"chrom": "S20"}]
     alignments = [Samfile(bampath), Samfile(bampath), bampath]
     results = [len(contig_label), 20, 20]
     labels = [contig_label, contig_label, contig_label]
