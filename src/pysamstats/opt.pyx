@@ -1894,7 +1894,8 @@ def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, star
         int curpos
 
     # obtain pileup iterator
-    assert chrom is not None, 'chromosome is None'
+    if chrom is None:
+        raise ValueError('chromosome is None')
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
     it = alignmentfile.pileup(reference=chrom, start=start, end=end, truncate=truncate, stepper=stepper,
                               max_depth=max_depth)
@@ -1982,7 +1983,8 @@ def iter_binned_chrom(BinnedStat stat, AlignmentFile alignmentfile, FastaFile fa
 
     # setup
 
-    assert chrom is not None, 'chromosome is None'
+    if chrom is None:
+        raise ValueError('chromosome is None')
     start, end = normalise_coords(alignmentfile, chrom, start, end, one_based)
 
     cdef int rtid, rstart, rend, has_coord, bin_start, bin_end
@@ -2065,8 +2067,8 @@ def normalise_coords(AlignmentFile alignmentfile, chrom, start, end, one_based):
         return None, None
 
     else:
-        assert chrom in alignmentfile.references, \
-            'chromosome not in SAM references: %s' % chrom
+        if chrom not in alignmentfile.references:
+            raise ValueError('chromosome not in SAM references: %s' % chrom)
 
         if one_based:
             start = start - 1 if start is not None else None
