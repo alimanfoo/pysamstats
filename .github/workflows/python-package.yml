@@ -1,52 +1,36 @@
-# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
-name: Python package
+name: Tests
 
 on:
   push:
-    branches: [ master ]
+    branches: [main]
   pull_request:
-    branches: [ master ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  test:
+    name: ${{ matrix.os }} / Python 3.14
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: [3.7, 3.8, 3.9]
+        os: [ubuntu-latest, macos-15]
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
-        pip install -r requirements_dev.txt
-        python setup.py build_ext --inplace
-        pip install -v .
-#    - name: Lint with flake8
-#      run: |
-#        # stop the build if there are Python syntax errors or undefined names
-#        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-#        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-#        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test
-      run: |
-        nosetests -v
-        pysamstats --help
-        pysamstats --type coverage fixture/test.bam > coverage.txt
-        pysamstats --type coverage --output=coverage.txt fixture/test.bam
-        pysamstats --type coverage --output=coverage.h5 --format=hdf5 fixture/test.bam
-        pysamstats --type coverage --fields=pos,reads_all fixture/test.bam > coverage_fields.txt
-        pysamstats --type coverage_binned --fasta=fixture/ref.fa fixture/test.bam > coverage_binned.txt
-        pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.txt fixture/test.bam
-        pysamstats --type coverage_binned --fasta=fixture/ref.fa --output=coverage_binned.h5 --format=hdf5 fixture/test.bam
-        pysamstats --type=coverage --min-mapq=27 --min-baseq=17 --no-dup --no-del fixture/test.bam > coverage_filtered.txt
-        pysamstats --type=coverage_binned --fasta=fixture/ref.fa --min-mapq=27 --no-dup fixture/test.bam > coverage_binned_filtered.txt
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@v10.3.2
+        with:
+          version: "0.13.5"
+
+      - name: Install
+        run: |
+          uv sync --group test
+          uv run --no-sync --with setuptools --with cython python setup.py build_ext --inplace
+
+      - name: Test
+        run: uv run --no-sync pytest -q --tb=short
