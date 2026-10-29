@@ -6,6 +6,7 @@ import pytest
 from pysam import Samfile
 
 from pysamstats.io import write_hdf5
+from .util import fixture_path
 
 tables = pytest.importorskip("tables")
 
@@ -31,7 +32,7 @@ def check_write_hdf5_chrom_dtype(arg):
 def test_write_hdf5_chrom_dtype():
 
     contig_label = "AS2_scf7180000696055"
-    bampath = "fixture/longcontignames.bam"
+    bampath = fixture_path("longcontignames.bam")
 
     dtypes = [None, {"chrom": "S20"}, {"chrom": "S20"}]
     alignments = [Samfile(bampath), Samfile(bampath), bampath]

@@ -10,7 +10,7 @@ from numpy import around as round
 
 
 import pysamstats
-from .util import normalise_coords, mean, rms, rootmean, compare_iterators
+from .util import fixture_path, normalise_coords, mean, rms, rootmean, compare_iterators
 
 
 logger = logging.getLogger(__name__)
@@ -23,19 +23,19 @@ def compare_stats(impl, refimpl):
               'start': 0,
               'end': 2000,
               'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
+    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
+    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
 
 
-def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
-                          fasta_fn='fixture/ref.fa'):
+def compare_stats_withref(impl, refimpl, bam_fn=fixture_path("test.bam"),
+                          fasta_fn=fixture_path("ref.fa")):
     # no read filters
     kwargs = {'chrom': 'Pf3D7_01_v3',
               'start': 0,
@@ -153,7 +153,7 @@ def test_stat_coverage_binned():
 def test_stat_coverage_binned_uppercase_fasta():
     compare_stats_withref(pysamstats.stat_coverage_binned,
                           stat_coverage_binned_refimpl,
-                          fasta_fn='fixture/ref.upper.fa')
+                          fasta_fn=fixture_path("ref.upper.fa"))
 
 
 def stat_coverage_ext_binned_refimpl(samfile, fastafile, chrom=None, start=None, end=None,
@@ -289,7 +289,7 @@ def test_stat_coverage_ext_binned():
 def test_stat_coverage_ext_binned_uppercase_fasta():
     compare_stats_withref(pysamstats.stat_coverage_ext_binned,
                           stat_coverage_ext_binned_refimpl,
-                          fasta_fn='fixture/ref.upper.fa')
+                          fasta_fn=fixture_path("ref.upper.fa"))
 
 
 def stat_mapq_binned_refimpl(samfile, chrom=None, start=None, end=None, one_based=False,
@@ -589,10 +589,10 @@ def test_binned_pad_region():
     for f, needs_ref in binned_functions:
         debug(f.__name__)
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs)
         assert set(a['chrom']) == {b'Pf3D7_01_v3'}
         assert a['pos'][0] == 1100
         assert a['pos'][-1] == 19900
@@ -600,21 +600,21 @@ def test_binned_pad_region():
 
 def test_binned_pad_wg():
     expected = stat_coverage_binned_refimpl(
-        Samfile('fixture/test.bam'),
-        Fastafile('fixture/ref.fa'))
+        Samfile(fixture_path("test.bam")),
+        Fastafile(fixture_path("ref.fa")))
 
-    actual = pysamstats.stat_coverage_binned(Samfile('fixture/test.bam'),
-                                             Fastafile('fixture/ref.fa'))
+    actual = pysamstats.stat_coverage_binned(Samfile(fixture_path("test.bam")),
+                                             Fastafile(fixture_path("ref.fa")))
     compare_iterators(expected, actual)
     kwargs = {'window_size': 200,
               'window_offset': 100}
     for f, needs_ref in binned_functions:
         debug(f.__name__)
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs)
         assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3',
                                            b'Pf3D7_03_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 100

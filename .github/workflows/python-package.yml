@@ -27,10 +27,17 @@ jobs:
         with:
           version: "0.13.5"
 
-      - name: Install
+      - name: Install dependencies
+        run: uv sync --group test --no-install-project
+
+      - name: Build and install package
         run: |
-          uv sync --group test
-          uv run --no-sync --with setuptools --with cython python setup.py build_ext --inplace
+          uv build --wheel
+          uv pip install --no-deps --force-reinstall dist/*.whl
+
+      - name: Verify installed package
+        run: |
+          uv run --no-sync python -c 'from pathlib import Path; import pysamstats; path = Path(pysamstats.__file__).resolve(); assert "site-packages" in path.parts, path'
 
       - name: Test
         run: uv run --no-sync pytest -q --tb=short
