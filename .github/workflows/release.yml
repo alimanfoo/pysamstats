@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sdist:
+    name: Source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.14"
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.5"
+
+      - name: Check tag against package version
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          package_version=$(python -c 'import ast, pathlib; tree = ast.parse(pathlib.Path("src/pysamstats/__init__.py").read_text()); print(next(node.value.value for node in tree.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "__version__" for target in node.targets)))')
+          test "$GITHUB_REF_NAME" = "v$package_version"
+
+      - name: Build source distribution
+        run: uv build --sdist
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: pysamstats-sdist
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  wheels:
+    name: ${{ matrix.platform }} wheels
+    needs: sdist
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: Linux x86_64
+            os: ubuntu-latest
+            arch: x86_64
+          - platform: Linux aarch64
+            os: ubuntu-24.04-arm
+            arch: aarch64
+          - platform: macOS arm64
+            os: macos-15
+            arch: arm64
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: pysamstats-sdist
+          path: dist
+
+      - name: Extract source distribution
+        shell: bash
+        run: |
+          mkdir package
+          tar -xzf "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)" -C package --strip-components=1
+
+      - name: Build and test wheels
+        uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
+        env:
+          CIBW_ARCHS: ${{ matrix.arch }}
+          CIBW_BUILD: cp311-* cp312-* cp313-* cp314-* cp315-*
+          CIBW_SKIP: "*-musllinux_*"
+          CIBW_BEFORE_ALL: >
+            printf 'pysam==0.24.1\n' > /tmp/pysamstats-build-constraints.txt
+          CIBW_ENVIRONMENT: >
+            PIP_BUILD_CONSTRAINT=/tmp/pysamstats-build-constraints.txt
+            PIP_VERBOSE=1
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+          CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
+          CIBW_TEST_GROUPS: test
+          CIBW_TEST_SOURCES: tests
+          CIBW_TEST_COMMAND: >
+            python -c 'import pysam; print("test pysam:", pysam.__version__)' &&
+            python -m pytest tests -q --tb=short
+        with:
+          package-dir: package
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: pysamstats-wheels-${{ matrix.arch }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: &tag-push github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [sdist, wheels]
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/pysamstats
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: pysamstats-*
+          path: dist
+          merge-multiple: true
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+
+  github-release:
+    name: Create GitHub release
+    if: *tag-push
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: pysamstats-*
+          path: dist
+          merge-multiple: true
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag
