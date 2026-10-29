@@ -41,3 +41,18 @@ jobs:
 
       - name: Test
         run: uv run --no-sync pytest -q --tb=short
+
+  # Branch protection requires only this job, so jobs can be added, renamed or
+  # re-matrixed without editing protection. It must list every job in `needs`,
+  # and runs even when one is skipped, since GitHub counts a skipped required
+  # check as passing.
+  required-checks-pass:
+    name: Required checks pass
+    if: always()
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: jq --exit-status 'map_values(.result) | ., all(.[]; . == "success")' <<< "$NEEDS"
