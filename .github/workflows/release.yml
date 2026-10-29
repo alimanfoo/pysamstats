@@ -85,6 +85,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-* cp315-*
+          CIBW_BUILD_FRONTEND: pip
           CIBW_SKIP: "*-musllinux_*"
           CIBW_BEFORE_ALL: >
             printf 'pysam==0.24.1\n' > /tmp/pysamstats-build-constraints.txt

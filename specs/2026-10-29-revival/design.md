@@ -119,7 +119,7 @@ There are two workflows:
    - publishes to PyPI through Trusted Publishing (a `pypi` environment, no stored token);
    - creates the GitHub release.
 
-   The pysam floor pin applies to the build step only, as a build constraint. If it leaked into cibuildwheel's test install, every wheel would only ever be tested against the floor. The test install resolves pysam normally, to the newest version inside the range.
+   The pysam floor pin applies to the build step only, as a build constraint. cibuildwheel uses pip as its build frontend so pip receives that constraint, while the test install receives no constraint and resolves pysam normally to the newest version inside the range.
 
 Both workflows share a concurrency group per workflow and ref for pull requests. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Every run on `main` or a tag has a unique group, so neither an in-progress nor a queued run can be cancelled by a newer run.
 
