@@ -53,6 +53,8 @@ jobs:
         run: uv sync --group test --no-install-project ${{ matrix.dependencies == 'floors' && '--resolution lowest-direct' || '' }}
 
       - name: Build and install package
+        env:
+          CFLAGS: ${{ runner.os == 'Linux' && '-Werror=discarded-qualifiers' || '-Werror=incompatible-pointer-types-discards-qualifiers' }}
         run: |
           uv build --wheel ${{ matrix.dependencies == 'floors' && '--build-constraints build-constraints.txt --verbose' || '' }}
           uv pip install --no-deps --force-reinstall dist/*.whl
