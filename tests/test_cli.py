@@ -132,3 +132,11 @@ def test_main_writes_hdf5_file(
         assert h5file.root.data.colnames == expected_fields
         assert h5file.root.data.nrows == expected_row_count
         assert h5file.root.data.col("reads_all").sum() == expected_reads_all
+
+
+def test_main_requires_output_path_for_hdf5(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--format=hdf5", str(ALIGNMENT_PATH)])
+
+    assert exc_info.value.code == 2
+    assert "error: --output must be specified" in capsys.readouterr().err
