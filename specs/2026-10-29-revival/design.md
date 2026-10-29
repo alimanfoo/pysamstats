@@ -121,7 +121,7 @@ There are two workflows:
 
    The pysam floor pin applies to the build step only, as a build constraint. If it leaked into cibuildwheel's test install, every wheel would only ever be tested against the floor. The test install resolves pysam normally, to the newest version inside the range.
 
-Both workflows share a concurrency group per workflow and ref. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Runs on `main` and on tags are never cancelled.
+Both workflows share a concurrency group per workflow and ref for pull requests. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Every run on `main` or a tag has a unique group, so neither an in-progress nor a queued run can be cancelled by a newer run.
 
 There's no separate pysam-compatibility workflow, because the release dry run on a widening PR does that job (see "The pysam coupling"). The cost: trying an arbitrary pysam version, such as an older one or a pre-release, means editing `pyproject.toml` on a branch.
 
