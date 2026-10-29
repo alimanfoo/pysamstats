@@ -44,7 +44,7 @@ cdef class PileupStat(object):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
         return dict()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         pass
 
 
@@ -83,7 +83,7 @@ cdef class Coverage(PileupStat):
     def reset(self):
         self.reads.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             bint is_proper_pair
 
@@ -148,7 +148,7 @@ cdef class CoverageStrand(PileupStat):
     def reset(self):
         self.reads.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -209,7 +209,7 @@ cdef class CoverageExt(PileupStat):
         self.reads_softclipped = 0
         self.reads_duplicate = 0
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -321,7 +321,7 @@ cdef class CoverageExtStrand(PileupStat):
         self.softclipped.reset()
         self.duplicate.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -438,7 +438,7 @@ cdef class Variation(PileupStat):
         self.G.reset()
         self.N.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -544,7 +544,7 @@ cdef class VariationStrand(PileupStat):
         self.G.reset()
         self.N.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -706,7 +706,7 @@ cdef class Tlen(PileupStat):
         self.tlen.reset()
         self.tlen_pp.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -787,7 +787,7 @@ cdef class TlenStrand(PileupStat):
         self.tlen_pp_fwd.reset()
         self.tlen_pp_rev.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -914,7 +914,7 @@ cdef class Mapq(PileupStat):
         self.all.reset()
         self.pp.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -982,7 +982,7 @@ cdef class MapqStrand(PileupStat):
         self.pp_fwd.reset()
         self.pp_rev.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -1111,7 +1111,7 @@ cdef class Baseq(PileupStat):
     def reset(self):
         self.helper.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -1200,7 +1200,7 @@ cdef class BaseqStrand(PileupStat):
     def reset(self):
         self.helper.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -1268,7 +1268,7 @@ cdef class BaseqExt(PileupStat):
         self.matches.reset()
         self.mismatches.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -1340,7 +1340,7 @@ cdef class BaseqExtStrand(PileupStat):
         self.matches.reset()
         self.mismatches.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             uint32_t flag
             bint is_proper_pair
@@ -1440,7 +1440,7 @@ cdef class CoverageGC(PileupStat):
     def reset(self):
         self.reads.reset()
 
-    cdef void recv(self, bam_pileup1_t* read, PileupColumn col, bytes refbase):
+    cdef void recv(self, const bam_pileup1_t* read, PileupColumn col, bytes refbase):
         cdef:
             bint is_proper_pair
 
@@ -1828,7 +1828,7 @@ def stat_pileup(PileupStat stat,
                 bint no_dup):
     cdef:
         const bam_pileup1_t** plp
-        bam_pileup1_t* read
+        const bam_pileup1_t* read
         bam1_t* b
         int i, n
 
