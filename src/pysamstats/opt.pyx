@@ -1,8 +1,6 @@
 # cython: language_level=3
 # cython: profile=False
 # cython: embedsignature=True
-from __future__ import print_function, division, absolute_import
-
 
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
@@ -15,17 +13,7 @@ from pysam.libcalignedsegment cimport pysam_bam_get_cigar, pysam_bam_get_seq, \
     pysam_bam_get_qual, PileupColumn
 
 
-import sys as _sys
 import itertools
-
-
-# PY2/3 compatibility
-PY2 = _sys.version_info[0] == 2
-if PY2:
-    # noinspection PyUnresolvedReferences
-    _string_types = basestring,
-else:
-    _string_types = str,
 
 
 ## These are bits set in the flag.
@@ -509,10 +497,7 @@ cdef class Variation(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_pp': self.reads.pp,
@@ -619,10 +604,7 @@ cdef class VariationStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_fwd': self.reads.fwd,
@@ -1338,10 +1320,7 @@ cdef class BaseqExt(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
             'reads_all': self.all.all.n,
@@ -1413,10 +1392,7 @@ cdef class BaseqExtStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
             'reads_all': self.all.all.n,
@@ -1530,8 +1506,7 @@ cdef int gc_content(ref_window) except -1:
     cdef char* seq
     cdef int gc_count = 0
     n = len(ref_window)
-    if not PY2:
-        ref_window = ref_window.encode('ascii')
+    ref_window = ref_window.encode('ascii')
     seq = ref_window
     for i in range(n):
         if seq[i] == b'g' or seq[i] == b'c':
@@ -1832,10 +1807,10 @@ def iter_pileup(stat, alignmentfile, fafile, pad, **kwargs):
 
     """
 
-    if isinstance(alignmentfile, _string_types):
+    if isinstance(alignmentfile, str):
         alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, _string_types):
+    if isinstance(fafile, str):
         fafile = FastaFile(fafile)
 
     if pad:
@@ -1988,8 +1963,7 @@ def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, star
 def get_refbase(fafile, chrom, pos):
     if fafile is not None:
         refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-        if not PY2:
-            refbase = refbase.encode('ascii')
+        refbase = refbase.encode('ascii')
     else:
         refbase = None
     return refbase
@@ -1998,10 +1972,10 @@ def get_refbase(fafile, chrom, pos):
 def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offset=None,
                 **kwargs):
 
-    if isinstance(alignmentfile, _string_types):
+    if isinstance(alignmentfile, str):
         alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, _string_types):
+    if isinstance(fafile, str):
         fafile = FastaFile(fafile)
 
     if window_offset is None:
