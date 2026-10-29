@@ -39,14 +39,14 @@ hdf5 = ["tables>=3.10.1"]
 Source = "https://github.com/alimanfoo/pysamstats"
 Issues = "https://github.com/alimanfoo/pysamstats/issues"
 
+[project.scripts]
+pysamstats = "pysamstats.cli:main"
+
 [dependency-groups]
 test = [
     "pytest>=7.2.1",
     "tables>=3.10.1",
 ]
-
-[tool.setuptools]
-script-files = ["scripts/pysamstats"]
 
 [tool.setuptools.dynamic]
 version = { attr = "pysamstats.__version__" }

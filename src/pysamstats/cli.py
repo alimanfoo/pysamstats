@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 import sys
 from optparse import OptionParser
 import errno
@@ -12,7 +9,13 @@ from pysamstats.config import stats_types, stats_types_withref, stepper_types
 from pysamstats.io import write_csv, write_hdf5
 
 
-if __name__ == '__main__':
+class PysamstatsOptionParser(OptionParser):
+
+    def format_epilog(self, formatter):
+        return self.epilog
+
+
+def main(argv=None):
 
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics against genome positions based on " \
@@ -59,8 +62,7 @@ Version: {version} (pysam {pysamversion})
 
 """.format(version=pysamstats.__version__, pysamversion=pysam.__version__)
 
-    OptionParser.format_epilog = lambda self, formatter: self.epilog
-    parser = OptionParser(usage=usage, description=description, epilog=epilog)
+    parser = PysamstatsOptionParser(usage=usage, description=description, epilog=epilog)
 
     parser.add_option(
         '-t', '--type', dest='type', default='coverage',
@@ -176,7 +178,7 @@ Version: {version} (pysam {pysamversion})
         help="Don't count reads aligned with a deletion at the given position. Only applies to "
              "pileup-based statistics.")
 
-    options, args = parser.parse_args()
+    options, args = parser.parse_args(argv)
 
     if len(args) != 1:
         parser.error('missing SAM or BAM file operand\n\nTry "pysamstats --help" for more '
@@ -280,3 +282,7 @@ Version: {version} (pysam {pysamversion})
             pass  # ignore broken pipe
         else:
             raise
+
+
+if __name__ == '__main__':
+    main()
