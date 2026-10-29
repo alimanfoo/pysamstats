@@ -86,9 +86,10 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
           CIBW_TEST_GROUPS: test
+          CIBW_TEST_SOURCES: tests
           CIBW_TEST_COMMAND: >
             python -c 'import pysam; print("test pysam:", pysam.__version__)' &&
-            python -m pytest {project}/tests -q --tb=short
+            python -m pytest tests -q --tb=short
         with:
           package-dir: ${{ env.SDIST }}
 
