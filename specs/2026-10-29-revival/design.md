@@ -37,7 +37,7 @@ It moves to the src layout:
 - `tests/` sits at the top level and holds the test modules and their fixtures (moved from `fixture/`).
 - Tests find fixtures relative to their own file, not the current directory.
 
-The point is that the only importable `pysamstats` is the installed one. Today, running pytest from the repo root imports the source folder, which has no compiled extension in it. That would defeat cibuildwheel's test-the-installed-wheel step. As a side effect, the test modules stop shipping inside wheels (`find_packages()` includes `pysamstats/test` today). The fixtures were never shipped, and that doesn't change. `fixture/gc.txt` isn't referenced anywhere, so it's deleted rather than moved.
+The point is that the only importable `pysamstats` is the installed one. Today, running pytest from the repo root imports the source folder, which has no compiled extension in it. That would defeat cibuildwheel's test-the-installed-wheel step. As a side effect, the test modules stop shipping inside wheels (`find_packages()` includes `pysamstats/test` today). A top-level `MANIFEST.in` prunes `tests`, so setuptools' default source-file discovery does not put test modules without their support files and fixtures in the sdist. `fixture/gc.txt` isn't referenced anywhere, so it's deleted rather than moved.
 
 ### Build
 
@@ -166,7 +166,7 @@ Some of these steps need maintainer access and can't be done from a pull request
 - **`fixture/` at the root and `pysamstats/test/` inside the package.** Moved under `tests/`, for the import-isolation reason given under Source layout. `fixture/gc.txt` (298 KB) is deleted. Nothing references it.
 - **`.travis.yml`.** Travis has been dead for this repo since 2021.
 - **`.pyup.yml`, `requirements.txt`, `requirements_dev.txt`.** Dependencies are declared once, in `pyproject.toml`. The pinned dev requirements are what pyup kept bumping, producing 74 bot PRs and a red CI every month. Development environments come from `uv sync` against a `test` dependency group (pytest, tables).
-- **`MANIFEST.in`.** With the src layout and a plain `Extension` whose source is the `.pyx`, setuptools puts the `.pyx` in the sdist by itself, and the fixtures stay out. The release workflow's build-wheels-from-the-sdist step checks this on every release.
+- **`MANIFEST.in`.** It prunes `tests` from the sdist, because setuptools' default source-file discovery otherwise includes `tests/test_*.py` without the test support files and fixtures. Setuptools puts the extension's `.pyx` in the sdist itself, and the release workflow's build-wheels-from-the-sdist step checks the result on every release.
 - **`Dockerfile`** (miniconda 4.5.4 from 2018). BioContainers covers this. Closes #58.
 - **`release.txt`** (`setup.py register sdist upload`). Replaced by the release workflow.
 - **`sandbox.ipynb` and `performance.py`.** Scratch files. They remain in git history if anyone wants them, and rewriting the benchmark would be about 70 lines.
