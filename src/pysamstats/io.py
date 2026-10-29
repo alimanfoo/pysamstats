@@ -50,7 +50,10 @@ def write_csv(stats_type, outfile, alignmentfile, fields=None, dialect='excel-ta
     rows = flatten(recs, *fields)
 
     # initialise writer
-    writer = csv.writer(outfile, dialect=dialect, lineterminator='\n')
+    writer_options = {}
+    if dialect in ('excel', 'excel-tab'):
+        writer_options['lineterminator'] = '\n'
+    writer = csv.writer(outfile, dialect=dialect, **writer_options)
 
     # write header row
     if write_header:

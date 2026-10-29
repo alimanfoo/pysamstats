@@ -285,12 +285,15 @@ Release notes
 
 **1.2.0**
 
-* Support CPython 3.11 through 3.15 and pysam 0.24.
+* Require Python 3.11 or newer, `pysam>=0.24.1,<0.25`, and `numpy>=2.0`.
+
+* HDF5 output requires PyTables, which can be installed with `pip install pysamstats[hdf5]`.
 
 * Distribute Linux x86_64, Linux aarch64, and macOS arm64 wheels.
 
-* Correct overlap handling in the `baseq_strand`, `baseq_ext`, and
-  `baseq_ext_strand` statistics to match htslib.
+* Use the overlap handling from newer htslib releases. Since htslib 1.13, overlap removal randomly chooses which mate keeps its base quality, so base-quality values in `baseq_strand`, `baseq_ext`, and `baseq_ext_strand` can differ from pysamstats 1.1.x with older pysam. The differences mainly affect strand-split `rms_baseq*` fields. Counts, coverage, mapping quality, template length, and variation statistics are unchanged.
+
+* Use NumPy ≥2.5-compatible dtype names and compile against const pointers from recent htslib releases. By [DrYak](https://github.com/DrYak), [#190](https://github.com/alimanfoo/pysamstats/pull/190), [#192](https://github.com/alimanfoo/pysamstats/pull/192).
 
 * Write TSV and CSV output with `\n` line endings, rather than `\r\n`
   (#92).

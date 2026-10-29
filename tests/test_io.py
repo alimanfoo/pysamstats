@@ -1,3 +1,4 @@
+import csv
 import logging
 from io import StringIO
 
@@ -13,13 +14,26 @@ logger = logging.getLogger(__name__)
 debug = logger.debug
 
 
-def test_write_csv_uses_lf_line_endings():
+@pytest.mark.parametrize("dialect", ["excel", "excel-tab"])
+def test_write_csv_uses_lf_line_endings_for_builtin_dialects(dialect):
     output = StringIO()
 
-    write_csv("coverage", output, fixture_path("test.bam"))
+    write_csv("coverage", output, fixture_path("test.bam"), dialect=dialect)
 
     assert "\n" in output.getvalue()
     assert "\r" not in output.getvalue()
+
+
+def test_write_csv_preserves_custom_dialect_line_terminator():
+    class CustomDialect(csv.excel):
+        lineterminator = "<row-end>"
+
+    output = StringIO()
+
+    write_csv("coverage", output, fixture_path("test.bam"), dialect=CustomDialect)
+
+    assert "<row-end>" in output.getvalue()
+    assert "\n" not in output.getvalue()
 
 
 def check_write_hdf5_chrom_dtype(arg):
