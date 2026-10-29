@@ -34,23 +34,11 @@ jobs:
           version: "0.13.5"
 
       - name: Install dependencies
-        if: matrix.dependencies == 'current'
-        run: uv sync --group test --no-install-project
-
-      - name: Install dependency floors
-        if: matrix.dependencies == 'floors'
-        run: uv sync --group test --no-install-project --resolution lowest-direct
+        run: uv sync --group test --no-install-project ${{ matrix.dependencies == 'floors' && '--resolution lowest-direct' || '' }}
 
       - name: Build and install package
-        if: matrix.dependencies == 'current'
         run: |
-          uv build --wheel
-          uv pip install --no-deps --force-reinstall dist/*.whl
-
-      - name: Build and install package against build floors
-        if: matrix.dependencies == 'floors'
-        run: |
-          uv build --wheel --build-constraints build-constraints.txt --verbose
+          uv build --wheel ${{ matrix.dependencies == 'floors' && '--build-constraints build-constraints.txt --verbose' || '' }}
           uv pip install --no-deps --force-reinstall dist/*.whl
 
       - name: Show dependency floors
