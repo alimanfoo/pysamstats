@@ -11,31 +11,34 @@ based on sequence alignments from a SAM or BAM file.
 Installation
 ------------
 
-The easiest way to install pysamstats is via conda, e.g.:
+Install pysam and pysamstats from the same place. Mixing installations from
+pip and conda is not supported.
+
+Install with pip:
 
 ```
-$ conda install -c bioconda pysamstats
+$ python -m pip install pysamstats
 ```
 
-Alternatively, pysamstats can be installed from source via pip. 
+Or add it to a project with uv:
 
 ```
-$ pip install pysamstats
+$ uv add pysamstats
 ```
 
-Alternatively, clone the git repo and install:
+Install with Bioconda:
 
 ```
-$ git clone git://github.com/alimanfoo/pysamstats.git
-$ cd pysamstats
-$ python setup.py install
+$ conda install -c conda-forge -c bioconda pysamstats
 ```
 
-If you have problems installing pysam, please email the
-[pysam user group](https://groups.google.com/forum/#!forum/pysam-user-group).
+BioContainers publishes a container image for each Bioconda package version.
+Choose a tag from the [pysamstats container images](https://quay.io/repository/biocontainers/pysamstats?tab=tags)
+and pull it with Docker:
 
-N.B., some functions also require [numpy](http://www.numpy.org) and
-[pytables](http://www.pytables.org) to be installed.
+```
+$ docker pull quay.io/biocontainers/pysamstats:<tag>
+```
 
 Usage
 -----
