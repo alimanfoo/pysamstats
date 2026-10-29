@@ -24,10 +24,7 @@ PY2 = sys.version_info[0] == 2
 
 def compare_stats(impl, refimpl):
     # no read filters
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
+    kwargs = {'one_based': False}
     expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
     actual = impl(Samfile('fixture/test.bam'), **kwargs)
     compare_iterators(expected, actual)
@@ -42,12 +39,11 @@ def compare_stats(impl, refimpl):
 
 
 def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
-                          fasta_fn='fixture/ref.fa'):
+                          fasta_fn='fixture/ref.fa', chrom=None):
     # no read filters
-    kwargs = {'chrom': 'Pf3D7_01_v3',
-              'start': 0,
-              'end': 2000,
-              'one_based': False}
+    kwargs = {'one_based': False}
+    if chrom is not None:
+        kwargs['chrom'] = chrom
     expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
@@ -895,7 +891,7 @@ def test_stat_coverage_gc():
 
 def test_stat_coverage_gc_uppercase_fasta():
     compare_stats_withref(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
-                          fasta_fn='fixture/ref.upper.fa')
+                          fasta_fn='fixture/ref.upper.fa', chrom='Pf3D7_01_v3')
 
 
 pileup_functions = [
