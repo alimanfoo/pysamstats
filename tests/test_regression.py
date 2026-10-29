@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pysam import AlignmentFile
 import numpy as np
 

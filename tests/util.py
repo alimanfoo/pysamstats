@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from itertools import zip_longest
 from math import sqrt

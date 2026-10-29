@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 stats_types_noref = ('coverage',
                      'coverage_strand',
                      'coverage_ext',

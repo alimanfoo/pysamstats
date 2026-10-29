@@ -36,8 +36,6 @@ from pysam.libcalignedsegment cimport pysam_bam_get_cigar, pysam_bam_get_seq, \
 import itertools
 
 
-cdef char* CODE2CIGAR= "MIDNSHP=X"
-
 cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
 
