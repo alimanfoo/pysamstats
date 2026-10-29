@@ -53,15 +53,12 @@ jobs:
           - platform: Linux x86_64
             os: ubuntu-latest
             arch: x86_64
-            artifact: linux-x86_64
           - platform: Linux aarch64
             os: ubuntu-24.04-arm
             arch: aarch64
-            artifact: linux-aarch64
           - platform: macOS arm64
             os: macos-15
             arch: arm64
-            artifact: macos-arm64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,30 +94,14 @@ jobs:
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: pysamstats-wheels-${{ matrix.artifact }}
+          name: pysamstats-wheels-${{ matrix.arch }}
           path: wheelhouse/*.whl
-          if-no-files-found: error
-
-  distributions:
-    name: Distribution artifacts
-    needs: [sdist, wheels]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          pattern: pysamstats-*
-          path: dist
-          merge-multiple: true
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
-        with:
-          name: pysamstats-distributions
-          path: dist/*
           if-no-files-found: error
 
   publish-pypi:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: distributions
+    if: &tag-push github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [sdist, wheels]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -130,22 +111,24 @@ jobs:
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: pysamstats-distributions
+          pattern: pysamstats-*
           path: dist
+          merge-multiple: true
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
 
   github-release:
     name: Create GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: [distributions, publish-pypi]
+    if: *tag-push
+    needs: publish-pypi
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
-          name: pysamstats-distributions
+          pattern: pysamstats-*
           path: dist
+          merge-multiple: true
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
