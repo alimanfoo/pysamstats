@@ -1,15 +1,25 @@
 import logging
+from io import StringIO
 
 import pytest
 from pysam import AlignmentFile
 
-from pysamstats.io import write_hdf5
+from pysamstats.io import write_csv, write_hdf5
 from .util import fixture_path
 
 tables = pytest.importorskip("tables")
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
+
+
+def test_write_csv_uses_lf_line_endings():
+    output = StringIO()
+
+    write_csv("coverage", output, fixture_path("test.bam"))
+
+    assert "\n" in output.getvalue()
+    assert "\r" not in output.getvalue()
 
 
 def check_write_hdf5_chrom_dtype(arg):
