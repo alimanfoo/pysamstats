@@ -52,4 +52,5 @@ script-files = ["scripts/pysamstats"]
 version = { attr = "pysamstats.__version__" }
 
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["pysamstats", "pysamstats.*"]

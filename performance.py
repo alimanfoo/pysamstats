@@ -6,6 +6,7 @@ import sys
 import pstats
 import cProfile as profile
 import timeit
+from pathlib import Path
 
 
 from pysam import Samfile, Fastafile
@@ -15,8 +16,11 @@ sys.path.append('.')
 import pysamstats
 
 
+FIXTURE_DIR = Path(__file__).with_name("tests") / "fixture"
+
+
 def do_profiling(fun, end=1000):
-    samfile = Samfile('fixture/test.bam')
+    samfile = Samfile(str(FIXTURE_DIR / "test.bam"))
     count = 0
     f = getattr(pysamstats, fun)
     for _ in f(samfile, chrom='Pf3D7_01_v3', start=0, end=end):
@@ -24,8 +28,8 @@ def do_profiling(fun, end=1000):
 
 
 def do_profiling_withrefseq(fun, end=1000):
-    samfile = Samfile('fixture/test.bam')
-    fafile = Fastafile('fixture/ref.fa')
+    samfile = Samfile(str(FIXTURE_DIR / "test.bam"))
+    fafile = Fastafile(str(FIXTURE_DIR / "ref.fa"))
     count = 0
     f = getattr(pysamstats, fun)
     for _ in f(samfile, fafile, chrom='Pf3D7_01_v3', start=0, end=end):

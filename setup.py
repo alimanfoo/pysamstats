@@ -6,7 +6,7 @@ setup(
     ext_modules=[
         Extension(
             "pysamstats.opt",
-            sources=["pysamstats/opt.pyx"],
+            sources=["src/pysamstats/opt.pyx"],
             include_dirs=pysam.get_include(),
             define_macros=pysam.get_defines(),
         )

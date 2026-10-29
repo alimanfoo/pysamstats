@@ -3,6 +3,7 @@ from __future__ import absolute_import, print_function, division
 import logging
 import sys
 from math import sqrt
+from pathlib import Path
 
 
 import numpy as np
@@ -15,6 +16,13 @@ from pysam import Samfile, Fastafile
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
+
+
+FIXTURE_DIR = Path(__file__).with_name("fixture")
+
+
+def fixture_path(name):
+    return str(FIXTURE_DIR / name)
 
 
 # PY2/3 compatibility

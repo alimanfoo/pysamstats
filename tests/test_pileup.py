@@ -10,7 +10,7 @@ import numpy as np
 from numpy import around as round
 
 
-from .util import normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
+from .util import fixture_path, normalise_coords, fwd, rev, pp, mean, std, rms, vmax, compare_iterators
 import pysamstats
 
 
@@ -25,21 +25,21 @@ PY2 = sys.version_info[0] == 2
 def compare_stats(impl, refimpl):
     # no read filters
     kwargs = {'one_based': False}
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
+    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['min_baseq'] = 17
     kwargs['no_del'] = True
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile('fixture/test.bam'), **kwargs)
-    actual = impl(Samfile('fixture/test.bam'), **kwargs)
+    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
+    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
 
 
-def compare_stats_withref(impl, refimpl, bam_fn='fixture/test.bam',
-                          fasta_fn='fixture/ref.fa', chrom=None):
+def compare_stats_withref(impl, refimpl, bam_fn=fixture_path("test.bam"),
+                          fasta_fn=fixture_path("ref.fa"), chrom=None):
     # no read filters
     kwargs = {'one_based': False}
     if chrom is not None:
@@ -302,7 +302,7 @@ def test_stat_variation():
 
 def test_stat_variation_rna():
     compare_stats_withref(pysamstats.stat_variation, stat_variation_refimpl,
-                          bam_fn='fixture/rna.bam')
+                          bam_fn=fixture_path("rna.bam"))
 
 
 def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=None,
@@ -407,7 +407,7 @@ def test_stat_variation_strand():
 
 def test_stat_variation_strand_rna():
     compare_stats_withref(pysamstats.stat_variation_strand, stat_variation_strand_refimpl,
-                          bam_fn='fixture/rna.bam')
+                          bam_fn=fixture_path("rna.bam"))
 
 
 def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False, min_mapq=0,
@@ -891,7 +891,7 @@ def test_stat_coverage_gc():
 
 def test_stat_coverage_gc_uppercase_fasta():
     compare_stats_withref(pysamstats.stat_coverage_gc, stat_coverage_gc_refimpl,
-                          fasta_fn='fixture/ref.upper.fa', chrom='Pf3D7_01_v3')
+                          fasta_fn=fixture_path("ref.upper.fa"), chrom='Pf3D7_01_v3')
 
 
 pileup_functions = [
@@ -925,9 +925,9 @@ def test_pileup_kwargs():
     }
     for f, needs_ref in pileup_functions:
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'), **kwargs)
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")), **kwargs)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs)
         assert isinstance(a, np.ndarray)
         assert a.dtype.names is not None
 
@@ -947,19 +947,19 @@ def test_pileup_truncate():
         debug(f.__name__)
         # test no truncate
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_notrunc)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_notrunc)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_notrunc)
         debug(a[:5])
         assert a['pos'][0] == 1952
         assert a['pos'][-1] == 2154
         # test truncate
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_trunc)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_trunc)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_trunc)
         assert a['pos'][0] == 2000
         assert a['pos'][-1] == 2099
 
@@ -979,18 +979,18 @@ def test_pileup_pad():
         debug(f.__name__)
         # test no pad
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_nopad)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_nopad)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_nopad)
         assert a['pos'][0] == 924
         assert a['pos'][-1] == 9935
         # test pad
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_pad)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_pad)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_pad)
         assert a['pos'][0] == 0
         assert a['pos'][-1] == 19999
         assert np.all(np.diff(a['pos']) == 1)
@@ -998,8 +998,8 @@ def test_pileup_pad():
 
 def test_pileup_pad_wg():
     # whole genome
-    expected = stat_coverage_refimpl(Samfile('fixture/test.bam'))
-    actual = pysamstats.stat_coverage(Samfile('fixture/test.bam'))
+    expected = stat_coverage_refimpl(Samfile(fixture_path("test.bam")))
+    actual = pysamstats.stat_coverage(Samfile(fixture_path("test.bam")))
     compare_iterators(expected, actual)
     kwargs_nopad = {'pad': False}
     kwargs_pad = {'pad': True}
@@ -1007,10 +1007,10 @@ def test_pileup_pad_wg():
         debug(f.__name__)
         # test no pad
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_nopad)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_nopad)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_nopad)
         assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 924
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1] == 9935
@@ -1018,10 +1018,10 @@ def test_pileup_pad_wg():
         assert a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1] == 10074
         # test pad
         if needs_ref:
-            a = f(Samfile('fixture/test.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs_pad)
         else:
-            a = f(Samfile('fixture/test.bam'), **kwargs_pad)
+            a = f(Samfile(fixture_path("test.bam")), **kwargs_pad)
         assert sorted(set(a['chrom'])) == [
             b'Pf3D7_01_v3', b'Pf3D7_02_v3', b'Pf3D7_03_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 0
@@ -1040,28 +1040,28 @@ def test_pileup_limit():
         # test with effectively no limit
         kwargs = dict(fields=['reads_all'], max_depth=1000000)
         if needs_ref:
-            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile('fixture/deep.bam'), **kwargs)
+            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 26169
 
         # test with specific limit
         kwargs = dict(fields=['reads_all'], max_depth=12000)
         if needs_ref:
-            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile('fixture/deep.bam'), **kwargs)
+            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 12046  # no idea why limit is not exact
 
         # test with default limit
         kwargs = dict(fields=['reads_all'])
         if needs_ref:
-            a = f(Samfile('fixture/deep.bam'), Fastafile('fixture/ref.fa'),
+            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile('fixture/deep.bam'), **kwargs)
+            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 8052  # no idea why limit is not exact
 
 
@@ -1069,7 +1069,7 @@ def test_load_cov_long_contig_name():
     # test that long chrom labels auto handled.
 
     label = 'AS2_scf7180000696055'
-    bampath = 'fixture/longcontignames.bam'
+    bampath = fixture_path("longcontignames.bam")
 
     x = pysamstats.load_coverage(bampath, chrom=label)
     assert len(label) == x.dtype["chrom"].itemsize
@@ -1082,7 +1082,7 @@ def test_load_cov_using_steppers():
 
     # test that expected steppers give different/consistent results
     # this is the only bam file that differs between all/nofilter
-    bampath = "fixture/longcontignames.bam"
+    bampath = fixture_path("longcontignames.bam")
     seq = 'AS2_scf7180000695891'
     pos = 14311
     steppers = ["all", "nofilter", "samtools"]
