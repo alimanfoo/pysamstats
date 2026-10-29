@@ -11,29 +11,51 @@ permissions:
 
 jobs:
   test:
-    name: ${{ matrix.os }} / Python 3.14
+    name: ${{ matrix.os }} / Python ${{ matrix.python }} / ${{ matrix.dependencies }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-15]
+        python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
+        dependencies: [current]
+        include:
+          - os: ubuntu-latest
+            python: "3.11"
+            dependencies: floors
 
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-python@v7.0.0
         with:
-          python-version: "3.14"
+          python-version: ${{ matrix.python }}
       - uses: astral-sh/setup-uv@v10.3.2
         with:
           version: "0.13.5"
 
       - name: Install dependencies
+        if: matrix.dependencies == 'current'
         run: uv sync --group test --no-install-project
 
+      - name: Install dependency floors
+        if: matrix.dependencies == 'floors'
+        run: uv sync --group test --no-install-project --resolution lowest-direct
+
       - name: Build and install package
+        if: matrix.dependencies == 'current'
         run: |
           uv build --wheel
           uv pip install --no-deps --force-reinstall dist/*.whl
+
+      - name: Build and install package against build floors
+        if: matrix.dependencies == 'floors'
+        run: |
+          uv build --wheel --build-constraints build-constraints.txt --verbose
+          uv pip install --no-deps --force-reinstall dist/*.whl
+
+      - name: Show dependency floors
+        if: matrix.dependencies == 'floors'
+        run: uv pip list
 
       - name: Verify installed package
         run: |

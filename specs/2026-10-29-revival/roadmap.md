@@ -87,13 +87,13 @@ Every session that implements a stage should correct the specifications as detai
 
 **Delivers:**
 - The PR/push workflow grows to CPython 3.11–3.15 on Linux x86_64 and macOS arm64.
-- One more row runs on Python 3.11. It pins the build dependencies to their floors (setuptools 77, Cython 3.1) with a build constraint, and installs the runtime dependencies with uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, tables 3.10.1).
+- One more row runs on Python 3.11. It pins the build dependencies to their floors (setuptools 77.0.1, Cython 3.1.0, pysam 0.24.1) with a build constraint, and installs the runtime and test dependencies with uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, pytest 7.2.1, tables 3.10.1).
 
 **Proof:** every row is green, and the floors row's log shows those exact versions installed.
 
 **Leaves for later:** nothing. This is the final shape of the matrix.
 
-**Open, settled here:** whether the declared floors actually install and pass together. If one doesn't, this stage raises it in `pyproject.toml` and in the design, and says so on the PR.
+**Open, settled here:** whether the declared floors actually install and pass together. Pytest had no declared floor, so `lowest-direct` selected pytest 2.0.0, which cannot build on Python 3.11. This stage sets the floor to pytest 7.2.1, the first release that declares Python 3.11 support.
 
 ## 7. Console script
 

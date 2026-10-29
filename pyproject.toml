@@ -41,7 +41,7 @@ Issues = "https://github.com/alimanfoo/pysamstats/issues"
 
 [dependency-groups]
 test = [
-    "pytest",
+    "pytest>=7.2.1",
     "tables>=3.10.1",
 ]
 
