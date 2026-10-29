@@ -12,6 +12,12 @@ from pysamstats.config import stats_types, stats_types_withref, stepper_types
 from pysamstats.io import write_csv, write_hdf5
 
 
+class PysamstatsOptionParser(OptionParser):
+
+    def format_epilog(self, formatter):
+        return self.epilog
+
+
 if __name__ == '__main__':
 
     usage = 'usage: %prog [options] FILE'
@@ -59,8 +65,7 @@ Version: {version} (pysam {pysamversion})
 
 """.format(version=pysamstats.__version__, pysamversion=pysam.__version__)
 
-    OptionParser.format_epilog = lambda self, formatter: self.epilog
-    parser = OptionParser(usage=usage, description=description, epilog=epilog)
+    parser = PysamstatsOptionParser(usage=usage, description=description, epilog=epilog)
 
     parser.add_option(
         '-t', '--type', dest='type', default='coverage',
