@@ -29,7 +29,6 @@ Alternatively, clone the git repo and install:
 $ git clone git://github.com/alimanfoo/pysamstats.git
 $ cd pysamstats
 $ python setup.py install
-$ nosetests -v  # optional, run test suite
 ```
 
 If you have problems installing pysam, please email the

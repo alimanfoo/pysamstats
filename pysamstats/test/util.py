@@ -6,8 +6,8 @@ from math import sqrt
 
 
 import numpy as np
+import pytest
 from numpy import around as round
-from nose.tools import eq_, assert_almost_equal
 
 
 from pysam import Samfile, Fastafile
@@ -33,9 +33,9 @@ def compare_iterators(expected, actual):
         for k, v in e.items():
             try:
                 if isinstance(v, float):
-                    assert_almost_equal(v, a[k])
+                    assert a[k] == pytest.approx(v)
                 else:
-                    eq_(v, a[k])
+                    assert a[k] == v
             except:
                 debug('mismatch %r, expected %r, found %r' % (k, v, a[k]))
                 debug('expected: %r' % sorted(e.items()))

@@ -2,10 +2,12 @@
 from __future__ import absolute_import, print_function, division
 import logging
 
+import pytest
 from pysam import Samfile
 
 from pysamstats.io import write_hdf5
-import tables
+
+tables = pytest.importorskip("tables")
 
 logger = logging.getLogger(__name__)
 debug = logger.debug
