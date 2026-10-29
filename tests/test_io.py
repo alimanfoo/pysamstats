@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
 import logging
 
 import pytest
-from pysam import Samfile
+from pysam import AlignmentFile
 
 from pysamstats.io import write_hdf5
 from .util import fixture_path
@@ -35,7 +34,7 @@ def test_write_hdf5_chrom_dtype():
     bampath = fixture_path("longcontignames.bam")
 
     dtypes = [None, {"chrom": "S20"}, {"chrom": "S20"}]
-    alignments = [Samfile(bampath), Samfile(bampath), bampath]
+    alignments = [AlignmentFile(bampath), AlignmentFile(bampath), bampath]
     results = [len(contig_label), 20, 20]
     labels = [contig_label, contig_label, contig_label]
 
