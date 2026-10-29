@@ -37,7 +37,7 @@ It moves to the src layout:
 - `tests/` sits at the top level and holds the test modules and their fixtures (moved from `fixture/`).
 - Tests find fixtures relative to their own file, not the current directory.
 
-The point is that the only importable `pysamstats` is the installed one. Today, running pytest from the repo root imports the source folder, which has no compiled extension in it. That would defeat cibuildwheel's test-the-installed-wheel step. As a side effect, the test modules stop shipping inside wheels (`find_packages()` includes `pysamstats/test` today). The fixtures were never shipped, and that doesn't change. `fixture/gc.txt` isn't referenced anywhere, so it's deleted rather than moved.
+The point is that the only importable `pysamstats` is the installed one. Today, running pytest from the repo root imports the source folder, which has no compiled extension in it. That would defeat cibuildwheel's test-the-installed-wheel step. As a side effect, the test modules stop shipping inside wheels (`find_packages()` includes `pysamstats/test` today). A top-level `MANIFEST.in` prunes `tests`, so setuptools' default source-file discovery does not put test modules without their support files and fixtures in the sdist. `fixture/gc.txt` isn't referenced anywhere, so it's deleted rather than moved.
 
 ### Build
 
@@ -119,9 +119,9 @@ There are two workflows:
    - publishes to PyPI through Trusted Publishing (a `pypi` environment, no stored token);
    - creates the GitHub release.
 
-   The pysam floor pin applies to the build step only, as a build constraint. If it leaked into cibuildwheel's test install, every wheel would only ever be tested against the floor. The test install resolves pysam normally, to the newest version inside the range.
+   The pysam floor pin applies to the build step only, as a build constraint. cibuildwheel uses pip as its build frontend so pip receives that constraint. The same environment variable is present during the test install, but pip applies a build constraint only when it installs isolated build dependencies; it does not constrain the wheel's ordinary runtime requirements, so the test install resolves pysam normally to the newest version inside the range.
 
-Both workflows share a concurrency group per workflow and ref. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Runs on `main` and on tags are never cancelled.
+Both workflows share a concurrency group per workflow and ref for pull requests. A new push to a pull request cancels that PR's older run, so superseded runs don't hold the queue. Every run on `main` or a tag has a unique group, so neither an in-progress nor a queued run can be cancelled by a newer run.
 
 There's no separate pysam-compatibility workflow, because the release dry run on a widening PR does that job (see "The pysam coupling"). The cost: trying an arbitrary pysam version, such as an older one or a pre-release, means editing `pyproject.toml` on a branch.
 
@@ -166,7 +166,7 @@ Some of these steps need maintainer access and can't be done from a pull request
 - **`fixture/` at the root and `pysamstats/test/` inside the package.** Moved under `tests/`, for the import-isolation reason given under Source layout. `fixture/gc.txt` (298 KB) is deleted. Nothing references it.
 - **`.travis.yml`.** Travis has been dead for this repo since 2021.
 - **`.pyup.yml`, `requirements.txt`, `requirements_dev.txt`.** Dependencies are declared once, in `pyproject.toml`. The pinned dev requirements are what pyup kept bumping, producing 74 bot PRs and a red CI every month. Development environments come from `uv sync` against a `test` dependency group (pytest, tables).
-- **`MANIFEST.in`.** With the src layout and a plain `Extension` whose source is the `.pyx`, setuptools puts the `.pyx` in the sdist by itself, and the fixtures stay out. The release workflow's build-wheels-from-the-sdist step checks this on every release.
+- **`MANIFEST.in`.** It prunes `tests` from the sdist, because setuptools' default source-file discovery otherwise includes `tests/test_*.py` without the test support files and fixtures. Setuptools puts the extension's `.pyx` in the sdist itself, and the release workflow's build-wheels-from-the-sdist step checks the result on every release.
 - **`Dockerfile`** (miniconda 4.5.4 from 2018). BioContainers covers this. Closes #58.
 - **`release.txt`** (`setup.py register sdist upload`). Replaced by the release workflow.
 - **`sandbox.ipynb` and `performance.py`.** Scratch files. They remain in git history if anyone wants them, and rewriting the benchmark would be about 70 lines.

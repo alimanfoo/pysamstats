@@ -14,7 +14,7 @@ permissions:
 # A new push to a pull request cancels that pull request's older dry run.
 # Runs on main and on tags are never cancelled.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -85,6 +85,7 @@ jobs:
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
           CIBW_BUILD: cp311-* cp312-* cp313-* cp314-* cp315-*
+          CIBW_BUILD_FRONTEND: pip
           CIBW_SKIP: "*-musllinux_*"
           CIBW_BEFORE_ALL: >
             printf 'pysam==0.24.1\n' > /tmp/pysamstats-build-constraints.txt
@@ -140,5 +141,6 @@ jobs:
           merge-multiple: true
       - name: Create release
         env:
+          GH_REPO: ${{ github.repository }}
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag
