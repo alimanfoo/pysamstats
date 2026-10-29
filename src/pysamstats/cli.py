@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 import sys
 from optparse import OptionParser
 import errno
@@ -18,7 +15,7 @@ class PysamstatsOptionParser(OptionParser):
         return self.epilog
 
 
-if __name__ == '__main__':
+def main(argv=None):
 
     usage = 'usage: %prog [options] FILE'
     description = "Calculate statistics against genome positions based on " \
@@ -181,7 +178,7 @@ Version: {version} (pysam {pysamversion})
         help="Don't count reads aligned with a deletion at the given position. Only applies to "
              "pileup-based statistics.")
 
-    options, args = parser.parse_args()
+    options, args = parser.parse_args(argv)
 
     if len(args) != 1:
         parser.error('missing SAM or BAM file operand\n\nTry "pysamstats --help" for more '
@@ -285,3 +282,7 @@ Version: {version} (pysam {pysamversion})
             pass  # ignore broken pipe
         else:
             raise
+
+
+if __name__ == '__main__':
+    main()

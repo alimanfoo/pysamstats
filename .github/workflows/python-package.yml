@@ -48,6 +48,7 @@ jobs:
       - name: Verify installed package
         run: |
           uv run --no-sync python -c 'from pathlib import Path; import pysamstats; path = Path(pysamstats.__file__).resolve(); assert "site-packages" in path.parts, path'
+          uv run --no-sync pysamstats --help
 
       - name: Test
         run: uv run --no-sync pytest -q --tb=short
