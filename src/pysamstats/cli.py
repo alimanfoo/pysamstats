@@ -1,6 +1,6 @@
+import os
 import sys
 from optparse import OptionParser
-import errno
 
 
 import pysam
@@ -278,11 +278,15 @@ Version: {version} (pysam {pysamversion})
                     **kwargs
                 )
 
-    except IOError as e:
-        if e.errno == errno.EPIPE:
-            pass  # ignore broken pipe
-        else:
-            raise
+        sys.stdout.flush()
+
+    except BrokenPipeError:
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        try:
+            os.dup2(devnull, sys.stdout.fileno())
+        finally:
+            os.close(devnull)
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 import csv
 import io
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -140,3 +142,21 @@ def test_main_requires_output_path_for_hdf5(capsys):
 
     assert exc_info.value.code == 2
     assert "error: --output must be specified" in capsys.readouterr().err
+
+
+def test_command_silences_broken_pipe_error():
+    command = Path(sys.executable).with_name("pysamstats")
+    process = subprocess.Popen(
+        [command, "--type", "coverage", ALIGNMENT_PATH],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert process.stdout is not None
+    assert process.stderr is not None
+
+    process.stdout.readline()
+    process.stdout.close()
+    stderr = process.stderr.read()
+
+    assert process.wait() == 1
+    assert stderr == b""
