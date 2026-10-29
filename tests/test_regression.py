@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
-
-from pysam import Samfile
+from pysam import AlignmentFile
 import numpy as np
 
 
@@ -21,9 +18,9 @@ def test_against_fixtures():
 
     for q in stats_types:
         if q in stats_types_withref:
-            x = getattr(pysamstats, "load_" + q)(Samfile(bampath), fafile=fastapath)
+            x = getattr(pysamstats, "load_" + q)(AlignmentFile(bampath), fafile=fastapath)
         else:
-            x = getattr(pysamstats, "load_" + q)(Samfile(bampath))
+            x = getattr(pysamstats, "load_" + q)(AlignmentFile(bampath))
 
         # loop through all fields
         for key in testset[q].dtype.names:

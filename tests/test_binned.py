@@ -1,11 +1,9 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
 from itertools import chain
 from collections import Counter
 import logging
 
 
-from pysam import Samfile, Fastafile
+from pysam import AlignmentFile, FastaFile
 from numpy import around as round
 
 
@@ -23,14 +21,14 @@ def compare_stats(impl, refimpl):
               'start': 0,
               'end': 2000,
               'one_based': False}
-    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
-    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
+    expected = refimpl(AlignmentFile(fixture_path("test.bam")), **kwargs)
+    actual = impl(AlignmentFile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
-    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
+    expected = refimpl(AlignmentFile(fixture_path("test.bam")), **kwargs)
+    actual = impl(AlignmentFile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
 
 
@@ -41,14 +39,14 @@ def compare_stats_withref(impl, refimpl, bam_fn=fixture_path("test.bam"),
               'start': 0,
               'end': 2000,
               'one_based': False}
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    expected = refimpl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
+    actual = impl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    expected = refimpl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
+    actual = impl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
 
 
@@ -589,10 +587,10 @@ def test_binned_pad_region():
     for f, needs_ref in binned_functions:
         debug(f.__name__)
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs)
         assert set(a['chrom']) == {b'Pf3D7_01_v3'}
         assert a['pos'][0] == 1100
         assert a['pos'][-1] == 19900
@@ -600,21 +598,21 @@ def test_binned_pad_region():
 
 def test_binned_pad_wg():
     expected = stat_coverage_binned_refimpl(
-        Samfile(fixture_path("test.bam")),
-        Fastafile(fixture_path("ref.fa")))
+        AlignmentFile(fixture_path("test.bam")),
+        FastaFile(fixture_path("ref.fa")))
 
-    actual = pysamstats.stat_coverage_binned(Samfile(fixture_path("test.bam")),
-                                             Fastafile(fixture_path("ref.fa")))
+    actual = pysamstats.stat_coverage_binned(AlignmentFile(fixture_path("test.bam")),
+                                             FastaFile(fixture_path("ref.fa")))
     compare_iterators(expected, actual)
     kwargs = {'window_size': 200,
               'window_offset': 100}
     for f, needs_ref in binned_functions:
         debug(f.__name__)
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs)
         assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3',
                                            b'Pf3D7_03_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 100

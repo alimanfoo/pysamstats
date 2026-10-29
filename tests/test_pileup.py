@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
 import logging
-import sys
 
 
 import pytest
-from pysam import Samfile, Fastafile
+from pysam import AlignmentFile, FastaFile
 import numpy as np
 from numpy import around as round
 
@@ -18,23 +15,19 @@ logger = logging.getLogger(__name__)
 debug = logger.debug
 
 
-# PY2/3 compatibility
-PY2 = sys.version_info[0] == 2
-
-
 def compare_stats(impl, refimpl):
     # no read filters
     kwargs = {'one_based': False}
-    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
-    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
+    expected = refimpl(AlignmentFile(fixture_path("test.bam")), **kwargs)
+    actual = impl(AlignmentFile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['min_baseq'] = 17
     kwargs['no_del'] = True
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile(fixture_path("test.bam")), **kwargs)
-    actual = impl(Samfile(fixture_path("test.bam")), **kwargs)
+    expected = refimpl(AlignmentFile(fixture_path("test.bam")), **kwargs)
+    actual = impl(AlignmentFile(fixture_path("test.bam")), **kwargs)
     compare_iterators(expected, actual)
 
 
@@ -44,16 +37,16 @@ def compare_stats_withref(impl, refimpl, bam_fn=fixture_path("test.bam"),
     kwargs = {'one_based': False}
     if chrom is not None:
         kwargs['chrom'] = chrom
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    expected = refimpl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
+    actual = impl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
     # read filters
     kwargs['min_mapq'] = 1
     kwargs['min_baseq'] = 17
     kwargs['no_del'] = True
     kwargs['no_dup'] = True
-    expected = refimpl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
-    actual = impl(Samfile(bam_fn), Fastafile(fasta_fn), **kwargs)
+    expected = refimpl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
+    actual = impl(AlignmentFile(bam_fn), FastaFile(fasta_fn), **kwargs)
     compare_iterators(expected, actual)
 
 
@@ -76,7 +69,7 @@ def stat_coverage_refimpl(samfile, chrom=None, start=None, end=None, one_based=F
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos, 'reads_all': len(reads),
@@ -93,7 +86,7 @@ def stat_coverage_strand_refimpl(samfile, chrom=None, start=None, end=None,
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         yield {'chrom': chrom, 'pos': pos,
@@ -114,7 +107,7 @@ def stat_coverage_ext_refimpl(samfile, chrom=None, start=None, end=None, one_bas
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_mate_unmapped = [read for read in reads
@@ -163,7 +156,7 @@ def stat_coverage_ext_strand_refimpl(samfile, chrom=None, start=None, end=None, 
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
@@ -230,7 +223,7 @@ def stat_variation_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
@@ -311,7 +304,7 @@ def stat_variation_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
@@ -415,7 +408,7 @@ def stat_tlen_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         # N.B., tlen only means something if mate is mapped to same chromosome
@@ -448,7 +441,7 @@ def stat_tlen_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
 
@@ -529,7 +522,7 @@ def stat_mapq_refimpl(samfile, chrom=None, start=None, end=None, one_based=False
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
@@ -560,7 +553,7 @@ def stat_mapq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_base
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_fwd = fwd(reads)
@@ -639,7 +632,7 @@ def stat_baseq_refimpl(samfile, chrom=None, start=None, end=None, one_based=Fals
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         # N.B., make sure aligned base is not a deletion
@@ -664,7 +657,7 @@ def stat_baseq_strand_refimpl(samfile, chrom=None, start=None, end=None, one_bas
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_fwd = fwd(reads)
@@ -710,7 +703,7 @@ def stat_baseq_ext_refimpl(samfile, fafile, chrom=None, start=None, end=None, on
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_nodel = [read for read in reads if not read.is_del]
@@ -758,7 +751,7 @@ def stat_baseq_ext_strand_refimpl(samfile, fafile, chrom=None, start=None, end=N
     start, end = normalise_coords(one_based, start, end)
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
         reads_pp = pp(reads)
@@ -858,7 +851,7 @@ def stat_coverage_gc_refimpl(samfile, fafile, chrom=None, start=None, end=None, 
 
     for col in samfile.pileup(reference=chrom, start=start, end=end, stepper="nofilter", flag_filter=0,
                               min_base_quality=0, min_mapping_quality=0, ignore_overlaps=True):
-        chrom = samfile.getrname(col.tid)
+        chrom = samfile.get_reference_name(col.tid)
         pos = col.pos + 1 if one_based else col.pos
         reads = filter_reads(col.pileups, min_mapq, min_baseq, no_del, no_dup)
 
@@ -925,9 +918,9 @@ def test_pileup_kwargs():
     }
     for f, needs_ref in pileup_functions:
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")), **kwargs)
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")), **kwargs)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs)
         assert isinstance(a, np.ndarray)
         assert a.dtype.names is not None
 
@@ -947,19 +940,19 @@ def test_pileup_truncate():
         debug(f.__name__)
         # test no truncate
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_notrunc)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_notrunc)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_notrunc)
         debug(a[:5])
         assert a['pos'][0] == 1952
         assert a['pos'][-1] == 2154
         # test truncate
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_trunc)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_trunc)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_trunc)
         assert a['pos'][0] == 2000
         assert a['pos'][-1] == 2099
 
@@ -979,18 +972,18 @@ def test_pileup_pad():
         debug(f.__name__)
         # test no pad
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_nopad)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_nopad)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_nopad)
         assert a['pos'][0] == 924
         assert a['pos'][-1] == 9935
         # test pad
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_pad)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_pad)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_pad)
         assert a['pos'][0] == 0
         assert a['pos'][-1] == 19999
         assert np.all(np.diff(a['pos']) == 1)
@@ -998,8 +991,8 @@ def test_pileup_pad():
 
 def test_pileup_pad_wg():
     # whole genome
-    expected = stat_coverage_refimpl(Samfile(fixture_path("test.bam")))
-    actual = pysamstats.stat_coverage(Samfile(fixture_path("test.bam")))
+    expected = stat_coverage_refimpl(AlignmentFile(fixture_path("test.bam")))
+    actual = pysamstats.stat_coverage(AlignmentFile(fixture_path("test.bam")))
     compare_iterators(expected, actual)
     kwargs_nopad = {'pad': False}
     kwargs_pad = {'pad': True}
@@ -1007,10 +1000,10 @@ def test_pileup_pad_wg():
         debug(f.__name__)
         # test no pad
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_nopad)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_nopad)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_nopad)
         assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 924
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1] == 9935
@@ -1018,10 +1011,10 @@ def test_pileup_pad_wg():
         assert a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1] == 10074
         # test pad
         if needs_ref:
-            a = f(Samfile(fixture_path("test.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("test.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs_pad)
         else:
-            a = f(Samfile(fixture_path("test.bam")), **kwargs_pad)
+            a = f(AlignmentFile(fixture_path("test.bam")), **kwargs_pad)
         assert sorted(set(a['chrom'])) == [
             b'Pf3D7_01_v3', b'Pf3D7_02_v3', b'Pf3D7_03_v3']
         assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 0
@@ -1040,28 +1033,28 @@ def test_pileup_limit():
         # test with effectively no limit
         kwargs = dict(fields=['reads_all'], max_depth=1000000)
         if needs_ref:
-            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("deep.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 26169
 
         # test with specific limit
         kwargs = dict(fields=['reads_all'], max_depth=12000)
         if needs_ref:
-            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("deep.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 12046  # no idea why limit is not exact
 
         # test with default limit
         kwargs = dict(fields=['reads_all'])
         if needs_ref:
-            a = f(Samfile(fixture_path("deep.bam")), Fastafile(fixture_path("ref.fa")),
+            a = f(AlignmentFile(fixture_path("deep.bam")), FastaFile(fixture_path("ref.fa")),
                   **kwargs)
         else:
-            a = f(Samfile(fixture_path("deep.bam")), **kwargs)
+            a = f(AlignmentFile(fixture_path("deep.bam")), **kwargs)
         assert a[70] == 8052  # no idea why limit is not exact
 
 
@@ -1074,7 +1067,7 @@ def test_load_cov_long_contig_name():
     x = pysamstats.load_coverage(bampath, chrom=label)
     assert len(label) == x.dtype["chrom"].itemsize
 
-    x = pysamstats.load_coverage(Samfile(bampath), chrom=label, dtype={"chrom": "S10"})
+    x = pysamstats.load_coverage(AlignmentFile(bampath), chrom=label, dtype={"chrom": "S10"})
     assert 10 == x.dtype["chrom"].itemsize
 
 
@@ -1090,9 +1083,9 @@ def test_load_cov_using_steppers():
     reads_pp = [4, 5, 4]
 
     for exp_all, exp_pp, step in zip(reads_all, reads_pp, steppers):
-        a = pysamstats.load_coverage(Samfile(bampath), chrom=seq, stepper=step, pad=True)
+        a = pysamstats.load_coverage(AlignmentFile(bampath), chrom=seq, stepper=step, pad=True)
         assert a[pos]["reads_all"] == exp_all
         assert a[pos]["reads_pp"] == exp_pp
 
     with pytest.raises(ValueError):
-        pysamstats.load_coverage(Samfile(bampath), chrom=seq, stepper="notastepper")
+        pysamstats.load_coverage(AlignmentFile(bampath), chrom=seq, stepper="notastepper")

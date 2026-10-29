@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
-
-
 stats_types_noref = ('coverage',
                      'coverage_strand',
                      'coverage_ext',

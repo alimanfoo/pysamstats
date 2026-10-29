@@ -1,74 +1,40 @@
 # cython: language_level=3
 # cython: profile=False
 # cython: embedsignature=True
-from __future__ import print_function, division, absolute_import
-
 
 from libc.stdint cimport uint32_t, uint8_t, uint64_t, int64_t
 from libc.math cimport sqrt
 from numpy import around as round
 from cpython cimport PyBytes_FromStringAndSize
-from pysam.libchtslib cimport bam1_t, bam_pileup1_t
+from pysam.libchtslib cimport (
+    BAM_CDEL,
+    BAM_CDIFF,
+    BAM_CEQUAL,
+    BAM_CHARD_CLIP,
+    BAM_CIGAR_MASK,
+    BAM_CIGAR_SHIFT,
+    BAM_CINS,
+    BAM_CMATCH,
+    BAM_CPAD,
+    BAM_CREF_SKIP,
+    BAM_CSOFT_CLIP,
+    BAM_FDUP,
+    BAM_FMREVERSE,
+    BAM_FMUNMAP,
+    BAM_FPROPER_PAIR,
+    BAM_FREVERSE,
+    BAM_FUNMAP,
+    bam1_t,
+    bam_pileup1_t,
+)
 from pysam.libcfaidx cimport FastaFile
 from pysam.libcalignmentfile cimport AlignmentFile, IteratorRowRegion
 from pysam.libcalignedsegment cimport pysam_bam_get_cigar, pysam_bam_get_seq, \
     pysam_bam_get_qual, PileupColumn
 
 
-import sys as _sys
 import itertools
 
-
-# PY2/3 compatibility
-PY2 = _sys.version_info[0] == 2
-if PY2:
-    # noinspection PyUnresolvedReferences
-    _string_types = basestring,
-else:
-    _string_types = str,
-
-
-## These are bits set in the flag.
-## have to put these definitions here, in csamtools.pxd they got ignored
-## @abstract the read is paired in sequencing, no matter whether it is mapped
-#  in a pair */
-DEF BAM_FPAIRED       =1
-## @abstract the read is mapped in a proper pair */
-DEF BAM_FPROPER_PAIR  =2
-## @abstract the read itself is unmapped; conflictive with BAM_FPROPER_PAIR */
-DEF BAM_FUNMAP        =4
-## @abstract the mate is unmapped */
-DEF BAM_FMUNMAP       =8
-## @abstract the read is mapped to the reverse strand */
-DEF BAM_FREVERSE      =16
-## @abstract the mate is mapped to the reverse strand */
-DEF BAM_FMREVERSE     =32
-## @abstract this is read1 */
-DEF BAM_FREAD1        =64
-## @abstract this is read2 */
-DEF BAM_FREAD2       =128
-## @abstract not primary alignment */
-DEF BAM_FSECONDARY   =256
-## @abstract QC failure */
-DEF BAM_FQCFAIL      =512
-## @abstract optical or PCR duplicate */
-DEF BAM_FDUP        =1024
-
-# CIGAR operations
-DEF BAM_CIGAR_SHIFT=4
-DEF BAM_CIGAR_MASK=((1 << BAM_CIGAR_SHIFT) - 1)
-
-DEF BAM_CMATCH     = 0
-DEF BAM_CINS       = 1
-DEF BAM_CDEL       = 2
-DEF BAM_CREF_SKIP  = 3
-DEF BAM_CSOFT_CLIP = 4
-DEF BAM_CHARD_CLIP = 5
-DEF BAM_CPAD       = 6
-DEF BAM_CEQUAL     = 7
-DEF BAM_CDIFF      = 8
-
-cdef char* CODE2CIGAR= "MIDNSHP=X"
 
 cdef char* bam_nt16_rev_table = "=ACMGRSVTWYHKDBN"
 
@@ -509,10 +475,7 @@ cdef class Variation(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_pp': self.reads.pp,
@@ -619,10 +582,7 @@ cdef class VariationStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {'ref': ref,
                'reads_all': self.reads.all,
                'reads_fwd': self.reads.fwd,
@@ -1338,10 +1298,7 @@ cdef class BaseqExt(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
             'reads_all': self.all.all.n,
@@ -1413,10 +1370,7 @@ cdef class BaseqExtStrand(PileupStat):
     cdef dict rec(self, chrom, pos, FastaFile fafile, bytes refbase):
 
         # make record
-        if PY2:
-            ref = refbase
-        else:
-            ref = str(refbase, 'ascii')
+        ref = str(refbase, 'ascii')
         rec = {
             'ref': ref,
             'reads_all': self.all.all.n,
@@ -1530,8 +1484,7 @@ cdef int gc_content(ref_window) except -1:
     cdef char* seq
     cdef int gc_count = 0
     n = len(ref_window)
-    if not PY2:
-        ref_window = ref_window.encode('ascii')
+    ref_window = ref_window.encode('ascii')
     seq = ref_window
     for i in range(n):
         if seq[i] == b'g' or seq[i] == b'c':
@@ -1832,10 +1785,10 @@ def iter_pileup(stat, alignmentfile, fafile, pad, **kwargs):
 
     """
 
-    if isinstance(alignmentfile, _string_types):
+    if isinstance(alignmentfile, str):
         alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, _string_types):
+    if isinstance(fafile, str):
         fafile = FastaFile(fafile)
 
     if pad:
@@ -1884,7 +1837,7 @@ def stat_pileup(PileupStat stat,
     plp = col.plp
 
     # get current chromosome
-    chrom = alignmentfile.getrname(col.tid)
+    chrom = alignmentfile.get_reference_name(col.tid)
 
     # setup reference base
     refbase = get_refbase(fafile, chrom, col.pos)
@@ -1988,8 +1941,7 @@ def iter_pileup_padded_chrom(PileupStat stat, alignmentfile, fafile, chrom, star
 def get_refbase(fafile, chrom, pos):
     if fafile is not None:
         refbase = fafile.fetch(reference=chrom, start=pos, end=pos+1).upper()
-        if not PY2:
-            refbase = refbase.encode('ascii')
+        refbase = refbase.encode('ascii')
     else:
         refbase = None
     return refbase
@@ -1998,10 +1950,10 @@ def get_refbase(fafile, chrom, pos):
 def iter_binned(stat, alignmentfile, fafile, chrom, window_size=300, window_offset=None,
                 **kwargs):
 
-    if isinstance(alignmentfile, _string_types):
+    if isinstance(alignmentfile, str):
         alignmentfile = AlignmentFile(alignmentfile)
 
-    if isinstance(fafile, _string_types):
+    if isinstance(fafile, str):
         fafile = FastaFile(fafile)
 
     if window_offset is None:

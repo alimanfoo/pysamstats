@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import numpy as np
-from pysam import Samfile
+from pysam import AlignmentFile
 
 import pysamstats
 from pysamstats.config import stats_types, stats_types_withref
@@ -20,9 +20,9 @@ def generate_fixtures():
     for stats_type in stats_types:
         load = getattr(pysamstats, "load_" + stats_type)
         if stats_type in stats_types_withref:
-            data[stats_type] = load(Samfile(bampath), fafile=fastapath)
+            data[stats_type] = load(AlignmentFile(bampath), fafile=fastapath)
         else:
-            data[stats_type] = load(Samfile(bampath))
+            data[stats_type] = load(AlignmentFile(bampath))
 
     np.savez_compressed(archive, **data)
 

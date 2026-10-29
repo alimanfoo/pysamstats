@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function, division
 import logging
-import sys
+from itertools import zip_longest
 from math import sqrt
 from pathlib import Path
 
@@ -9,9 +7,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 from numpy import around as round
-
-
-from pysam import Samfile, Fastafile
 
 
 logger = logging.getLogger(__name__)
@@ -25,17 +20,8 @@ def fixture_path(name):
     return str(FIXTURE_DIR / name)
 
 
-# PY2/3 compatibility
-PY2 = sys.version_info[0] == 2
-if PY2:
-    # noinspection PyUnresolvedReferences
-    from itertools import izip_longest
-else:
-    from itertools import zip_longest as izip_longest
-
-
 def compare_iterators(expected, actual):
-    for e, a in izip_longest(expected, actual, fillvalue=None):
+    for e, a in zip_longest(expected, actual, fillvalue=None):
         assert e is not None, ('expected value is None', e, a)
         assert a is not None, ('actual value is None', e, a)
         for k, v in e.items():
