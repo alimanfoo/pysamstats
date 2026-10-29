@@ -84,11 +84,11 @@ jobs:
         uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
         env:
           CIBW_ARCHS: ${{ matrix.arch }}
-          CIBW_BUILD: cp311-* cp312-* cp313-* cp314-* cp315-*
+          CIBW_BUILD: cp311-* cp312-* cp313-*
           CIBW_BUILD_FRONTEND: pip
           CIBW_SKIP: "*-musllinux_*"
           CIBW_BEFORE_ALL: >
-            printf 'pysam==0.24.1\n' > /tmp/pysamstats-build-constraints.txt
+            printf 'pysam==0.23.3\n' > /tmp/pysamstats-build-constraints.txt
           CIBW_ENVIRONMENT: >
             PIP_BUILD_CONSTRAINT=/tmp/pysamstats-build-constraints.txt
             PIP_VERBOSE=1
