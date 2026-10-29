@@ -9,6 +9,12 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request cancels that pull request's older run.
+# Runs on main are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     name: ${{ matrix.os }} / Python ${{ matrix.python }} / ${{ matrix.dependencies }}
@@ -19,6 +25,16 @@ jobs:
         os: [ubuntu-latest, macos-15]
         python: ["3.11", "3.12", "3.13", "3.14", "3.15"]
         dependencies: [current]
+        # macOS runners are scarce (5 at once per account). The release
+        # workflow already builds and tests a macOS wheel for every Python,
+        # so here macOS covers only the oldest and newest.
+        exclude:
+          - os: macos-15
+            python: "3.12"
+          - os: macos-15
+            python: "3.13"
+          - os: macos-15
+            python: "3.14"
         include:
           - os: ubuntu-latest
             python: "3.11"
