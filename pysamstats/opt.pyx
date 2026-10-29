@@ -1873,7 +1873,7 @@ def stat_pileup(PileupStat stat,
                 bint no_del,
                 bint no_dup):
     cdef:
-        bam_pileup1_t** plp
+        const bam_pileup1_t** plp
         bam_pileup1_t* read
         bam1_t* b
         int i, n
