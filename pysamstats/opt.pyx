@@ -1,3 +1,4 @@
+# cython: language_level=3
 # cython: profile=False
 # cython: embedsignature=True
 from __future__ import print_function, division, absolute_import

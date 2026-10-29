@@ -1,4 +1,0 @@
-pysam
-numpy
-nose
-tables
