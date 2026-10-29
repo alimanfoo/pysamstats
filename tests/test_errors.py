@@ -1,6 +1,9 @@
 import subprocess
 import sys
 
+import pytest
+
+from pysamstats.io import write_hdf5
 from .util import fixture_path
 
 
@@ -47,3 +50,10 @@ for check in checks:
         "chromosome is None",
         "chromosome is None",
     ]
+
+
+def test_write_hdf5_names_extra_when_pytables_is_missing(monkeypatch):
+    monkeypatch.setitem(sys.modules, "tables", None)
+
+    with pytest.raises(ImportError, match=r"install pysamstats\[hdf5\]"):
+        write_hdf5("coverage", "unused.h5", None)
