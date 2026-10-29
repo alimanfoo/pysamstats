@@ -153,7 +153,7 @@ Examples:
     pysamstats --type coverage example.bam > example.coverage.txt
     pysamstats --type coverage --chromosome Pf3D7_v3_01 --start 100000 --end 200000 example.bam > example.coverage.txt
 
-Version: 1.1.2 (pysam 0.15.1)
+Version: 1.2.0 (pysam 0.24.1)
 ```
 
 From Python:
@@ -282,6 +282,24 @@ properly paired.
 
 Release notes
 -------------
+
+**1.2.0**
+
+* Support CPython 3.11 through 3.15 and pysam 0.24.
+
+* Distribute Linux x86_64, Linux aarch64, and macOS arm64 wheels.
+
+* Correct overlap handling in the `baseq_strand`, `baseq_ext`, and
+  `baseq_ext_strand` statistics to match htslib.
+
+* Write TSV and CSV output with `\n` line endings, rather than `\r\n`
+  (#92).
+
+* Raise `ValueError` instead of `AssertionError` for invalid coordinates and
+  chromosome inputs (#127).
+
+* Install the `pysamstats` command as a console script, replacing
+  `scripts/pysamstats`.
 
 **1.1.2**
 

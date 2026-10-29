@@ -86,7 +86,7 @@ Every session that implements a stage should correct the specifications as detai
 ## 6. Floors matrix
 
 **Delivers:**
-- The PR/push workflow grows to CPython 3.11–3.15 on Linux x86_64 and macOS arm64.
+- The PR/push workflow runs CPython 3.11–3.15 on Linux x86_64 and Python 3.11 and 3.15 on macOS arm64.
 - One more row runs on Python 3.11. It pins the build dependencies to their floors (setuptools 77.0.1, Cython 3.1.0, pysam 0.24.1) with a build constraint, and installs the runtime and test dependencies with uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, pytest 7.2.1, tables 3.10.1).
 
 **Proof:** every row is green, and the floors row's log shows those exact versions installed.
