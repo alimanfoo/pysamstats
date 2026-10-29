@@ -1,0 +1,53 @@
+[[conversation]]
+label = "agent-conversation"
+
+[conversation.claude]
+prompt = "/dream:scout GH{issue}"
+model = "opus"
+effort = "high"
+
+[conversation.codex]
+prompt = "$dream:scout GH{issue}"
+model = "gpt-5.6-sol"
+effort = "high"
+
+[[assignment]]
+label = "agent-assignment"
+
+[assignment.claude]
+prompt = "/dream:smith GH{issue}"
+model = "opus[1m]"
+effort = "high"
+
+[assignment.codex]
+prompt = "$dream:smith GH{issue}"
+model = "gpt-5.6-sol"
+effort = "high"
+config = { model_context_window = 1000000, model_auto_compact_token_limit = 900000 }
+
+[[assignment]]
+label = "agent-assignment-easy"
+
+[assignment.claude]
+prompt = "/dream:less GH{issue}"
+model = "sonnet"
+effort = "high"
+
+[assignment.codex]
+prompt = "$dream:less GH{issue}"
+model = "gpt-5.6-terra"
+effort = "high"
+
+[[campaign]]
+label = "agent-campaign"
+
+[campaign.claude]
+prompt = "/dream:big GH{issue}"
+model = "opus[1m]"
+effort = "high"
+
+[campaign.codex]
+prompt = "$dream:big GH{issue}"
+model = "gpt-5.6-sol"
+effort = "high"
+config = { model_context_window = 1000000, model_auto_compact_token_limit = 900000 }
