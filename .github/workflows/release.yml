@@ -68,12 +68,11 @@ jobs:
           name: pysamstats-sdist
           path: dist
 
-      - name: Prepare source distribution and tests
+      - name: Extract source distribution
         shell: bash
         run: |
           mkdir package
           tar -xzf "$(find dist -maxdepth 1 -name '*.tar.gz' -print -quit)" -C package --strip-components=1
-          cp -R tests package/cibw_tests
 
       - name: Build and test wheels
         uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
@@ -89,10 +88,10 @@ jobs:
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_MANYLINUX_AARCH64_IMAGE: manylinux_2_28
           CIBW_TEST_GROUPS: test
-          CIBW_TEST_SOURCES: cibw_tests
+          CIBW_TEST_SOURCES: tests
           CIBW_TEST_COMMAND: >
             python -c 'import pysam; print("test pysam:", pysam.__version__)' &&
-            python -m pytest cibw_tests -q --tb=short
+            python -m pytest tests -q --tb=short
         with:
           package-dir: package
 
