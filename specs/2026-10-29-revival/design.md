@@ -112,7 +112,7 @@ The rule for the fixture: when it fails after a pysam bump, find the upstream ca
 There are two workflows:
 
 1. **Pull requests and pushes to main.** Build from source and run the tests on Linux x86_64 and macOS arm64 for CPython 3.11–3.15. One extra row, on Python 3.11, uses the oldest allowed version of everything. Runtime dependencies come from uv's `--resolution lowest-direct` (pysam 0.24.1, numpy 2.0, tables 3.10.1). Build dependencies are pinned to their floors with a build constraint (setuptools 77, Cython 3.1). That makes every declared floor something we've tested.
-2. **Release.** Runs as a dry run, which builds and tests everything but doesn't publish, on every pull request, every push to master and manual dispatch. It publishes only on `v*` tags. That's the shape cibuildwheel's own example uses. The build is a single small extension, so running it on every PR costs a few minutes, and it avoids a path filter that would need maintaining. In order, it does the following:
+2. **Release.** Runs as a dry run, which builds and tests everything but doesn't publish, on every pull request, every push to main and manual dispatch. It publishes only on `v*` tags. That's the shape cibuildwheel's own example uses. The build is a single small extension, so running it on every PR costs a few minutes, and it avoids a path filter that would need maintaining. In order, it does the following:
    - on tags, checks the tag against `__version__`;
    - builds the sdist;
    - builds the wheels **from that sdist**, not from the git checkout, so a broken sdist fails the release instead of shipping. cibuildwheel can do this directly;
