@@ -12,7 +12,6 @@ from pathlib import Path
 from pysam import Samfile, Fastafile
 
 
-sys.path.append('.')
 import pysamstats
 
 
