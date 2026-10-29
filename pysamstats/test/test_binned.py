@@ -6,7 +6,6 @@ import logging
 
 
 from pysam import Samfile, Fastafile
-from nose.tools import eq_
 from numpy import around as round
 
 
@@ -595,8 +594,8 @@ def test_binned_pad_region():
         else:
             a = f(Samfile('fixture/test.bam'), **kwargs)
         assert set(a['chrom']) == {b'Pf3D7_01_v3'}
-        eq_(1100, a['pos'][0])
-        eq_(19900, a['pos'][-1])
+        assert a['pos'][0] == 1100
+        assert a['pos'][-1] == 19900
 
 
 def test_binned_pad_wg():
@@ -618,9 +617,9 @@ def test_binned_pad_wg():
             a = f(Samfile('fixture/test.bam'), **kwargs)
         assert sorted(set(a['chrom'])) == [b'Pf3D7_01_v3', b'Pf3D7_02_v3',
                                            b'Pf3D7_03_v3']
-        eq_(100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0])
-        eq_(50100, a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1])
-        eq_(100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][0])
-        eq_(60100, a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1])
-        eq_(100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][0])
-        eq_(70100, a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1])
+        assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][0] == 100
+        assert a[a['chrom'] == b'Pf3D7_01_v3']['pos'][-1] == 50100
+        assert a[a['chrom'] == b'Pf3D7_02_v3']['pos'][0] == 100
+        assert a[a['chrom'] == b'Pf3D7_02_v3']['pos'][-1] == 60100
+        assert a[a['chrom'] == b'Pf3D7_03_v3']['pos'][0] == 100
+        assert a[a['chrom'] == b'Pf3D7_03_v3']['pos'][-1] == 70100
